@@ -267,14 +267,33 @@ print_banner() {
     for ((i=0; i<inner_width; i++)); do hrule+="$I_BOX_H"; done
 
     printf "\n"
+    # Top Border
     printf "  %s%s%s\n" "$(colorize "$C_CYAN" "$I_BOX_TL")" "$(colorize "$C_CYAN" "$hrule")" "$(colorize "$C_CYAN" "$I_BOX_TR")"
-    box_line "$(colorize "${C_BOLD}${C_CYAN}" "$title")" "$inner_width"
+    
+    # Title Line
+    # Calculate right padding using the raw ${#title} to avoid invisible character math
+    local title_pad=$(( inner_width - 2 - ${#title} ))
+    printf "  %s  %s%*s%s\n" \
+        "$(colorize "$C_CYAN" "$I_BOX_V")" \
+        "$(colorize "${C_BOLD}${C_CYAN}" "$title")" \
+        "$title_pad" "" \
+        "$(colorize "$C_CYAN" "$I_BOX_V")"
+
+    # Subtitle Line (if provided)
     if [[ -n "$subtitle" ]]; then
-        box_line "$(colorize "$C_DIM" "$subtitle")" "$inner_width"
+        local sub_pad=$(( inner_width - 2 - ${#subtitle} ))
+        printf "  %s  %s%*s%s\n" \
+            "$(colorize "$C_CYAN" "$I_BOX_V")" \
+            "$(colorize "$C_DIM" "$subtitle")" \
+            "$sub_pad" "" \
+            "$(colorize "$C_CYAN" "$I_BOX_V")"
     fi
+
+    # Bottom Border
     printf "  %s%s%s\n" "$(colorize "$C_CYAN" "$I_BOX_BL")" "$(colorize "$C_CYAN" "$hrule")" "$(colorize "$C_CYAN" "$I_BOX_BR")"
     printf "\n"
 }
+
 
 format_size() {
     local size="$1"
@@ -308,9 +327,16 @@ draw_progress() {
     local current="$1"
     local total="$2"
     local label="$3"
-    local bar_width=20
 
     (( total == 0 )) && return
+
+    # 1. Get terminal width dynamically (fallback to 80 if unsupported)
+    local term_width=$(tput cols 2>/dev/null || echo 80)
+
+    # 2. Scale the progress bar based on screen size, keeping it within sensible limits
+    local bar_width=$(( term_width / 4 ))
+    (( bar_width > 30 )) && bar_width=30
+    (( bar_width < 10 )) && bar_width=10
 
     local pct=$(( current * 100 / total ))
     local filled=$(( current * bar_width / total ))
@@ -321,12 +347,21 @@ draw_progress() {
     for ((i=0; i<filled; i++)); do bar+="$I_PROG_FILL"; done
     for ((i=0; i<empty;  i++)); do bar+="$I_PROG_EMPTY"; done
 
-    # Truncate label to keep the line from wrapping on narrow terminals
+    # 3. Calculate exactly how many characters the static UI elements take up
+    # Padding(2) + Gear(1) + Brackets(2) + Spaces(8) + % + Fractions
+    local ui_reserved=$(( 14 + bar_width + 3 + ${#current} + ${#total} ))
+    
+    # 4. Calculate available space for the filename label
+    local max_label_len=$(( term_width - ui_reserved ))
+    
     local display_label="$label"
-    if (( ${#display_label} > 35 )); then
-        display_label="${display_label:0:32}..."
+    if (( max_label_len < 5 )); then
+        display_label="" # Screen is extremely narrow, hide the text to save the UI
+    elif (( ${#display_label} > max_label_len )); then
+        display_label="${display_label:0:$((max_label_len - 3))}..."
     fi
 
+    # 5. Print out the bar exactly as before
     if [[ "$CAP_USE_COLOR" == true ]]; then
         local prog_color="$C_CYAN"
         if (( pct >= 100 )); then
@@ -340,34 +375,17 @@ draw_progress() {
         local gear_colored="$(colorize "$C_CYAN" "$I_GEAR")"
         local bar_colored="$(colorize "$prog_color" "$bar")"
 
-        # \033[2K = clear entire line, \r = return to start
-        # This guarantees the line is wiped clean before we redraw
         printf "%s" $'\033[2K\r'
         printf "  %s%s%s[%s]%s %s%3d%%%s  %s%d/%d%s  %s%s%s" \
-            "$C_DIM" \
-            "$gear_colored" \
-            "$C_DIM" \
+            "$C_DIM" "$gear_colored" "$C_DIM" \
             "$bar_colored" \
-            "$C_DIM" \
-            "$C_BOLD" \
-            "$pct" \
-            "$C_RESET" \
-            "$C_DIM" \
-            "$current" \
-            "$total" \
-            "$C_RESET" \
-            "$C_DIM" \
-            "$display_label" \
-            "$C_RESET"
+            "$C_DIM" "$C_BOLD" "$pct" "$C_RESET" \
+            "$C_DIM" "$current" "$total" "$C_RESET" \
+            "$C_DIM" "$display_label" "$C_RESET"
     else
         printf "%s" $'\033[2K\r'
         printf "  %s [%s] %3d%%  %d/%d  %s" \
-            "$I_GEAR" \
-            "$bar" \
-            "$pct" \
-            "$current" \
-            "$total" \
-            "$display_label"
+            "$I_GEAR" "$bar" "$pct" "$current" "$total" "$display_label"
     fi
 }
 
@@ -379,6 +397,35 @@ normalize_extension() {
     local ext="$1"
     ext="${ext#.}"
     printf "%s" "$ext"
+}
+
+is_excluded_file() {
+    local filepath="$1"
+    local base_name
+    base_name="$(basename "$filepath")"
+    
+    # 1. Check exact filenames (lowercased for safety)
+    local lower_base="${base_name,,}"
+    case "$lower_base" in
+        license|licence|copying|notice|readme|changelog|contributing|makefile|dockerfile|containerfile)
+            return 0 # In Bash, 0 means "Success/True"
+            ;;
+        package-lock.json|yarn.lock|cargo.lock|pnpm-lock.yaml|composer.lock)
+            return 0
+            ;;
+    esac
+
+    # 2. Check by file extensions
+    if [[ "$base_name" == *.* ]]; then
+        local ext="${base_name##*.}"
+        case "${ext,,}" in
+            md|json|yaml|yml|toml|xml|ini|conf|html|log|lock)
+                return 0
+                ;;
+        esac
+    fi
+
+    return 1 # 1 means "False/No Match"
 }
 
 compute_new_name() {
@@ -493,7 +540,17 @@ show_version() {
 # ==============================================================================
 #  8.  MAIN
 # ==============================================================================
+
 main() {
+
+local file_old_names=()
+local total_size=0
+local file_count=0
+local excluded_skipped=0
+# Add these for tracking successful operations
+declare -a ROLLBACK_SRC=()
+declare -a ROLLBACK_DST=()
+
     case "${1:-}" in
         -h|--help)
             show_help
@@ -592,6 +649,13 @@ main() {
             continue
         fi
 
+        if is_excluded_file "$filepath"; then
+            dest_names+=("$filepath")
+            excluded_skipped=$(( excluded_skipped + 1 ))
+            continue
+        fi
+
+
         local dest
         if [[ "$mode" == "copy" ]]; then
             dest="$(compute_new_name "$filepath" "$new_ext" "$output_dir")"
@@ -613,7 +677,7 @@ main() {
     done
 
     local total_files=${#file_old_names[@]}
-    local active_count=$(( total_files - already_skipped ))
+    local active_count=$(( total_files - already_skipped - excluded_skipped ))
 
     local mode_label="In-place rename"
     [[ "$mode" == "copy" ]] && mode_label="Copy + rename → $(colorize "$C_CYAN" "$output_dir")"
@@ -642,41 +706,77 @@ main() {
 
     printf "\n"
 
-    local preview_count=5
-    (( file_count < preview_count )) && preview_count=$file_count
+    # 1. Initialize budget tracking counters
+    local idx=0
+    local total_printed=0
+    local exclusions_printed=0
+    local actionable_printed=0
 
-    printf "  %s  %s %s\n" "$(colorize "$C_BLUE_BRIGHT" "$I_COLLAPSED")" "$(colorize "$C_BOLD" "Preview")" "$(colorize "$C_DIM" "(first ${preview_count} of ${file_count} files):")"
+    # 2. Set quotas (adjust these numbers to change your preview balance)
+    local max_exclusions=4
+    local max_actionable=6
 
-    local idx
-    for ((idx=0; idx<preview_count; idx++)); do
-        local src_name
-        src_name="$(basename "${file_old_names[$idx]}")"
-        local dst_name
-        dst_name="$(basename "${dest_names[$idx]}")"
+    printf "  %s  %s %s\n" "$(colorize "$C_BLUE_BRIGHT" "$I_COLLAPSED")" "$(colorize "$C_BOLD" "Preview")" "$(colorize "$C_DIM" "(balanced summary of discovered files):")"
 
+    # 3. Dynamic search loop
+    while (( idx < total_files )); do
+        # Break early if we have completely satisfied both quotas
+        if (( exclusions_printed >= max_exclusions && actionable_printed >= max_actionable )); then
+            break
+        fi
+
+        local src_name="$(basename "${file_old_names[$idx]}")"
+        local dst_name="$(basename "${dest_names[$idx]}")"
         local src_rel="${file_old_names[$idx]#"$source_dir"/}"
-        if [[ "$src_rel" == "${file_old_names[$idx]}" ]]; then
-            src_rel="$src_name"
+        [[ "$src_rel" == "${file_old_names[$idx]}" ]] && src_rel="$src_name"
+
+        # Determine file status
+        local is_ex=false
+        if is_excluded_file "${file_old_names[$idx]}"; then
+            is_ex=true
         fi
 
-        if [[ "$src_name" == "$dst_name" ]]; then
-            printf "    %s %s %s\n" \
-                "$(colorize "$C_DIM" "${I_ARROW}")" \
-                "$(colorize "$C_GRAY" "$src_rel")" \
-                "$(colorize "$C_YELLOW" "(already .${new_ext})")"
+        # 4. Quota Filtering Logic
+        local should_print=false
+        if [[ "$is_ex" == true ]]; then
+            if (( exclusions_printed < max_exclusions )); then
+                should_print=true
+            fi
         else
-            printf "    %s %s %s %s\n" \
-                "$(colorize "$C_DIM" "${I_ARROW}")" \
-                "$(colorize "$C_GRAY" "$src_rel")" \
-                "$(colorize "$C_CYAN" " ──→ ")" \
-                "$(colorize "$C_GREEN_BRIGHT" "$dst_name")"
+            if (( actionable_printed < max_actionable )); then
+                should_print=true
+            fi
         fi
+
+        # 5. Render lines matching the allowed budget
+        if [[ "$should_print" == true ]]; then
+            total_printed=$(( total_printed + 1 ))
+            
+            if [[ "$is_ex" == true ]]; then
+                exclusions_printed=$(( exclusions_printed + 1 ))
+                printf "    %s %s %s\n" \
+                    "$(colorize "$C_DIM" "${I_ARROW}")" \
+                    "$(colorize "$C_GRAY" "$src_rel")" \
+                    "$(colorize "$C_YELLOW" "(excluded)")"
+            else
+                actionable_printed=$(( actionable_printed + 1 ))
+                printf "    %s %s %s %s\n" \
+                    "$(colorize "$C_DIM" "${I_ARROW}")" \
+                    "$(colorize "$C_GRAY" "$src_rel")" \
+                    "$(colorize "$C_CYAN" " ──→ ")" \
+                    "$(colorize "$C_GREEN_BRIGHT" "$dst_name")"
+            fi
+        fi
+
+        idx=$(( idx + 1 ))
     done
 
-    local remaining=$(( file_count - preview_count ))
+    # 6. Correctly calculate the unprinted remainder
+    local remaining=$(( total_files - total_printed ))
     if (( remaining > 0 )); then
         printf "    %s\n" "$(colorize "$C_DIM" "${I_ELLIPSIS} and ${remaining} more file(s)")"
     fi
+
 
     printf "\n"
 
@@ -700,7 +800,7 @@ main() {
 
     local success_count=0
     local failed_count=0
-    local skipped_count=$already_skipped
+    local skipped_count=0
     local renamed_files=()
     local failed_files=()
     local skipped_list=()
@@ -708,10 +808,68 @@ main() {
     local start_time
     start_time=$(date +%s)
 
+handle_interrupt() {
+        # Immediately disable the trap so a second Ctrl+C actually kills the script
+        trap - SIGINT
+        
+        printf "\n\n"
+        msg_warning "Process interrupted by user (Ctrl+C)!"
+        
+        local count=${#ROLLBACK_SRC[@]}
+        if (( count == 0 )); then
+            msg_info "No files were modified yet. Exiting safely."
+            exit 130
+        fi
+
+        printf "  %s  %d file(s) have already been processed.\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$count"
+        
+        if [[ "$CAP_IS_INTERACTIVE" == true ]]; then
+            local proceed=""
+            printf "  %s  Do you want to roll back these changes? %s %s" \
+                "$(colorize "${C_BOLD}${C_YELLOW}" "$I_SEARCH")" \
+                "$(colorize "$C_GREEN" "[Y/n]")" \
+                "$(colorize "$C_DIM" "> ")"
+            read -r proceed
+            case "${proceed,,}" in
+                y|yes|"")
+                    msg_working "Rolling back changes..."
+                    local fails=0
+                    
+                    # Loop backward through our history
+                    for (( i=${#ROLLBACK_SRC[@]}-1; i>=0; i-- )); do
+                        local r_src="${ROLLBACK_SRC[$i]}"
+                        local r_dst="${ROLLBACK_DST[$i]}"
+                        
+                        if [[ "$mode" == "copy" ]]; then
+                            # Reversing a copy means deleting the new file
+                            rm -f "$r_dst" || fails=$((fails+1))
+                        else
+                            # Reversing a rename means moving it back
+                            mv -- "$r_dst" "$r_src" || fails=$((fails+1))
+                        fi
+                    done
+                    
+                    if (( fails > 0 )); then
+                        msg_error "Rollback completed with $fails error(s)."
+                    else
+                        msg_success "Rollback successful. Original state restored."
+                    fi
+                    ;;
+                *)
+                    msg_info "Keeping changes. Exiting."
+                    ;;
+            esac
+        fi
+        exit 130
+    }
+
     msg_working "Processing $(colorize "$C_BOLD" "$active_count") file(s)..."
     printf "\n"
 
     local progress_current=0
+
+    # Activate the trap right before the loop starts
+    trap 'handle_interrupt' SIGINT
 
     for ((idx=0; idx<total_files; idx++)); do
         local src="${file_old_names[$idx]}"
@@ -723,9 +881,16 @@ main() {
 
         if [[ "$src" == "$dst" ]]; then
             skipped_count=$(( skipped_count + 1 ))
-            skipped_list+=("$src_name (already .${new_ext})")
+            
+            # Use your helper function to tag the reason accurately in the summary
+            if is_excluded_file "$src"; then
+                skipped_list+=("$src_name (excluded)")
+            else
+                skipped_list+=("$src_name (already .${new_ext})")
+            fi
             continue
         fi
+
 
         progress_current=$(( progress_current + 1 ))
         draw_progress "$progress_current" "$active_count" "$src_name"
@@ -754,6 +919,9 @@ main() {
         if (( op_status == 0 )); then
             success_count=$(( success_count + 1 ))
             renamed_files+=("$dst_name")
+            # Track the exact paths for a potential rollback
+            ROLLBACK_SRC+=("$src")
+            ROLLBACK_DST+=("$dst")
         else
             failed_count=$(( failed_count + 1 ))
             failed_files+=("$src_name (exit: ${op_status})")
@@ -767,6 +935,9 @@ main() {
     draw_progress "$active_count" "$active_count" "Complete"
     printf "\n\n"
 
+    # Deactivate the trap
+    trap - SIGINT
+
     local end_time
     end_time=$(date +%s)
     local duration=$(( end_time - start_time ))
@@ -776,8 +947,8 @@ main() {
     printf "  %s  %s\n" "$(colorize "$C_GREEN" "$I_TICK")" "$(colorize "$C_BOLD" "Summary")"
     printf "\n"
     printf "    %s  Success:  %s\n" "$(colorize "$C_GREEN"  "$I_SUCCESS")" "$(colorize "${C_BOLD}${C_GREEN}"   "$success_count")"
-    printf "    %s  Skipped:  %s\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$(colorize "${C_BOLD}${C_YELLOW}"  "$skipped_count")"
-    printf "    %s   Failed:   %s\n" "$(colorize "$C_RED"    "$I_ERROR")" "$(colorize "${C_BOLD}${C_RED}"     "$failed_count")"
+    printf "    %s   Skipped:  %s\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$(colorize "${C_BOLD}${C_YELLOW}"  "$skipped_count")"
+    printf "    %s  Failed:   %s\n" "$(colorize "$C_RED"    "$I_ERROR")" "$(colorize "${C_BOLD}${C_RED}"    "$failed_count")"
     if (( total_files > 0 )); then
         local success_rate=$(( (success_count * 100) / total_files ))
         printf "    %s\n" "$(colorize "$C_DIM" "───────")"
