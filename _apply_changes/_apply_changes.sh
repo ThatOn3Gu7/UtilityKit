@@ -728,7 +728,7 @@ if [[ $CHANGE_COUNT -eq 0 ]]; then
   info "${FG_BRIGHT_GREEN}✔ Verification succeeded:${R} target now matches the source for the selected sync mode."
   log_action "Verification succeeded."
 else
-  warn "${FG_BRIGHT_RED}✘ Verification found remaining differences after apply:${R}"
+  warn "${FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${R}"
   log_action "Verification found remaining differences."
   print_change_summary
 fi

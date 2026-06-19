@@ -11,7 +11,7 @@
 
 set -o pipefail
 
-VERSION="1.1.1"
+VERSION="1.0.1"
 
 # ---------------------------------------------------------------------------
 CC_OLDER_THAN=60
@@ -145,8 +145,8 @@ cc_setup_box_chars() {
     I_BROOM='✦' I_OK='✔' I_ERR='✖' I_WARN='⚠' I_PKG='◉' I_MAGIC='◆'
     I_STOP='◉' I_CHART='◈' I_ARROW='▸' I_INFO='ℹ' I_MINUS='◦' I_DOT='●'
   else
-    I_BROOM='*' I_OK='[OK]' I_ERR='[X]' I_WARN='[!]' I_PKG='[o]' I_MAGIC='[*]'
-    I_STOP='[!]' I_CHART='[#]' I_ARROW='>' I_INFO='i' I_MINUS='-' I_DOT='o'
+    I_BROOM='*' I_OK='[OK]' I_ERR='[X]' I_WARN='[ℹ]' I_PKG='[o]' I_MAGIC='[*]'
+    I_STOP='[ℹ]' I_CHART='[#]' I_ARROW='>' I_INFO='i' I_MINUS='-' I_DOT='o'
   fi
 }
 

@@ -18,15 +18,17 @@ IFS=$'\n\t'
 #  0.  METADATA
 # ==============================================================================
 readonly SCRIPT_NAME="Batch File Renamer"
-readonly SCRIPT_VERSION="3.0.3"
+readonly SCRIPT_VERSION="1.0.3"
 readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 # ==============================================================================
 #  1.  TERMINAL CAPABILITY DETECTION
 # ==============================================================================
+
 CAP_USE_COLOR=false
 CAP_USE_UNICODE=false
 CAP_IS_INTERACTIVE=false
+OPT_ALLOW_EXCLUDED=false # Global switch for exclusion overrides
 
 init_terminal_caps() {
     if [[ -n "${NO_COLOR:-}" ]]; then
@@ -190,7 +192,7 @@ init_icons() {
         I_LOZENGE="◆"
         I_PLAY="▶"
         I_TICK="✔"
-        I_CROSS="✘"
+        I_CROSS="✖"
         I_ELLIPSIS="…"
         I_SEPARATOR="╱"
         I_GEAR="⚙"
@@ -199,7 +201,7 @@ init_icons() {
         I_INFO="i"
         I_SUCCESS="[OK]"
         I_ERROR="[ERR]"
-        I_WARNING="[!]"
+        I_WARNING="[ℹ]"
         I_WORKING="[*]"
         I_ARROW=">"
         I_STAR="*"
@@ -400,6 +402,9 @@ normalize_extension() {
 }
 
 is_excluded_file() {
+    # If the user forced the operation, nothing is excluded
+    [[ "$OPT_ALLOW_EXCLUDED" == true ]] && return 1
+    
     local filepath="$1"
     local base_name
     base_name="$(basename "$filepath")"
@@ -483,7 +488,8 @@ show_help() {
 
     printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "USAGE")"
     printf "\n"
-    printf "    %s %s %s %s\n" "$(colorize "$C_CYAN" "  $0")" "$(colorize "$C_GREEN" "<source_dir>")" "$(colorize "$C_YELLOW" "<new_extension>")" "$(colorize "$C_GRAY" "[output_dir]")"
+    printf "    %s %s %s %s %s\n" "$(colorize "$C_CYAN" "  $0")" "$(colorize "$C_GREEN" "<source_dir>")" "$(colorize "$C_YELLOW" "<new_extension>")" "$(colorize "$C_GRAY" "[output_dir]")" "$(colorize "$C_CYAN" "[flags]")"
+    printf "    %s %s\n" "$(colorize "$C_CYAN" "  $0")" "$(colorize "$C_DIM" "(runs Interactive Wizard if executed without arguments)")"
     printf "\n"
     printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "DESCRIPTION")"
     printf "\n"
@@ -499,10 +505,11 @@ show_help() {
     printf "    %-18s %s\n" "$(colorize "$C_YELLOW" "new_extension")" "Target extension (e.g. txt, md, py)"
     printf "    %-18s %s\n" "$(colorize "$C_GRAY"   "output_dir")" "(Optional) destination directory"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "OPTIONS")"
+    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "OPTIONS / FLAGS")"
     printf "\n"
-    printf "    %s      %s\n" "$(colorize "$C_CYAN" "-h, --help")" "Show this message"
-    printf "    %s   %s\n" "$(colorize "$C_CYAN" "-v, --version")" "Show version info"
+    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-f, --force, --all")" "Force process protected files (README, LICENSE, etc.)"
+    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-h, --help")" "Show this message"
+    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-v, --version")" "Show version info"
     printf "\n"
     printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "EXAMPLES")"
     printf "\n"
@@ -512,8 +519,8 @@ show_help() {
     printf "    %s\n" "$(colorize "$C_DIM" "# Copy+rename to ./renamed-files")"
     printf "    %s\n" "$(colorize "$C_GREEN" "  $0 ./ProjectR md ./renamed-files")"
     printf "\n"
-    printf "    %s\n" "$(colorize "$C_DIM" "# Rename current dir contents to .bak")"
-    printf "    %s\n" "$(colorize "$C_GREEN" "  $0 . bak")"
+    printf "    %s\n" "$(colorize "$C_DIM" "# Force change extensions on every file, including Markdown files")"
+    printf "    %s\n" "$(colorize "$C_GREEN" "  $0 . bak --force")"
     printf "\n"
     printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "EXIT CODES")"
     printf "\n"
@@ -526,6 +533,7 @@ show_help() {
     printf "    %s   %s\n" "$(colorize "$C_CYAN" "NO_COLOR")" "Set to any value to disable ANSI"
     printf "\n"
 }
+
 
 show_version() {
     printf "%s %s\n" "$(colorize "${C_BOLD}${C_CYAN}" "$SCRIPT_NAME")" "$(colorize "$C_GREEN" "v${SCRIPT_VERSION}")"
@@ -542,65 +550,79 @@ show_version() {
 # ==============================================================================
 
 main() {
-
-local file_old_names=()
-local total_size=0
-local file_count=0
-local excluded_skipped=0
-# Add these for tracking successful operations
-declare -a ROLLBACK_SRC=()
-declare -a ROLLBACK_DST=()
-
-    case "${1:-}" in
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -v|--version)
-            show_version
-            exit 0
-            ;;
-    esac
-
-    if [[ $# -lt 2 ]]; then
-        msg_error "Missing arguments. Expected: <source_dir> <new_extension> [output_dir]"
-        msg_info "Try '$0 --help' for details."
-        exit 1
-    fi
-
-    local source_dir="$1"
-    local new_ext_raw="$2"
-    local output_dir="${3:-}"
-    local mode="in-place"
-
-    local new_ext
-    new_ext="$(normalize_extension "$new_ext_raw")"
-
-    if [[ ! -d "$source_dir" ]]; then
-        msg_error "Source directory does not exist: $(colorize "$C_BOLD" "$source_dir")"
-        exit 1
-    fi
-
-    source_dir="$(cd "$source_dir" 2>/dev/null && pwd)" || {
-        msg_error "Cannot access source directory: $source_dir"
-        exit 1
-    }
-
-    if [[ -n "$output_dir" ]]; then
-        if [[ -f "$output_dir" ]]; then
-            msg_error "Output path is an existing file: $(colorize "$C_BOLD" "$output_dir")"
-            exit 1
+        # 1. Parse incoming script flags and parameters
+        local positional_args=()
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                -h|--help)
+                    show_help
+                    exit 0
+                    ;;
+                -v|--version)
+                    show_version
+                    exit 0
+                    ;;
+                -f|--force|--all)
+                    OPT_ALLOW_EXCLUDED=true
+                    shift
+                    ;;
+                *)
+                    positional_args+=("$1")
+                    shift
+                    ;;
+            esac
+        done
+       
+        # Structural tracking initializations
+        local excluded_skipped=0
+        declare -a ROLLBACK_SRC=()
+        declare -a ROLLBACK_DST=()
+       
+        local source_dir=""
+        local new_ext_raw=""
+        local output_dir=""
+        local mode="in-place"
+       
+        # 2. Dynamic Fallback to Conversational Menu if executed without target args
+        if [[ ${#positional_args[@]} -eq 0 ]]; then
+            if [[ "$CAP_IS_INTERACTIVE" == false ]]; then
+                msg_error "Non-interactive environment detected and no parameters supplied."
+                msg_info "Usage: $0 <source_dir> <new_extension> [output_dir]"
+                exit 1
+            fi
+       
+            print_banner "Interactive Configuration" "UtilityKit Script Wizard Fallback"
+       
+            printf "  %s  Enter target directory to process [default: .] \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            read -r source_dir
+            source_dir="${source_dir:-.}"
+       
+            printf "  %s  Enter target new extension format (e.g. sh, py, txt) \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            read -r new_ext_raw
+            while [[ -z "$new_ext_raw" ]]; do
+                msg_warning "Target configuration format extension cannot be blank."
+                printf "  %s " "$(colorize "$C_DIM" "> ")"
+                read -r new_ext_raw
+            done
+       
+            printf "  %s  Enter output export directory (Optional: leave blank for in-place) \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            read -r output_dir
+        else
+            # Fallback to normal CLI processing if parameters are present
+            if [[ ${#positional_args[@]} -lt 2 ]]; then
+                msg_error "Missing required parameters. Expected: <source_dir> <new_extension> [output_dir]"
+                msg_info "Try '$0 --help' for syntax options."
+                exit 1
+            fi
+            source_dir="${positional_args[0]}"
+            new_ext_raw="${positional_args[1]}"
+            output_dir="${positional_args[2]:-}"
         fi
+       
+        # 3. Path & Normalization Logic Continues ...
+        local new_ext
+        new_ext="$(normalize_extension "$new_ext_raw")"
 
-        mkdir -p "$output_dir" 2>/dev/null || {
-            msg_error "Cannot create output directory: $output_dir"
-            exit 1
-        }
-
-        output_dir="$(cd "$output_dir" 2>/dev/null && pwd)" || {
-            msg_error "Cannot access output directory: $output_dir"
-            exit 1
-        }
 
         if [[ "$source_dir" == "$output_dir" ]]; then
             msg_warning "Source and output directories are identical — switching to in-place mode."
@@ -609,27 +631,24 @@ declare -a ROLLBACK_DST=()
         else
             mode="copy"
         fi
-    fi
 
     msg_working "Scanning for files in $(colorize "${C_BOLD}${C_CYAN}" "$source_dir") ..."
 
     local file_old_names=()
     local total_size=0
     local file_count=0
-
-    while IFS= read -r -d '' filepath; do
-        local base
-        base="$(basename "$filepath")"
+    
+    # High-Performance Scan: Zero external process forks inside the loop!
+    while IFS=$'\t' read -r -d '' filepath file_size; do
+        local base="${filepath##*/}"
+        
         [[ "$base" == .* ]] && continue
         [[ ! -f "$filepath" ]] && continue
 
         file_old_names+=("$filepath")
-
-        local file_size=0
-        file_size=$(stat -c%s "$filepath" 2>/dev/null || stat -f%z "$filepath" 2>/dev/null || printf "0")
         total_size=$(( total_size + file_size ))
         file_count=$(( file_count + 1 ))
-    done < <(find "$source_dir" -type f ! -path '*/\.*' -print0 2>/dev/null | sort -z)
+    done < <(find "$source_dir" -type f ! -path '*/\.*' -printf '%p\t%s\0' 2>/dev/null | sort -z)
 
     if (( file_count == 0 )); then
         msg_warning "No files found in $(colorize "$C_BOLD" "$source_dir")"
