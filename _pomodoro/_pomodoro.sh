@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/uk_common.sh"
+
+PO_WORK=25
+PO_BREAK=5
+PO_CYCLES=4
+PO_UNIT='minutes'
+PO_NO_BELL=0
+
+po_usage() {
+  cat <<'USAGE'
+Usage:
+  _pomodoro.sh [--work N] [--break N] [--cycles N] [--unit minutes|seconds] [--no-bell]
+USAGE
+}
+
+po_seconds() {
+  if [[ "$PO_UNIT" == 'seconds' ]]; then
+    printf '%s\n' "$1"
+  else
+    printf '%s\n' $(( $1 * 60 ))
+  fi
+}
+
+po_timer() {
+  local label="$1" total="$2" remaining="$2" icon='*' title='Session'
+  case "$label" in
+    work)
+      icon='*'
+      [[ -z "${NO_UNICODE:-}" ]] && icon='◆'
+      title='Work focus'
+      ;;
+    break)
+      icon='*'
+      [[ -z "${NO_UNICODE:-}" ]] && icon='☕'
+      title='Break time'
+      ;;
+  esac
+  while (( remaining > 0 )); do
+    printf '\r%s %-12s %4ss %s' "$icon" "$title" "$remaining" "$(uk_bar $((total-remaining)) "$total" 28)"
+    sleep 1
+    remaining=$((remaining - 1))
+  done
+  printf '\r%s %-12s %4ss %s\n' "$icon" "$title" 0 "$(uk_bar "$total" "$total" 28)"
+  (( PO_NO_BELL == 0 )) && printf '\a'
+  if uk_has_cmd termux-vibrate; then termux-vibrate -d 200 >/dev/null 2>&1 || true; fi
+}
+
+po_interactive() {
+  local value
+  uk_header 'UtilityKit Pomodoro' 'Choose your timer settings'
+  printf 'Work duration [25]: '
+  read -r value
+  PO_WORK=${value:-25}
+  printf 'Break duration [5]: '
+  read -r value
+  PO_BREAK=${value:-5}
+  printf 'Cycles [4]: '
+  read -r value
+  PO_CYCLES=${value:-4}
+  printf 'Unit (minutes|seconds) [minutes]: '
+  read -r value
+  PO_UNIT=${value:-minutes}
+  printf 'Disable bell/vibration? [y/N]: '
+  read -r value
+  [[ "$value" =~ ^[Yy]$ ]] && PO_NO_BELL=1
+}
+
+po_main() {
+  local seen_args=0
+  while [[ $# -gt 0 ]]; do
+    seen_args=1
+    case "$1" in
+      --work) shift; PO_WORK="${1:-25}" ;;
+      --break) shift; PO_BREAK="${1:-5}" ;;
+      --cycles) shift; PO_CYCLES="${1:-4}" ;;
+      --unit) shift; PO_UNIT="${1:-minutes}" ;;
+      --no-bell) PO_NO_BELL=1 ;;
+      -h|--help) po_usage; return 0 ;;
+      *) uk_error "Unknown option: $1"; return 1 ;;
+    esac
+    shift
+  done
+
+  if (( seen_args == 0 )) && [[ -t 0 && -t 1 ]]; then
+    po_interactive
+  fi
+
+  uk_header 'UtilityKit Pomodoro' "$PO_CYCLES cycle(s) | $PO_WORK work | $PO_BREAK break | unit=$PO_UNIT"
+  local cycle work_s break_s logf
+  work_s=$(po_seconds "$PO_WORK")
+  break_s=$(po_seconds "$PO_BREAK")
+  logf="$(uk_state_dir)/pomodoro.log"
+  for ((cycle=1; cycle<=PO_CYCLES; cycle++)); do
+    printf 'Cycle %d/%d\n' "$cycle" "$PO_CYCLES"
+    po_timer 'work' "$work_s"
+    printf '%s | completed work cycle %d\n' "$(uk_now)" "$cycle" >> "$logf"
+    if (( cycle < PO_CYCLES )); then
+      po_timer 'break' "$break_s"
+    fi
+  done
+  uk_success "Pomodoro complete. Log: $logf"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  po_main "$@"
+fi

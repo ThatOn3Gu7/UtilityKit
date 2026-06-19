@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# cacheclean.sh — Intelligent, safe, cross-platform cache cleaner
+# _cache_clean.sh — Intelligent, safe, cross-platform cache cleaner
 #
 # Visuals heavily upgraded (Gogh colors + figures symbols).
 # Termux-first design.
@@ -82,19 +82,26 @@ cc_parse_args() {
 # ---------------------------------------------------------------------------
 cc_setup_colors() {
   if [ "$CC_NO_COLOR" -eq 1 ] || [ ! -t 1 ]; then
-    C_RESET='' C_BOLD='' C_DIM='' C_LCYAN='' C_LGREEN='' C_LYELLOW='' C_LBLUE='' C_LRED='' C_ACCENT='' C_SUCCESS='' C_WARN='' C_DANGER='' C_INFO='' C_PATH='' C_SIZE='' C_COUNT='' C_BG_ACCENT=''
+    C_RESET='' C_BOLD='' C_DIM='' C_WHITE='' C_CYAN='' C_YELLOW='' C_RED=''
+    C_LCYAN='' C_LGREEN='' C_LYELLOW='' C_LBLUE='' C_LRED='' C_LMAGENTA=''
+    C_ACCENT='' C_SUCCESS='' C_WARN='' C_DANGER='' C_INFO='' C_PATH='' C_SIZE='' C_COUNT='' C_BG_ACCENT=''
     return
   fi
 
   C_RESET=$'\033[0m'
   C_BOLD=$'\033[1m'
   C_DIM=$'\033[2m'
+  C_WHITE=$'\033[37m'
+  C_CYAN=$'\033[36m'
+  C_YELLOW=$'\033[33m'
+  C_RED=$'\033[31m'
 
   C_LCYAN=$'\033[38;5;123m'
   C_LGREEN=$'\033[38;5;157m'
   C_LYELLOW=$'\033[38;5;221m'
   C_LBLUE=$'\033[38;5;117m'
   C_LRED=$'\033[38;5;210m'
+  C_LMAGENTA=$'\033[38;5;177m'
   C_ACCENT=$'\033[38;5;81m'
   C_SUCCESS=$'\033[38;5;114m'
   C_WARN=$'\033[38;5;215m'
@@ -136,9 +143,9 @@ cc_setup_box_chars() {
   fi
 
   if [ "$CC_FANCY_BORDERS" -eq 1 ]; then
-    B_H='─' B_V='│' B_TL='╭' B_TR='╮' B_BL='╰' B_BR='╯' B_VD='┆'
+    B_H='─' B_V='│' B_TL='╭' B_TR='╮' B_BL='╰' B_BR='╯' B_VD='┆' B_ML='├' B_MR='┤'
   else
-    B_H='-' B_V='|' B_TL='+' B_TR='+' B_BL='+' B_BR='+' B_VD='|'
+    B_H='-' B_V='|' B_TL='+' B_TR='+' B_BL='+' B_BR='+' B_VD='|' B_ML='+' B_MR='+'
   fi
 
   if [ "$CC_FANCY_ICONS" -eq 1 ]; then
@@ -151,9 +158,28 @@ cc_setup_box_chars() {
 }
 
 cc_term_cols() {
-  [ -n "${COLUMNS:-}" ] && { printf '%s\n' "$COLUMNS"; return; }
-  command -v tput >/dev/null 2>&1 && tput cols 2>/dev/null && return
-  command -v stty >/dev/null 2>&1 && stty size 2>/dev/null | awk '{print $2}'
+  if [ -n "${COLUMNS:-}" ]; then
+    printf '%s\n' "$COLUMNS"
+    return 0
+  fi
+  if command -v tput >/dev/null 2>&1; then
+    local cols
+    cols=$(tput cols 2>/dev/null || true)
+    if [ -n "$cols" ]; then
+      printf '%s\n' "$cols"
+      return 0
+    fi
+  fi
+  if command -v stty >/dev/null 2>&1; then
+    local cols
+    cols=$(stty size 2>/dev/null | awk '{print $2}' || true)
+    if [ -n "$cols" ]; then
+      printf '%s\n' "$cols"
+      return 0
+    fi
+  fi
+  printf '80\n'
+  return 0
 }
 
 cc_locale_is_utf8() {
@@ -224,7 +250,11 @@ cc_detect_os() {
 }
 
 cc_root_check() {
-  [ "$(id -u 2>/dev/null || echo 65534)" -eq 0 ] && [ "$CC_FORCE_ROOT" -eq 0 ] && { cc_log_error "Running as root is not allowed."; exit 1; }
+  if [ "$(id -u 2>/dev/null || echo 65534)" -eq 0 ] && [ "$CC_FORCE_ROOT" -eq 0 ]; then
+    cc_log_error "Running as root is not allowed."
+    exit 1
+  fi
+  return 0
 }
 
 cc_require_basic_tools() {

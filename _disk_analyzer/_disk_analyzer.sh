@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
-# _disk_analyzer.sh — Beautiful Disk Space & Directory Size Analyzer with Quick Archiving
-# Visuals follow Gogh/Antigravity styling and precise Unicode symbols.
+# _disk_analyzer.sh — Disk Space & Directory Size Analyzer with Quick Archiving
 
 set -euo pipefail
 
-DA_VERSION="1.0.0"
+DA_VERSION="1.1.0"
 DA_COUNT=10
+
+DA_EXCLUDE_REGEX='/(\.git|\.hg|\.svn)$'
 
 da_setup_colors() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -46,10 +47,6 @@ da_usage() {
   cat <<EOF
 ${C_BOLD}Usage:${C_RESET}
   _disk_analyzer.sh [OPTIONS] [DIRECTORY]
-
-${C_BOLD}Description:${C_RESET}
-  Scans [DIRECTORY] (defaults to current working directory) to analyze disk usage.
-  Displays the largest items and provides interactive options to compress or archive them.
 
 ${C_BOLD}Options:${C_RESET}
   ${C_CYAN}-n, --count <num>${C_RESET}    Number of top items to display (default: 10).
@@ -95,20 +92,18 @@ da_main() {
 
   printf "\n  %s %sDisk Space Analyzer%s\n\n" "${C_CYAN}${I_DISK}" "${C_BOLD}" "${C_RESET}"
   printf "  %s Target: %s\n" "${C_BLUE}${I_ARROW}${C_RESET}" "${C_BOLD}$(realpath "$target_dir" 2>/dev/null || echo "$target_dir")${C_RESET}"
-  printf "  %s Scanning largest %d items (this may take a moment)...\n\n" "${C_YELLOW}⚙${C_RESET}" "$DA_COUNT"
+  printf "  %s Scanning largest %d visible items (metadata folders like .git are skipped)...\n\n" "${C_YELLOW}${I_INFO}${C_RESET}" "$DA_COUNT"
 
-  # Perform analysis using du
   local items=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && items+=("$line")
-  done < <(du -ah --max-depth=1 "$target_dir" 2>/dev/null | sort -hr | head -n $((DA_COUNT + 1)))
+  done < <(du -ah --max-depth=1 "$target_dir" 2>/dev/null | grep -Ev "$DA_EXCLUDE_REGEX" | sort -hr | head -n $((DA_COUNT + 1)))
 
   if [[ ${#items[@]} -eq 0 ]]; then
     printf "  %s No items found or permission denied.\n\n" "${C_YELLOW}${I_WARN}${C_RESET}"
     return 0
   fi
 
-  # Display summary
   printf "  %s %-12s %s\n" "${C_BOLD}" "Size" "Path${C_RESET}"
   printf "  %s%s\n" "${C_DIM}" "------------------------------------------------------------${C_RESET}"
 
@@ -119,7 +114,7 @@ da_main() {
     local size path
     size="$(printf '%s' "$line" | awk '{print $1}')"
     path="$(printf '%s' "$line" | awk '{$1=""; print $0}' | sed 's/^ *//')"
-    
+
     if [[ "$path" == "$target_dir" || "$path" == "." ]]; then
       printf "  %s %-12s %s (Total)%s\n" "${C_GREEN}${I_BULLET}" "${size}" "${path}" "${C_RESET}"
     else
@@ -129,7 +124,11 @@ da_main() {
     fi
   done
 
-  printf "\n  %sWould you like to create a compressed archive (.tar.gz) of an item above? [Enter item number or 0 to exit]: %s" "${C_BOLD}" "${C_RESET}"
+  if [[ ! -t 0 ]]; then
+    return 0
+  fi
+
+  printf "\n  %sCreate a compressed archive (.tar.gz) of one of the items above? [number or 0]: %s" "${C_BOLD}" "${C_RESET}"
   local sel
   read -r sel
 
@@ -137,7 +136,7 @@ da_main() {
     local chosen="${item_paths[$((sel - 1))]}"
     local arch_name
     arch_name="$(basename "$chosen")_$(date '+%Y%m%d_%H%M%S').tar.gz"
-    printf "\n  %s Creating archive %s for %s...\n" "${C_CYAN}⚙${C_RESET}" "${C_BOLD}$arch_name${C_RESET}" "$chosen"
+    printf "\n  %s Creating archive %s for %s...\n" "${C_CYAN}${I_INFO}${C_RESET}" "${C_BOLD}$arch_name${C_RESET}" "$chosen"
     if tar -czf "$arch_name" -C "$(dirname "$chosen")" "$(basename "$chosen")"; then
       printf "  %s Archive successfully created at: %s\n\n" "${C_GREEN}${I_SUCCESS}${C_RESET}" "${C_BOLD}$arch_name${C_RESET}"
     else

@@ -22,14 +22,14 @@ and orphaned cache files from development package managers.
 ## Install
 
 ```bash
-chmod +x cacheclean.sh
-ln -s "$PWD/cacheclean.sh" ~/.local/bin/cacheclean
+chmod +x _cache_clean.sh
+ln -s "$PWD/_cache_clean.sh" ~/.local/bin/cacheclean
 ```
 
 Or just run it directly from the repository directory:
 
 ```bash
-./cacheclean.sh
+./_cache_clean.sh
 ```
 
 ## Usage

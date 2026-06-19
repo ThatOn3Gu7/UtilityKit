@@ -468,6 +468,24 @@ compute_new_name() {
     printf "%s\n" "$dest"
 }
 
+compute_copy_destination() {
+    local filepath="$1"
+    local new_ext="$2"
+    local source_dir="$3"
+    local output_dir="$4"
+    local rel_path rel_dir target_dir
+
+    rel_path="${filepath#"$source_dir"/}"
+    rel_dir="$(dirname "$rel_path")"
+    if [[ "$rel_dir" == "." ]]; then
+        target_dir="$output_dir"
+    else
+        target_dir="$output_dir/$rel_dir"
+    fi
+
+    compute_new_name "$filepath" "$new_ext" "$target_dir"
+}
+
 already_has_extension() {
     local filepath="$1"
     local new_ext="$2"
@@ -624,7 +642,9 @@ rb_main() {
         new_ext="$(normalize_extension "$new_ext_raw")"
 
 
-        if [[ "$source_dir" == "$output_dir" ]]; then
+        if [[ -z "$output_dir" ]]; then
+            mode="in-place"
+        elif [[ "$source_dir" == "$output_dir" ]]; then
             msg_warning "Source and output directories are identical — switching to in-place mode."
             mode="in-place"
             output_dir=""
@@ -677,7 +697,7 @@ rb_main() {
 
         local dest
         if [[ "$mode" == "copy" ]]; then
-            dest="$(compute_new_name "$filepath" "$new_ext" "$output_dir")"
+            dest="$(compute_copy_destination "$filepath" "$new_ext" "$source_dir" "$output_dir")"
         else
             local dir
             dir="$(dirname "$filepath")"
@@ -748,6 +768,13 @@ rb_main() {
         local dst_name="$(basename "${dest_names[$idx]}")"
         local src_rel="${file_old_names[$idx]#"$source_dir"/}"
         [[ "$src_rel" == "${file_old_names[$idx]}" ]] && src_rel="$src_name"
+        local dst_rel="$dst_name"
+        if [[ "$mode" == "copy" && -n "$output_dir" ]]; then
+            dst_rel="${dest_names[$idx]#"$output_dir"/}"
+        elif [[ "$mode" == "in-place" ]]; then
+            dst_rel="${dest_names[$idx]#"$source_dir"/}"
+            [[ "$dst_rel" == "${dest_names[$idx]}" ]] && dst_rel="$dst_name"
+        fi
 
         # Determine file status
         local is_ex=false
@@ -783,7 +810,7 @@ rb_main() {
                     "$(colorize "$C_DIM" "${I_ARROW}")" \
                     "$(colorize "$C_GRAY" "$src_rel")" \
                     "$(colorize "$C_CYAN" " ──→ ")" \
-                    "$(colorize "$C_GREEN_BRIGHT" "$dst_name")"
+                    "$(colorize "$C_GREEN_BRIGHT" "$dst_rel")"
             fi
         fi
 
@@ -921,6 +948,7 @@ handle_interrupt() {
         fi
 
         local op_status=0
+        mkdir -p "$(dirname "$dst")"
         if [[ "$mode" == "copy" ]]; then
             if cp -- "$src" "$dst"; then
                 : # success

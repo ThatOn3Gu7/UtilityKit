@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/uk_common.sh"
+
+PI_PORT=''
+PI_KILL=0
+
+pi_usage() {
+  cat <<'USAGE'
+Usage:
+  _port_inspector.sh PORT [--kill]
+USAGE
+}
+
+pi_network_summary() {
+  uk_note 'Active IP/interface summary:'
+  if uk_has_cmd ip; then
+    ip -brief addr 2>/dev/null | sed 's/^/  /' || true
+  elif uk_has_cmd ifconfig; then
+    ifconfig 2>/dev/null | sed -n '1,20p' | sed 's/^/  /' || true
+  else
+    uk_warn 'No ip/ifconfig command available.'
+  fi
+}
+
+pi_inspect() {
+  if uk_has_cmd lsof; then
+    lsof -nP -iTCP:"$PI_PORT" -sTCP:LISTEN
+  elif uk_has_cmd ss; then
+    ss -ltnp "sport = :$PI_PORT"
+  else
+    uk_error 'Neither lsof nor ss is available.'
+    return 1
+  fi
+}
+
+pi_extract_pid() {
+  if uk_has_cmd lsof; then
+    lsof -nP -iTCP:"$PI_PORT" -sTCP:LISTEN -t 2>/dev/null | head -n 1
+  else
+    ss -ltnp "sport = :$PI_PORT" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | head -n 1
+  fi
+}
+
+pi_main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --kill) PI_KILL=1 ;;
+      -h|--help) pi_usage; return 0 ;;
+      *) PI_PORT="$1" ;;
+    esac
+    shift
+  done
+
+  if [[ -z "$PI_PORT" && -t 0 ]]; then
+    printf 'Port number: '
+    read -r PI_PORT
+  fi
+  [[ -n "$PI_PORT" ]] || { pi_usage; return 1; }
+
+  uk_header 'UtilityKit Port Inspector' "Port: $PI_PORT"
+  pi_network_summary
+  printf '\nListening process details:\n'
+  if ! pi_inspect; then
+    uk_warn "No listening process found for port $PI_PORT"
+    return 0
+  fi
+
+  local pid
+  pid=$(pi_extract_pid || true)
+  if [[ -n "$pid" ]]; then
+    if (( PI_KILL == 1 )) || uk_confirm "Terminate PID $pid holding port $PI_PORT?" 'N'; then
+      kill "$pid"
+      uk_success "Sent SIGTERM to PID $pid"
+    fi
+  fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  pi_main "$@"
+fi
