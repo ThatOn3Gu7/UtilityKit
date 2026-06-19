@@ -249,8 +249,13 @@ cc_setup_tmp() {
   mkdir -p "$CC_STATE_DIR" || { cc_log_error "Cannot create $CC_STATE_DIR"; exit 1; }
 }
 
-cc_cleanup_tmp() { [ -d "$CC_STATE_DIR" ] && rm -rf "$CC_STATE_DIR"; }
-trap cc_cleanup_tmp EXIT
+cc_cleanup_tmp() {
+  if [ -n "${CC_STATE_DIR:-}" ] && [ -d "$CC_STATE_DIR" ]; then
+    rm -rf "$CC_STATE_DIR" 2>/dev/null || true
+  fi
+  return 0
+}
+# (Trap registered in cc_main)
 
 cc_format_bytes() {
   awk -v b="$1" 'BEGIN{
@@ -567,6 +572,7 @@ cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "$1" "$C_RESET" >&2; }
 
 # ---------------------------------------------------------------------------
 cc_main() {
+  trap cc_cleanup_tmp EXIT
   cc_parse_args "$@"
   cc_setup_colors
   cc_require_basic_tools
@@ -611,4 +617,6 @@ cc_main() {
   fi
 }
 
-cc_main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  cc_main "$@"
+fi

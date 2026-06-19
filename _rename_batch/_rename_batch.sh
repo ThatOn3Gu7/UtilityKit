@@ -549,7 +549,7 @@ show_version() {
 #  8.  MAIN
 # ==============================================================================
 
-main() {
+rb_main() {
         # 1. Parse incoming script flags and parameters
         local positional_args=()
         while [[ $# -gt 0 ]]; do
@@ -1026,4 +1026,6 @@ handle_interrupt() {
     fi
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    rb_main "$@"
+fi

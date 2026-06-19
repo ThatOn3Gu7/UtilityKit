@@ -117,10 +117,7 @@ cleanup_and_trap() {
   [[ "$sig" == "EXIT" ]] || exit "$exit_code"
 }
 
-trap 'cleanup_and_trap EXIT' EXIT
-trap 'cleanup_and_trap SIGINT' SIGINT
-trap 'cleanup_and_trap SIGTERM' SIGTERM
-trap 'cleanup_and_trap SIGHUP' SIGHUP
+# (Traps are registered inside ac_main to prevent overriding parent shell traps when sourced)
 
 usage() {
   local script_name
@@ -605,136 +602,163 @@ apply_changes() {
   log_action "Successfully applied all $applied changes."
 }
 
-# Argument parsing -----------------------------------------------------------
-POSITIONAL=()
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --apply) MODE="apply" ;;
-    --dry-run) MODE="dry-run" ;;
-    --mirror) MIRROR=1 ;;
-    --force) FORCE=1 ;;
-    --yes|-y) YES=1 ;;
-    --include-runtime|--include-logs|--no-default-excludes) INCLUDE_RUNTIME=1 ;;
-    --no-lock) NO_LOCK=1 ;;
-    --exclude)
-      shift
-      [[ $# -gt 0 ]] || fail "--exclude requires a pattern argument."
-      EXCLUDES+=("$1")
-      ;;
-    --exclude=*) EXCLUDES+=("${1#--exclude=}") ;;
-    --log-file)
-      shift
-      [[ $# -gt 0 ]] || fail "--log-file requires a file argument."
-      LOG_FILE="$1"
-      ;;
-    --log-file=*) LOG_FILE="${1#--log-file=}" ;;
-    --backup-dir)
-      shift
-      [[ $# -gt 0 ]] || fail "--backup-dir requires a directory argument."
-      BACKUP_DIR="$1"
-      ;;
-    --backup-dir=*) BACKUP_DIR="${1#--backup-dir=}" ;;
-    --max-preview)
-      shift
-      [[ $# -gt 0 ]] || fail "--max-preview requires a number."
-      MAX_PREVIEW="$1"
-      ;;
-    --max-preview=*) MAX_PREVIEW="${1#--max-preview=}" ;;
-    -h|--help) usage; exit 0 ;;
-    --) shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done; break ;;
-    --*) fail "Unknown option: $1" ;;
-    *) POSITIONAL+=("$1") ;;
+# Argument parsing & execution entry point -----------------------------------
+ac_main() {
+  trap 'cleanup_and_trap EXIT' EXIT
+  trap 'cleanup_and_trap SIGINT' SIGINT
+  trap 'cleanup_and_trap SIGTERM' SIGTERM
+  trap 'cleanup_and_trap SIGHUP' SIGHUP
+
+  MODE="dry-run"
+  MIRROR=0
+  FORCE=0
+  YES=0
+  INCLUDE_RUNTIME=0
+  BACKUP_DIR=""
+  MAX_PREVIEW=200
+  EXCLUDES=()
+  LOG_FILE=""
+  NO_LOCK=0
+  LOCK_ACQUIRED=0
+  LOCK_DIR=""
+  APPLY_IN_PROGRESS=0
+  TRAP_RUN=0
+  CHANGE_COUNT=0
+
+  POSITIONAL=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --apply) MODE="apply" ;;
+      --dry-run) MODE="dry-run" ;;
+      --mirror) MIRROR=1 ;;
+      --force) FORCE=1 ;;
+      --yes|-y) YES=1 ;;
+      --include-runtime|--include-logs|--no-default-excludes) INCLUDE_RUNTIME=1 ;;
+      --no-lock) NO_LOCK=1 ;;
+      --exclude)
+        shift
+        [[ $# -gt 0 ]] || fail "--exclude requires a pattern argument."
+        EXCLUDES+=("$1")
+        ;;
+      --exclude=*) EXCLUDES+=("${1#--exclude=}") ;;
+      --log-file)
+        shift
+        [[ $# -gt 0 ]] || fail "--log-file requires a file argument."
+        LOG_FILE="$1"
+        ;;
+      --log-file=*) LOG_FILE="${1#--log-file=}" ;;
+      --backup-dir)
+        shift
+        [[ $# -gt 0 ]] || fail "--backup-dir requires a directory argument."
+        BACKUP_DIR="$1"
+        ;;
+      --backup-dir=*) BACKUP_DIR="${1#--backup-dir=}" ;;
+      --max-preview)
+        shift
+        [[ $# -gt 0 ]] || fail "--max-preview requires a number."
+        MAX_PREVIEW="$1"
+        ;;
+      --max-preview=*) MAX_PREVIEW="${1#--max-preview=}" ;;
+      -h|--help) usage; return 0 ;;
+      --) shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done; break ;;
+      --*) fail "Unknown option: $1" ;;
+      *) POSITIONAL+=("$1") ;;
+    esac
+    shift
+  done
+
+  [[ "$MAX_PREVIEW" =~ ^[0-9]+$ && "$MAX_PREVIEW" -gt 0 ]] || fail "--max-preview must be a positive integer."
+  [[ ${#POSITIONAL[@]} -eq 2 ]] || { usage >&2; return 2; }
+
+  SOURCE_DIR=$(abs_path "${POSITIONAL[0]}") || fail "Could not resolve source path: ${POSITIONAL[0]}"
+  TARGET_DIR=$(abs_path "${POSITIONAL[1]}") || fail "Could not resolve target path: ${POSITIONAL[1]}"
+
+  [[ -d "$SOURCE_DIR" ]] || fail "Source directory does not exist: $SOURCE_DIR"
+  [[ -d "$TARGET_DIR" ]] || fail "Target directory does not exist: $TARGET_DIR"
+  [[ "$SOURCE_DIR" != "$TARGET_DIR" ]] || fail "Source and target are the same directory."
+
+  case "$SOURCE_DIR/" in
+    "$TARGET_DIR"/*) fail "Source is inside target; refusing to avoid recursive copy/delete hazards." ;;
   esac
-  shift
-done
+  case "$TARGET_DIR/" in
+    "$SOURCE_DIR"/*) fail "Target is inside source; refusing to avoid recursive copy/delete hazards." ;;
+  esac
 
-[[ "$MAX_PREVIEW" =~ ^[0-9]+$ && "$MAX_PREVIEW" -gt 0 ]] || fail "--max-preview must be a positive integer."
-[[ ${#POSITIONAL[@]} -eq 2 ]] || { usage >&2; exit 2; }
+  if [[ -n "$LOG_FILE" ]]; then
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    log_action "=== Synchronization Script Started (${MODE^^} Mode) ==="
+    log_action "Source: $SOURCE_DIR"
+    log_action "Target: $TARGET_DIR"
+  fi
 
-SOURCE_DIR=$(abs_path "${POSITIONAL[0]}") || fail "Could not resolve source path: ${POSITIONAL[0]}"
-TARGET_DIR=$(abs_path "${POSITIONAL[1]}") || fail "Could not resolve target path: ${POSITIONAL[1]}"
+  acquire_lock
 
-[[ -d "$SOURCE_DIR" ]] || fail "Source directory does not exist: $SOURCE_DIR"
-[[ -d "$TARGET_DIR" ]] || fail "Target directory does not exist: $TARGET_DIR"
-[[ "$SOURCE_DIR" != "$TARGET_DIR" ]] || fail "Source and target are the same directory."
+  TEMP_BASE="$(get_temp_dir)"
+  CHANGES_FILE=$(mktemp "$TEMP_BASE/apply_changes.XXXXXX" 2>/dev/null || echo "$TEMP_BASE/apply_changes.$$.tmp")
+  touch "$CHANGES_FILE" 2>/dev/null || CHANGES_FILE="./apply_changes.$$.tmp"
+  : >"$CHANGES_FILE" || fail "CRITICAL: Unable to create temporary plan file '$CHANGES_FILE'. Please verify your filesystem permissions."
+  CHANGE_COUNT=0
 
-case "$SOURCE_DIR/" in
-  "$TARGET_DIR"/*) fail "Source is inside target; refusing to avoid recursive copy/delete hazards." ;;
-esac
-case "$TARGET_DIR/" in
-  "$SOURCE_DIR"/*) fail "Target is inside source; refusing to avoid recursive copy/delete hazards." ;;
-esac
+  info "Source: ${FG_CYAN}$SOURCE_DIR${R}"
+  info "Target: ${FG_CYAN}$TARGET_DIR${R}"
+  [[ $MIRROR -eq 1 ]] && warn "Mirror mode is enabled: non-excluded target files missing from source will be ${FG_BRIGHT_RED}deleted${R}."
+  [[ $INCLUDE_RUNTIME -eq 0 ]] && info "Runtime logs are excluded by default. Use ${BOLD}--include-runtime${R} (or ${BOLD}--include-logs${R}) to sync them."
+  [[ ${#EXCLUDES[@]} -gt 0 ]] && info "Active custom exclusions: ${BOLD}${FG_BRIGHT_WHITE}${EXCLUDES[*]}${R}"
+  [[ -n "$LOG_FILE" ]] && info "Audit logging active: ${DIM}$LOG_FILE${R}"
 
-if [[ -n "$LOG_FILE" ]]; then
-  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
-  log_action "=== Synchronization Script Started (${MODE^^} Mode) ==="
-  log_action "Source: $SOURCE_DIR"
-  log_action "Target: $TARGET_DIR"
-fi
-
-acquire_lock
-
-TEMP_BASE="$(get_temp_dir)"
-CHANGES_FILE=$(mktemp "$TEMP_BASE/apply_changes.XXXXXX" 2>/dev/null || echo "$TEMP_BASE/apply_changes.$$.tmp")
-touch "$CHANGES_FILE" 2>/dev/null || CHANGES_FILE="./apply_changes.$$.tmp"
-: >"$CHANGES_FILE" || fail "CRITICAL: Unable to create temporary plan file '$CHANGES_FILE'. Please verify your filesystem permissions."
-CHANGE_COUNT=0
-
-info "Source: ${FG_CYAN}$SOURCE_DIR${R}"
-info "Target: ${FG_CYAN}$TARGET_DIR${R}"
-[[ $MIRROR -eq 1 ]] && warn "Mirror mode is enabled: non-excluded target files missing from source will be ${FG_BRIGHT_RED}deleted${R}."
-[[ $INCLUDE_RUNTIME -eq 0 ]] && info "Runtime logs are excluded by default. Use ${BOLD}--include-runtime${R} (or ${BOLD}--include-logs${R}) to sync them."
-[[ ${#EXCLUDES[@]} -gt 0 ]] && info "Active custom exclusions: ${BOLD}${FG_BRIGHT_WHITE}${EXCLUDES[*]}${R}"
-[[ -n "$LOG_FILE" ]] && info "Audit logging active: ${DIM}$LOG_FILE${R}"
-
-collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
-print_change_summary
-
-if [[ $CHANGE_COUNT -eq 0 ]]; then
-  log_action "No changes detected. Exiting normally."
-  release_lock
-  exit 0
-fi
-
-if [[ "$MODE" != "apply" ]]; then
-  info "Dry-run only. Rerun with ${BOLD}${FG_BRIGHT_CYAN}--apply${R} to copy these changes."
-  log_action "Dry-run completed."
-  release_lock
-  exit 0
-fi
-
-check_git_safety "$TARGET_DIR"
-
-if [[ -n "$BACKUP_DIR" ]]; then
-  check_disk_space "$TARGET_DIR" "$BACKUP_DIR" "$SOURCE_DIR"
-else
-  check_disk_space "$TARGET_DIR" "$(dirname "$TARGET_DIR")" "$SOURCE_DIR"
-fi
-
-check_target_writable "$TARGET_DIR"
-
-if [[ $YES -ne 1 ]]; then
-  printf "\n${BOLD}${INVERSE} Type APPLY to update the target directory after creating a backup: ${R} "
-  IFS= read -r confirmation
-  [[ "$confirmation" == "APPLY" ]] || { log_action "User aborted at APPLY confirmation."; fail "Confirmation did not match APPLY; aborted with no changes."; }
-fi
-
-BACKUP_FILE=$(create_backup "$TARGET_DIR")
-apply_changes "$SOURCE_DIR" "$TARGET_DIR"
-
-# Verify by recomputing the same plan.
-collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
-if [[ $CHANGE_COUNT -eq 0 ]]; then
-  info "${FG_BRIGHT_GREEN}✔ Verification succeeded:${R} target now matches the source for the selected sync mode."
-  log_action "Verification succeeded."
-else
-  warn "${FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${R}"
-  log_action "Verification found remaining differences."
+  collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
   print_change_summary
+
+  if [[ $CHANGE_COUNT -eq 0 ]]; then
+    log_action "No changes detected. Exiting normally."
+    release_lock
+    return 0
+  fi
+
+  if [[ "$MODE" != "apply" ]]; then
+    info "Dry-run only. Rerun with ${BOLD}${FG_BRIGHT_CYAN}--apply${R} to copy these changes."
+    log_action "Dry-run completed."
+    release_lock
+    return 0
+  fi
+
+  check_git_safety "$TARGET_DIR"
+
+  if [[ -n "$BACKUP_DIR" ]]; then
+    check_disk_space "$TARGET_DIR" "$BACKUP_DIR" "$SOURCE_DIR"
+  else
+    check_disk_space "$TARGET_DIR" "$(dirname "$TARGET_DIR")" "$SOURCE_DIR"
+  fi
+
+  check_target_writable "$TARGET_DIR"
+
+  if [[ $YES -ne 1 ]]; then
+    printf "\n${BOLD}${INVERSE} Type APPLY to update the target directory after creating a backup: ${R} "
+    IFS= read -r confirmation
+    [[ "$confirmation" == "APPLY" ]] || { log_action "User aborted at APPLY confirmation."; fail "Confirmation did not match APPLY; aborted with no changes."; }
+  fi
+
+  BACKUP_FILE=$(create_backup "$TARGET_DIR")
+  apply_changes "$SOURCE_DIR" "$TARGET_DIR"
+
+  # Verify by recomputing the same plan.
+  collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
+  if [[ $CHANGE_COUNT -eq 0 ]]; then
+    info "${FG_BRIGHT_GREEN}✔ Verification succeeded:${R} target now matches the source for the selected sync mode."
+    log_action "Verification succeeded."
+  else
+    warn "${FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${R}"
+    log_action "Verification found remaining differences."
+    print_change_summary
+  fi
+
+  info "Backup archive: ${DIM}$BACKUP_FILE${R}"
+  info "If you need to restore, move the updated target aside and extract the backup into its parent directory."
+  log_action "=== Synchronization Script Completed Successfully ==="
+
+  release_lock
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  ac_main "$@"
 fi
-
-info "Backup archive: ${DIM}$BACKUP_FILE${R}"
-info "If you need to restore, move the updated target aside and extract the backup into its parent directory."
-log_action "=== Synchronization Script Completed Successfully ==="
-
-release_lock
