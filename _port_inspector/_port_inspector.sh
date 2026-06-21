@@ -14,13 +14,19 @@ USAGE
 }
 
 pi_network_summary() {
-  uk_note 'Active IP/interface summary:'
+  uk_section_title 'Network interfaces'
   if uk_has_cmd ip; then
-    ip -brief addr 2>/dev/null | sed 's/^/  /' || true
+    local output
+    output=$(ip -brief addr 2>/dev/null || true)
+    if [[ -n "$output" ]]; then
+      printf '%s\n' "$output" | sed 's/^/  /'
+    else
+      printf '  %s(no interface data available)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    fi
   elif uk_has_cmd ifconfig; then
     ifconfig 2>/dev/null | sed -n '1,20p' | sed 's/^/  /' || true
   else
-    uk_warn 'No ip/ifconfig command available.'
+    printf '  %s(ip and ifconfig unavailable — skipping interface summary)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
 }
 
@@ -54,8 +60,11 @@ pi_main() {
   done
 
   if [[ -z "$PI_PORT" && -t 0 ]]; then
-    printf 'Port number: '
-    read -r PI_PORT
+    PI_PORT="$(uk_prompt \
+      'Enter the local TCP port number to inspect' \
+      '' \
+      '3000   →  Node dev server | 8080  →  common HTTP alt | 5432  →  Postgres' \
+      'The tool will find whichever process is currently listening on this port.')"
   fi
   [[ -n "$PI_PORT" ]] || { pi_usage; return 1; }
 

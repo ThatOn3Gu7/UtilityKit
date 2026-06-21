@@ -128,32 +128,57 @@ em_decrypt_file() {
 em_interactive() {
   local profiles profile
   uk_header "UtilityKit Env Manager" "Profile switching, validation, comparison and secret encryption"
+
   profiles="$(em_list_profiles "$EM_DIR" || true)"
-  printf 'Available profiles in %s:\n' "$EM_DIR"
+  uk_note "Scanning profiles in: $EM_DIR"
   if [[ -n "$profiles" ]]; then
     printf '%s\n' "$profiles" | sed 's/^/  - /'
   else
-    printf '  - none found\n'
+    printf '  %s(no .env.<profile> files found in this directory)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
-  printf '\n1) Compare %s with %s\n2) Validate %s\n3) Activate profile\n4) Encrypt file\n5) Decrypt file\nChoose [1-5]: ' "$EM_ACTIVE" "$EM_EXAMPLE" "$EM_ACTIVE"
+
+  printf '\n'
+  printf '  %s1)%s Compare %s.env%s against %s.env.example%s  %s(find missing or extra keys)%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s2)%s Validate syntax of %s.env%s             %s(check for malformed key=value lines)%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s3)%s Activate a profile                    %s(copy .env.<name> to .env)%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s4)%s Encrypt a secret file                 %s(uses gpg or openssl)%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s5)%s Decrypt a .gpg or .enc file           %s(output printed to terminal)%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '\n'
+
+  printf ' %s Choose an action [1-5]: ' "$UK_I_ARROW"
   read -r choice
+
   case "$choice" in
     1) em_compare_files "$EM_DIR/$EM_ACTIVE" "$EM_DIR/$EM_EXAMPLE" ;;
     2) em_validate_file "$EM_DIR/$EM_ACTIVE" ;;
     3)
-      printf 'Profile name: '
-      read -r profile
+      profile="$(uk_prompt \
+        'Enter profile name to activate (without the .env. prefix)' \
+        '' \
+        'local   →  loads .env.local | staging  →  loads .env.staging' \
+        'The selected profile file will be copied over your active .env.')"
       EM_APPLY=1
       em_swap_profile "$profile"
       ;;
     4)
-      printf 'File to encrypt: '
-      read -r profile
+      profile="$(uk_prompt \
+        'Enter path of the file to encrypt' \
+        "$EM_DIR/.env" \
+        "$EM_DIR/.env.production" \
+        'gpg is used if available, otherwise openssl aes-256-cbc. Output gets a .gpg or .enc suffix.')"
       em_encrypt_file "$profile"
       ;;
     5)
-      printf 'File to decrypt: '
-      read -r profile
+      profile="$(uk_prompt \
+        'Enter path of the .gpg or .enc file to decrypt' \
+        '' \
+        "$EM_DIR/.env.production.gpg" \
+        'The decrypted content is printed to stdout. Pipe it or redirect as needed.')"
       em_decrypt_file "$profile"
       ;;
     *) uk_warn 'No action selected.' ;;
