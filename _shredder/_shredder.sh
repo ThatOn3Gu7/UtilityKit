@@ -30,6 +30,7 @@ sd_secure_delete() {
 }
 
 sd_main() {
+  SD_APPLY=0; SD_PASSES=3; SD_FILES=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --passes) shift; SD_PASSES="${1:-3}" ;;

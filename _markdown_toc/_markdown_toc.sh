@@ -154,6 +154,7 @@ PY2
 }
 
 mt_main() {
+  MT_FILE=''; MT_APPLY=0; MT_CHECK_LINKS=0; MT_ALIGN_TABLES=0; MT_TOC_COUNT=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --apply) MT_APPLY=1 ;;

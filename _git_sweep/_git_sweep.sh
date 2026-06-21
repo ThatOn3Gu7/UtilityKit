@@ -168,6 +168,7 @@ gs_interactive() {
 }
 
 gs_main() {
+  GS_APPLY=0; GS_LOCAL=0; GS_REMOTE=0; GS_STASH=0; GS_CLEAN=0; GS_GC=0; GS_REPO='.'
   local base
   while [[ $# -gt 0 ]]; do
     case "$1" in

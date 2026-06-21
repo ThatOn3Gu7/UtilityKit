@@ -55,7 +55,7 @@ at_load_profile() {
 }
 
 at_list_profiles() {
-  find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.conf' -printf '%f\n' | sed 's/\.conf$//' | sort
+  find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.conf' -exec basename {} .conf \; | sort
 }
 
 at_show_profile() {
@@ -129,6 +129,7 @@ at_run_request() {
 }
 
 at_main() {
+  AT_ACTION='run'; AT_NAME=''; AT_METHOD='GET'; AT_URL=''; AT_BODY=''; AT_BODY_FILE=''; AT_HEADERS=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --save) shift; AT_ACTION='save'; AT_NAME="${1:-}" ;;

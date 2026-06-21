@@ -47,7 +47,7 @@ cs_list() {
     [[ -n "$file" ]] || continue
     found=1
     printf '  - %s\n' "$file"
-  done < <(find "$(cs_dir)" -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed 's/\.md$//' | sort)
+  done < <(find "$(cs_dir)" -maxdepth 1 -type f -name '*.md' -exec basename {} .md \; | sort)
   (( found == 1 )) || printf '  %snone saved yet%s\n' "$UK_C_DIM" "$UK_C_RESET"
 }
 
@@ -129,6 +129,7 @@ cs_interactive() {
 }
 
 cs_main() {
+  CS_ACTION=''; CS_NAME=''; CS_TEXT=''; CS_FILE=''; CS_TAGS=''; CS_TERM=''
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --add) shift; CS_ACTION='add'; CS_NAME="${1:-}" ;;

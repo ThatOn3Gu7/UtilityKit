@@ -123,6 +123,7 @@ df_scan() {
 }
 
 df_main() {
+  DF_DIR='.'; DF_ACTION='report'; DF_APPLY=0
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1

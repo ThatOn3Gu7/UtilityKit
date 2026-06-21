@@ -77,6 +77,7 @@ mc_convert_one() {
   uk_success "Created: $out"
 }
 mc_main() {
+  MC_KIND='image'; MC_TO='webp'; MC_QUALITY=82; MC_APPLY=0; MC_STRIP_EXIF=0; MC_OUTPUT=''; MC_PATHS=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --kind) shift; MC_KIND="${1:-image}" ;;

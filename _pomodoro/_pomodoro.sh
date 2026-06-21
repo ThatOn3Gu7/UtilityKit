@@ -99,6 +99,7 @@ po_interactive() {
 }
 
 po_main() {
+  PO_WORK=25; PO_BREAK=5; PO_CYCLES=4; PO_UNIT='minutes'; PO_NO_BELL=0
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1

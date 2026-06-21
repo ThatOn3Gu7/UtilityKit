@@ -40,6 +40,7 @@ pg_string() {
 }
 
 pg_main() {
+  PG_MODE='passphrase'; PG_WORDS=4; PG_LENGTH=20; PG_COPY=0; PG_SEPARATOR='-'
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1

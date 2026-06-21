@@ -66,12 +66,13 @@ else
 fi
 
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"
-while IFS= read -r dir; do
-  [[ -n "$dir" ]] || continue
+while IFS= read -r dir_path; do
+  [[ -n "$dir_path" ]] || continue
+  dir="$(basename "$dir_path")"
   rm -rf "$INSTALL_DIR/$dir"
   mkdir -p "$INSTALL_DIR/$dir"
-  cp -a "$SOURCE_DIR/$dir/." "$INSTALL_DIR/$dir/"
-done < <(find "$SOURCE_DIR" -maxdepth 1 -mindepth 1 -type d \( -name '_*' -o -name 'lib' -o -name 'docs' -o -name 'tests' \) -printf '%f\n')
+  cp -a "$dir_path/." "$INSTALL_DIR/$dir/"
+done < <(find "$SOURCE_DIR" -maxdepth 1 -mindepth 1 -type d \( -name '_*' -o -name 'lib' -o -name 'docs' -o -name 'tests' \) | sort)
 
 for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LICENSE; do
   [[ -f "$SOURCE_DIR/$file" ]] && cp -f "$SOURCE_DIR/$file" "$INSTALL_DIR/"

@@ -76,7 +76,7 @@ em_compare_files() {
 
 em_list_profiles() {
   local dir="$1"
-  find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -printf '%f\n' 2>/dev/null | sed 's/^\.env\.//' | sort
+  find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; 2>/dev/null | sed 's/^\.env\.//' | sort
 }
 
 em_swap_profile() {
@@ -186,6 +186,7 @@ em_interactive() {
 }
 
 em_main() {
+  EM_DIR='.'; EM_PROFILE=''; EM_APPLY=0; EM_COMPARE=0; EM_VALIDATE=''; EM_ENCRYPT=''; EM_DECRYPT=''; EM_ACTIVE='.env'; EM_EXAMPLE='.env.example'
   local positional=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
