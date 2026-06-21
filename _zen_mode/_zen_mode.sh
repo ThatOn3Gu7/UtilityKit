@@ -71,14 +71,22 @@ zm_waves() {
 }
 
 zm_interactive() {
-  local v
-  uk_header 'UtilityKit Zen Mode' 'Choose a screensaver mode and duration'
-  printf 'Mode (waves|matrix|life) [waves]: '
-  read -r v
-  ZM_MODE=${v:-waves}
-  printf 'Duration in seconds [10]: '
-  read -r v
-  ZM_DURATION=${v:-10}
+  uk_header 'UtilityKit Zen Mode' 'Terminal screensaver — press Ctrl+C to exit early'
+
+  ZM_MODE="$(uk_prompt \
+    'Choose a screensaver mode' \
+    'waves' \
+    'waves  →  flowing ASCII wave pattern  |  matrix  →  falling binary rain  |  life  →  Conway Game of Life' \
+    'Each mode runs as a full-screen animation until the duration expires.')"
+
+  ZM_DURATION="$(uk_prompt \
+    'Enter duration in seconds' \
+    '10' \
+    '10  →  quick preview  |  60  →  one minute  |  300  →  five minutes' \
+    'The screensaver exits automatically after this many seconds, or press Ctrl+C to stop early.')"
+
+  ZM_MODE=${ZM_MODE:-waves}
+  ZM_DURATION=${ZM_DURATION:-10}
 }
 
 zm_main() {
@@ -97,6 +105,11 @@ zm_main() {
   if (( seen_args == 0 )) && [[ -t 0 && -t 1 ]]; then
     zm_interactive
   fi
+
+  printf '\n  %s%sStarting %s mode%s  %s(%s seconds — press Ctrl+C to exit early)%s\n\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$ZM_MODE" "$UK_C_RESET" \
+    "$UK_C_DIM" "$ZM_DURATION" "$UK_C_RESET"
+  sleep 1
 
   case "$ZM_MODE" in
     matrix) zm_matrix ;;

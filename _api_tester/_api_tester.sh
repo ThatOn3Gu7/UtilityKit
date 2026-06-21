@@ -66,11 +66,15 @@ at_show_profile() {
 
 at_run_request() {
   uk_has_cmd curl || { uk_error 'curl is required.'; return 1; }
-  local tmp_body tmp_meta curl_args=() hdr
+  local tmp_body tmp_meta tmp_timing curl_args=() hdr
   tmp_body=$(mktemp)
   tmp_meta=$(mktemp)
-  trap "rm -f '$tmp_body' '$tmp_meta'" RETURN
-  curl_args=(-sS -X "$AT_METHOD" "$AT_URL" -o "$tmp_body" -w 'dns=%{time_namelookup} tcp=%{time_connect} ttfb=%{time_starttransfer} total=%{time_total} code=%{http_code}\n')
+  tmp_timing=$(mktemp)
+  trap "rm -f '$tmp_body' '$tmp_meta' '$tmp_timing'" RETURN
+
+  curl_args=(-sS -X "$AT_METHOD" "$AT_URL"
+    -o "$tmp_body"
+    -w 'dns=%{time_namelookup}\ntcp=%{time_connect}\nttfb=%{time_starttransfer}\ntotal=%{time_total}\ncode=%{http_code}\n')
   for hdr in "${AT_HEADERS[@]}"; do
     curl_args+=(-H "$hdr")
   done
@@ -79,14 +83,49 @@ at_run_request() {
   elif [[ -n "$AT_BODY" ]]; then
     curl_args+=(--data "$AT_BODY")
   fi
-  printf '%s\n' "$(curl "${curl_args[@]}" 2>"$tmp_meta")"
-  printf '\nResponse body:\n'
+
+  curl "${curl_args[@]}" 2>"$tmp_meta" > "$tmp_timing"
+
+  printf '\n  %s%sRequest%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+  printf '  %sMethod:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$AT_METHOD" "$UK_C_RESET"
+  printf '  %sURL:%s     %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_URL" "$UK_C_RESET"
+  for hdr in "${AT_HEADERS[@]}"; do
+    printf '  %sHeader:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$hdr" "$UK_C_RESET"
+  done
+  [[ -n "$AT_BODY" ]] && printf '  %sBody:%s    %s%s%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_BODY" "$UK_C_RESET"
+
+  printf '\n  %s%sTiming%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+  local code dns tcp ttfb total
+  code=$(grep '^code=' "$tmp_timing" | cut -d= -f2)
+  dns=$(grep '^dns=' "$tmp_timing" | cut -d= -f2)
+  tcp=$(grep '^tcp=' "$tmp_timing" | cut -d= -f2)
+  ttfb=$(grep '^ttfb=' "$tmp_timing" | cut -d= -f2)
+  total=$(grep '^total=' "$tmp_timing" | cut -d= -f2)
+  local code_color="$UK_C_GREEN"
+  [[ "$code" -ge 400 ]] 2>/dev/null && code_color="$UK_C_RED"
+  [[ "$code" -ge 300 && "$code" -lt 400 ]] 2>/dev/null && code_color="$UK_C_YELLOW"
+  printf '  %sStatus:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$code_color" "$code" "$UK_C_RESET"
+  printf '  %sDNS:%s     %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$dns"
+  printf '  %sTCP:%s     %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$tcp"
+  printf '  %sTTFB:%s    %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$ttfb"
+  printf '  %sTotal:%s   %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$total"
+
+  printf '\n  %s%sResponse body%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if uk_has_cmd jq && jq . "$tmp_body" >/dev/null 2>&1; then
-    jq . "$tmp_body"
+    jq . "$tmp_body" | sed 's/^/  /'
   else
-    cat "$tmp_body"
+    cat "$tmp_body" | sed 's/^/  /'
   fi
-  [[ -s "$tmp_meta" ]] && { printf '\nCurl stderr:\n'; cat "$tmp_meta"; }
+
+  if [[ -s "$tmp_meta" ]]; then
+    printf '\n  %s%sCurl warnings%s\n' "$UK_C_BOLD" "$UK_C_YELLOW" "$UK_C_RESET"
+    printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+    cat "$tmp_meta" | sed 's/^/  /'
+  fi
 }
 
 at_main() {
@@ -119,9 +158,30 @@ at_main() {
       at_run_request
       ;;
     run)
-      if [[ -z "$AT_URL" && -t 0 ]]; then
-        printf 'Method [GET]: '; read -r AT_METHOD; AT_METHOD=${AT_METHOD:-GET}
-        printf 'URL: '; read -r AT_URL
+      if [[ -z "$AT_URL" && -t 0 && -t 1 ]]; then
+        uk_header 'UtilityKit API Tester' 'One-off HTTP request'
+        AT_METHOD="$(uk_prompt \
+          'Enter HTTP method' \
+          'GET' \
+          'GET  |  POST  |  PUT  |  PATCH  |  DELETE' \
+          'GET fetches data, POST creates, PUT replaces, PATCH updates, DELETE removes.')"
+        AT_URL="$(uk_prompt \
+          'Enter request URL' \
+          '' \
+          'https://api.example.com/items  |  http://127.0.0.1:8000/health' \
+          'Must include the protocol. Use http:// for local servers.')"
+        local hdr
+        hdr="$(uk_prompt \
+          'Optional header in Key: Value format (leave blank to skip)' \
+          '' \
+          'Authorization: Bearer TOKEN  |  Content-Type: application/json' \
+          'Only one header can be added here. Use --header for multiple.')"
+        [[ -n "$hdr" ]] && AT_HEADERS+=("$hdr")
+        AT_BODY="$(uk_prompt \
+          'Optional request body (leave blank to skip)' \
+          '' \
+          '{"name":"demo"}  |  id=1&active=true' \
+          'For JSON bodies also add a Content-Type: application/json header above.')"
       fi
       [[ -n "$AT_URL" ]] || { at_usage; return 1; }
       at_run_request
