@@ -35,11 +35,27 @@ dj_count() {
 
 dj_preview() {
   uk_header 'UtilityKit Docker Janitor' 'Stopped containers, dangling images, and orphaned volumes'
-  printf 'Stopped containers : %s\n' "$(dj_count ps -aq -f status=exited)"
-  printf 'Dangling images    : %s\n' "$(dj_count images -q -f dangling=true)"
-  printf 'Dangling volumes   : %s\n' "$(dj_count volume ls -qf dangling=true)"
-  printf '\n'
-  docker system df 2>/dev/null || true
+
+  local containers images volumes
+  containers="$(dj_count ps -aq -f status=exited)"
+  images="$(dj_count images -q -f dangling=true)"
+  volumes="$(dj_count volume ls -qf dangling=true)"
+
+  printf '  %s%sStopped containers%s  %s%s%s  %s(exited and no longer running)%s\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$containers" "$UK_C_RESET" \
+    "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s%sDangling images%s     %s%s%s  %s(untagged layers with no active reference)%s\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$images" "$UK_C_RESET" \
+    "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %s%sDangling volumes%s    %s%s%s  %s(volumes no longer attached to any container)%s\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$volumes" "$UK_C_RESET" \
+    "$UK_C_DIM" "$UK_C_RESET"
+
+  printf '\n  %sDisk usage summary:%s\n' "$UK_C_DIM" "$UK_C_RESET"
+  docker system df 2>/dev/null | sed 's/^/  /' || true
 }
 
 dj_run() {
@@ -57,10 +73,26 @@ dj_run() {
 
 dj_interactive() {
   dj_preview
-  uk_confirm 'Prune stopped containers?' 'Y' && DJ_CONTAINERS=1
-  uk_confirm 'Prune dangling images?' 'Y' && DJ_IMAGES=1
-  uk_confirm 'Prune dangling volumes?' 'N' && DJ_VOLUMES=1
-  uk_confirm 'Apply pruning now?' 'N' && DJ_APPLY=1
+  printf '\n'
+  uk_note 'Select which resources to prune. Nothing is deleted until you confirm at the end.'
+  printf '\n'
+
+  uk_confirm \
+    'Prune stopped containers? (removes exited containers — images and volumes are untouched)' \
+    'Y' && DJ_CONTAINERS=1
+
+  uk_confirm \
+    'Prune dangling images? (removes untagged image layers — named images are safe)' \
+    'Y' && DJ_IMAGES=1
+
+  uk_confirm \
+    'Prune dangling volumes? (removes volumes with no container — data inside will be lost)' \
+    'N' && DJ_VOLUMES=1
+
+  printf '\n'
+  uk_confirm \
+    'Apply all selected prune operations now? (this is permanent and cannot be undone)' \
+    'N' && DJ_APPLY=1
   dj_run
 }
 

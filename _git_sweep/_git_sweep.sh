@@ -57,14 +57,15 @@ USAGE
 gs_print_lines_or_none() {
   local heading="$1"
   shift || true
-  uk_note "$heading"
+  printf '\n  %s%s%s\n' "$UK_C_BOLD" "$heading" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if [[ $# -eq 0 ]]; then
-    printf '  %snone found%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s(none found)%s\n' "$UK_C_DIM" "$UK_C_RESET"
     return 0
   fi
   local item
   for item in "$@"; do
-    [[ -n "$item" ]] && printf '  - %s\n' "$item"
+    [[ -n "$item" ]] && printf '  %s%s%s %s\n' "$UK_C_CYAN" "$UK_I_DOT" "$UK_C_RESET" "$item"
   done
 }
 
@@ -135,12 +136,34 @@ gs_run() {
 
 gs_interactive() {
   gs_preview "$1"
-  uk_confirm 'Delete merged local branches?' 'N' && GS_LOCAL=1
-  uk_confirm 'Delete merged remote branches?' 'N' && GS_REMOTE=1
-  uk_confirm 'Clear stashes?' 'N' && GS_STASH=1
-  uk_confirm 'Sweep untracked artifacts with git clean -fdx?' 'N' && GS_CLEAN=1
-  uk_confirm 'Run git gc --prune=now?' 'Y' && GS_GC=1
-  uk_confirm 'Apply selected actions?' 'N' && GS_APPLY=1
+  printf '\n'
+  uk_note 'Select which actions to perform. Only checked items will run.'
+  printf '\n'
+
+  uk_confirm \
+    'Delete merged local branches shown above? (safe — only fully merged branches qualify)' \
+    'N' && GS_LOCAL=1
+
+  uk_confirm \
+    'Delete merged remote branches shown above? (pushes a delete to origin)' \
+    'N' && GS_REMOTE=1
+
+  uk_confirm \
+    'Clear ALL git stashes in this repo? (cannot be undone)' \
+    'N' && GS_STASH=1
+
+  uk_confirm \
+    'Remove untracked build artifacts with git clean -fdx? (deletes untracked files and dirs)' \
+    'N' && GS_CLEAN=1
+
+  uk_confirm \
+    'Run git gc --prune=now? (safe — compresses object storage, speeds up git operations)' \
+    'Y' && GS_GC=1
+
+  printf '\n'
+  uk_confirm \
+    'Apply all selected actions now? (nothing has changed yet until you confirm here)' \
+    'N' && GS_APPLY=1
   gs_run "$1"
 }
 
