@@ -94,7 +94,8 @@ mt_insert_toc() {
 }
 
 mt_check_links() {
-  uk_note 'Relative link validation:'
+  printf '\n  %s%sRelative link validation%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   python3 - <<'PY2' "$MT_FILE"
 import re,sys,os
 path=sys.argv[1]
@@ -106,9 +107,11 @@ for link in re.findall(r'\]\(([^)]+)\)', text):
         continue
     found=True
     target=os.path.join(base, link.split('#',1)[0])
-    print(('OK   ' if os.path.exists(target) else 'MISS ')+link)
+    status='OK  ' if os.path.exists(target) else 'MISS'
+    color='\033[32m' if os.path.exists(target) else '\033[31m'
+    print(f'  {color}{status}\033[0m  {link}')
 if not found:
-    print('No relative links found.')
+    print('  \033[2m(no relative links found in this file)\033[0m')
 PY2
 }
 
@@ -161,7 +164,32 @@ mt_main() {
     esac
     shift
   done
-  [[ -n "$MT_FILE" ]] || { mt_usage; return 1; }
+if [[ -z "$MT_FILE" ]] && [[ -t 0 && -t 1 ]]; then
+    uk_header 'UtilityKit Markdown TOC' 'TOC generation, link checking and table alignment'
+
+    MT_FILE="$(uk_prompt \
+      'Enter the markdown file to process' \
+      '' \
+      'README.md  |  docs/guide.md  |  ./CONTRIBUTING.md' \
+      'A table of contents will be inserted or refreshed based on headings found in the file.')"
+    [[ -n "$MT_FILE" ]] || { uk_warn 'No file entered. Exiting.'; return 0; }
+
+    if uk_confirm 'Apply TOC changes to the file? (dry-run preview if you say no)' 'N'; then
+      MT_APPLY=1
+    fi
+
+    if uk_confirm 'Check relative links inside the file?' 'Y'; then
+      MT_CHECK_LINKS=1
+    fi
+
+    if uk_confirm 'Align markdown pipe tables?' 'Y'; then
+      MT_ALIGN_TABLES=1
+    fi
+  elif [[ -z "$MT_FILE" ]]; then
+    mt_usage
+    return 1
+  fi
+
   uk_header 'UtilityKit Markdown TOC' "$MT_FILE"
   mt_insert_toc
   (( MT_CHECK_LINKS == 1 )) && { printf '\n'; mt_check_links; }

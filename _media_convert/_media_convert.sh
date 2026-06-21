@@ -48,12 +48,20 @@ mc_convert_one() {
   base="$(basename "${src%.*}")"
   out="$MC_OUTPUT/${base}.${MC_TO}"
   if (( MC_APPLY == 0 )); then
-    uk_note "Would convert $src -> $out"
+    printf '  %s%s→%s %s%s%s  %s->%s  %s%s%s\n' \
+      "$UK_C_DIM" "" "$UK_C_RESET" \
+      "$UK_C_CYAN" "$src" "$UK_C_RESET" \
+      "$UK_C_DIM" "$UK_C_RESET" \
+      "$UK_C_GREEN" "$out" "$UK_C_RESET"
     return 0
   fi
   mkdir -p "$MC_OUTPUT"
+  printf '  %sConverting:%s %s%s%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$src" "$UK_C_RESET"
   if [[ "$MC_KIND" == 'image' ]]; then
+    local method='ffmpeg'
     if uk_has_cmd magick; then
+      method="magick (quality: $MC_QUALITY$(( MC_STRIP_EXIF == 1 )) && printf ', EXIF stripped' || true)"
       if (( MC_STRIP_EXIF == 1 )); then
         magick "$src" -strip -quality "$MC_QUALITY" "$out"
       else
@@ -63,11 +71,11 @@ mc_convert_one() {
       ffmpeg -y -i "$src" -qscale:v 3 "$out" >/dev/null 2>&1
     fi
   else
+    printf '  %s(using ffmpeg libx264 crf=26)%s\n' "$UK_C_DIM" "$UK_C_RESET"
     ffmpeg -y -i "$src" -vcodec libx264 -crf 26 -preset medium -movflags +faststart "$out" >/dev/null 2>&1
   fi
-  uk_success "Created $out"
+  uk_success "Created: $out"
 }
-
 mc_main() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -82,7 +90,62 @@ mc_main() {
     esac
     shift
   done
-  (( ${#MC_PATHS[@]} > 0 )) || { mc_usage; return 1; }
+  if (( ${#MC_PATHS[@]} == 0 )) && [[ -t 0 && -t 1 ]]; then
+    uk_header 'UtilityKit Media Convert' 'Batch image and video conversion'
+
+    MC_KIND="$(uk_prompt \
+      'Enter conversion kind' \
+      'image' \
+      'image  →  uses ImageMagick or ffmpeg  |  video  →  uses ffmpeg' \
+      'Choose image for photos and graphics, video for mp4/mov/mkv files.')"
+
+    local input_path
+    input_path="$(uk_prompt \
+      'Enter source file or directory to convert' \
+      '' \
+      '~/Pictures  |  ./assets/images  |  ./recording.mov' \
+      'A directory will be scanned recursively for matching files.')"
+    [[ -n "$input_path" ]] || { uk_warn 'No path entered. Exiting.'; return 0; }
+    MC_PATHS+=("$input_path")
+
+    if [[ "$MC_KIND" == 'video' ]]; then
+      MC_TO="$(uk_prompt \
+        'Enter target video format' \
+        'mp4' \
+        'mp4  →  widely compatible  |  mkv  →  open container' \
+        'mp4 is the safest default for sharing and playback.')"
+    else
+      MC_TO="$(uk_prompt \
+        'Enter target image format' \
+        'webp' \
+        'webp  →  small and modern  |  jpg  →  universal  |  png  →  lossless' \
+        'webp gives the best size/quality ratio for web and chat use.')"
+
+      MC_QUALITY="$(uk_prompt \
+        'Enter output quality (1-100)' \
+        '82' \
+        '82  →  good default  |  95  →  high quality  |  60  →  smaller files' \
+        'Higher values preserve more detail but produce larger files.')"
+
+      if uk_confirm 'Strip EXIF metadata from images? (removes location, camera info)' 'Y'; then
+        MC_STRIP_EXIF=1
+      fi
+    fi
+
+    MC_OUTPUT="$(uk_prompt \
+      'Enter output directory for converted files' \
+      "$(pwd)/converted_${MC_KIND}" \
+      '~/converted  |  ./output  |  leave blank for default' \
+      'Converted files are written here so your originals stay intact.')"
+
+    if uk_confirm 'Apply conversion now? (dry-run preview if you say no)' 'N'; then
+      MC_APPLY=1
+    fi
+  elif (( ${#MC_PATHS[@]} == 0 )); then
+    mc_usage
+    return 1
+  fi
+
   MC_OUTPUT=${MC_OUTPUT:-"$(pwd)/converted_${MC_KIND}"}
   mc_require_tool
   uk_header 'UtilityKit Media Convert' "$MC_KIND -> $MC_TO | output: $MC_OUTPUT"
