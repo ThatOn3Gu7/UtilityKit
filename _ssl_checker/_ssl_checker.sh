@@ -25,16 +25,23 @@ PY2
 }
 
 sc_dns() {
-  uk_note 'DNS summary:'
+  printf '\n  %s%sDNS records for %s%s\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$SC_HOST" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if uk_has_cmd dig; then
+    local result
     for t in A AAAA MX TXT; do
-      printf '  %s -> ' "$t"
-      dig +short "$SC_HOST" "$t" | paste -sd '; ' - || true
+      result="$(dig +short "$SC_HOST" "$t" 2>/dev/null | paste -sd '; ' - || true)"
+      if [[ -n "$result" ]]; then
+        printf '  %s%-6s%s %s\n' "$UK_C_BOLD" "$t" "$UK_C_RESET" "$result"
+      else
+        printf '  %s%-6s%s %s(no record)%s\n' "$UK_C_BOLD" "$t" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+      fi
     done
   elif uk_has_cmd nslookup; then
-    nslookup "$SC_HOST" | sed 's/^/  /'
+    nslookup "$SC_HOST" 2>/dev/null | sed 's/^/  /' || true
   else
-    uk_warn 'dig/nslookup unavailable; skipping DNS checks.'
+    printf '  %s(dig and nslookup unavailable — skipping DNS checks)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
 }
 
@@ -63,7 +70,25 @@ sc_main() {
     esac
     shift
   done
-  [[ -n "$SC_HOST" ]] || { sc_usage; return 1; }
+  if [[ -z "$SC_HOST" ]]; then
+    if [[ -t 0 && -t 1 ]]; then
+      uk_header 'UtilityKit SSL Checker' 'Certificate expiry, DNS records and legacy TLS probe'
+      SC_HOST="$(uk_prompt \
+        'Enter the domain or host to inspect' \
+        '' \
+        'example.com  |  api.myservice.io  |  mail.company.org' \
+        'The tool will connect on the specified port and fetch the certificate.')"
+      SC_PORT="$(uk_prompt \
+        'Enter the port to connect on' \
+        '443' \
+        '443  →  standard HTTPS  |  8443  →  alternate HTTPS  |  465  →  SMTPS' \
+        'Most HTTPS services use 443. Leave blank to use the default.')"
+      [[ -n "$SC_HOST" ]] || { uk_warn 'No host entered. Exiting.'; return 0; }
+    else
+      sc_usage
+      return 1
+    fi
+  fi
   uk_has_cmd openssl || { uk_error 'openssl is required.'; return 1; }
   uk_header 'UtilityKit SSL Checker' "$SC_HOST:$SC_PORT"
   local cert_info expiry issuer subject days

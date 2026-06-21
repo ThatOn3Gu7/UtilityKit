@@ -63,17 +63,31 @@ sa_main() {
   uk_header 'UtilityKit SSH Assistant' "Config: $SA_CONFIG"
   mapfile -t hosts < <(sa_hosts)
   if (( ${#hosts[@]} == 0 )); then
-    uk_warn 'No named SSH hosts found.'
+    uk_warn 'No named SSH hosts found in ~/.ssh/config.'
+    printf '  %sAdd entries like "Host myserver" to ~/.ssh/config to use this tool.%s\n' \
+      "$UK_C_DIM" "$UK_C_RESET"
     return 0
   fi
+
+  printf '  %sNamed hosts found in %s:%s\n\n' "$UK_C_DIM" "$SA_CONFIG" "$UK_C_RESET"
   local i
   for i in "${!hosts[@]}"; do
-    printf '%2d) %s\n' "$((i+1))" "${hosts[$i]}"
+    printf '  %s%2d)%s %s%s%s  %s(ssh %s)%s\n' \
+      "$UK_C_BOLD" "$((i+1))" "$UK_C_RESET" \
+      "$UK_C_CYAN" "${hosts[$i]}" "$UK_C_RESET" \
+      "$UK_C_DIM" "${hosts[$i]}" "$UK_C_RESET"
   done
+  printf '\n'
+
   if uk_is_interactive; then
-    printf 'Choose host number to connect (or press Enter to quit): '
-    read -r i
+    printf '  %s Enter a host number to connect, or press Enter to quit: %s' \
+      "$UK_I_ARROW" "$UK_C_RESET"
+    read -r i </dev/tty
     [[ -n "$i" ]] || return 0
+    if ! [[ "$i" =~ ^[0-9]+$ ]] || (( i < 1 || i > ${#hosts[@]} )); then
+      uk_warn "Invalid selection: '$i'. Please enter a number between 1 and ${#hosts[@]}."
+      return 1
+    fi
     sa_run_ssh "${hosts[$((i-1))]}"
   fi
 }
