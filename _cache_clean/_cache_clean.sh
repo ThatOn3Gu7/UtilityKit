@@ -56,23 +56,60 @@ EOF
 cc_parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      -h|--help) cc_usage; exit 0 ;;
-      -V|--version) printf 'cacheclean %s\n' "$VERSION"; exit 0 ;;
-      --debug) CC_DEBUG=1; shift ;;
-      --no-color) CC_NO_COLOR=1; shift ;;
-      --fancy) CC_FANCY_REQUESTED=1; shift ;;
-      --no-fancy) CC_FANCY_REQUESTED=0; shift ;;
-      -q|--quiet) CC_QUIET=1; shift ;;
-      -y|--yes) CC_YES=1; shift ;;
-      --delete) CC_DELETE=1; CC_YES=1; shift ;;
-      --older-than)
-        CC_OLDER_THAN="$2"
-        shift 2
-        ;;
-      --force-root) CC_FORCE_ROOT=1; shift ;;
-      --) shift; break ;;
-      -*) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
-      *) break ;;
+    -h | --help)
+      cc_usage
+      exit 0
+      ;;
+    -V | --version)
+      printf '_cache_clean %s\n' "$VERSION"
+      exit 0
+      ;;
+    --debug)
+      CC_DEBUG=1
+      shift
+      ;;
+    --no-color)
+      CC_NO_COLOR=1
+      shift
+      ;;
+    --fancy)
+      CC_FANCY_REQUESTED=1
+      shift
+      ;;
+    --no-fancy)
+      CC_FANCY_REQUESTED=0
+      shift
+      ;;
+    -q | --quiet)
+      CC_QUIET=1
+      shift
+      ;;
+    -y | --yes)
+      CC_YES=1
+      shift
+      ;;
+    --delete)
+      CC_DELETE=1
+      CC_YES=1
+      shift
+      ;;
+    --older-than)
+      CC_OLDER_THAN="$2"
+      shift 2
+      ;;
+    --force-root)
+      CC_FORCE_ROOT=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      printf 'Unknown option: %s\n' "$1" >&2
+      exit 1
+      ;;
+    *) break ;;
     esac
   done
 }
@@ -184,7 +221,7 @@ cc_term_cols() {
 
 cc_locale_is_utf8() {
   local loc="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
-  case "$loc" in *UTF-8*|*utf-8*|*UTF8*|*utf8*) return 0 ;; esac
+  case "$loc" in *UTF-8* | *utf-8* | *UTF8* | *utf8*) return 0 ;; esac
   return 1
 }
 
@@ -201,26 +238,42 @@ cc_progress_bar() {
     printf '%s%s%s' "$C_DIM" "$(printf '%*s' "$width" '' | tr ' ' '-')" "$C_RESET"
     return
   fi
-  local filled=$(( current * width / max ))
+  local filled=$((current * width / max))
   [ "$filled" -gt "$width" ] && filled=$width
-  local empty=$(( width - filled ))
+  local empty=$((width - filled))
   printf '%s%s%s%s%s' "$C_LGREEN" "$(printf '%*s' "$filled" '' | tr ' ' '#')" "$C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$C_RESET"
+}
+
+# Helper: return visible length of a string (ANSI codes removed)
+_cc_visible_len() {
+  local s
+  s=$(printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
+  printf '%s' "${#s}"
 }
 
 cc_print_banner() {
   local c1="${I_BROOM} cacheclean ${C_BOLD}${VERSION}${C_RESET}"
   local c2="intelligent cache cleaner for devs"
   local c3="Termux • Linux • macOS • Windows"
+
+  local n1 n2 n3
+  n1=$(_cc_visible_len "$c1")
+  n2=$(_cc_visible_len "$c2")
+  n3=$(_cc_visible_len "$c3")
+
   local inner=48
-  [ ${#c1} -gt "$inner" ] && inner=${#c1}
-  [ ${#c2} -gt "$inner" ] && inner=${#c2}
-  local line="$(cc_hbar "$((inner + 4))" "$B_H")"
+  [ "$n1" -gt "$inner" ] && inner=$n1
+  [ "$n2" -gt "$inner" ] && inner=$n2
+  [ "$n3" -gt "$inner" ] && inner=$n3
+
+  local line
+  line="$(cc_hbar "$((inner + 4))" "$B_H")"
 
   printf '\n'
   printf '%s%s%s%s%s\n' "$C_ACCENT" "$B_TL" "$line" "$B_TR" "$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_LCYAN$C_BOLD" "$c1" "$((inner - ${#c1} + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_WHITE$C_DIM" "$c2" "$((inner - ${#c2} + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_DIM" "$c3" "$((inner - ${#c3} + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
+  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_LCYAN$C_BOLD" "$c1" "$((inner - n1 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
+  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_WHITE$C_DIM" "$c2" "$((inner - n2 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
+  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_DIM" "$c3" "$((inner - n3 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
   printf '%s%s%s%s%s\n' "$C_ACCENT" "$B_BL" "$line" "$B_BR" "$C_RESET"
   printf '\n'
 }
@@ -228,7 +281,7 @@ cc_print_banner() {
 cc_section_title() {
   local title=$1 width=${2:-52}
   local line=$(cc_hbar "$width" "$B_H")
-  printf '\n%s%s %s %s%s%s\n' "$C_BG_ACCENT" "$C_WHITE$C_BOLD" "$I_BROOM" "$title" "$C_RESET" "$C_ACCENT"
+  printf '\n%s%s %s %s %s%s\n' "$C_BG_ACCENT" "$C_WHITE$C_BOLD" "$I_BROOM" "$title" "$C_RESET" "$C_ACCENT"
   printf '%s%s%s\n' "$C_ACCENT" "$line" "$C_RESET"
 }
 
@@ -259,7 +312,10 @@ cc_root_check() {
 
 cc_require_basic_tools() {
   for cmd in id du find wc awk rm mkdir basename dirname cut sleep date uname; do
-    command -v "$cmd" >/dev/null 2>&1 || { cc_log_error "Missing tool: $cmd"; exit 1; }
+    command -v "$cmd" >/dev/null 2>&1 || {
+      cc_log_error "Missing tool: $cmd"
+      exit 1
+    }
   done
 }
 
@@ -267,8 +323,8 @@ cc_get_script_dir() { (cd "$(dirname "${BASH_SOURCE[0]}")" && pwd); }
 
 cc_manager_for_binary() {
   case "$1" in
-    npm|yarn|pnpm|bun|pip*|cargo|go|gem|composer|dotnet|conan|vcpkg|apt*|pacman|dnf|yum|brew|apk) printf '%s' "$1" | sed 's/3$//;s/-get$//' ;;
-    *) printf '' ;;
+  npm | yarn | pnpm | bun | pip* | cargo | go | gem | composer | dotnet | conan | vcpkg | apt* | pacman | dnf | yum | brew | apk) printf '%s' "$1" | sed 's/3$//;s/-get$//' ;;
+  *) printf '' ;;
   esac
 }
 
@@ -276,7 +332,10 @@ cc_setup_tmp() {
   CC_TMPDIR="${TMPDIR:-$HOME/.cache/cacheclean}"
   mkdir -p "$CC_TMPDIR" 2>/dev/null || true
   CC_STATE_DIR="$CC_TMPDIR/cacheclean-$$"
-  mkdir -p "$CC_STATE_DIR" || { cc_log_error "Cannot create $CC_STATE_DIR"; exit 1; }
+  mkdir -p "$CC_STATE_DIR" || {
+    cc_log_error "Cannot create $CC_STATE_DIR"
+    exit 1
+  }
 }
 
 cc_cleanup_tmp() {
@@ -301,16 +360,16 @@ cc_file_size() {
     stat -c%s -- "$1" 2>/dev/null && return
     stat -f%z -- "$1" 2>/dev/null && return
   fi
-  wc -c < "$1" 2>/dev/null || echo 0
+  wc -c <"$1" 2>/dev/null || echo 0
 }
 
 cc_du_kb() { du -sk -- "$1" 2>/dev/null | awk '{print $1}' || echo 0; }
 
 cc_find_old() { find "$1" -type f -mtime +"$2" 2>/dev/null; }
 
-cc_emit_tot()   { printf 'TOT|%s|%s\n' "$1" "$2"; }
-cc_emit_orphan(){ printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")" "$3"; }
-cc_emit_err()   { printf 'ERR|%s|%s\n' "$1" "$2"; }
+cc_emit_tot() { printf 'TOT|%s|%s\n' "$1" "$2"; }
+cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")" "$3"; }
+cc_emit_err() { printf 'ERR|%s|%s\n' "$1" "$2"; }
 
 cc_clean_orphans_from_file() {
   local file=$1 deleted=0 failed=0 reclaimed=0
@@ -318,17 +377,18 @@ cc_clean_orphans_from_file() {
   while IFS='|' read -r type dir path size reason; do
     [ "$type" = "ORPHAN" ] || continue
     [ -z "$path" ] && continue
-    local dup=0 j; for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$path" ] && dup=1; done
+    local dup=0 j
+    for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$path" ] && dup=1; done
     [ "$dup" -eq 1 ] && continue
     seen+=("$path")
     [ -f "$path" ] || continue
     if rm -f -- "$path"; then
-      deleted=$((deleted+1))
-      reclaimed=$((reclaimed+${size:-0}))
+      deleted=$((deleted + 1))
+      reclaimed=$((reclaimed + ${size:-0}))
     else
-      failed=$((failed+1))
+      failed=$((failed + 1))
     fi
-  done < "$file"
+  done <"$file"
   printf '%d|%d|%d\n' "$deleted" "$failed" "$reclaimed"
 }
 
@@ -338,7 +398,7 @@ cc_spinner() {
   while kill -0 "$pid" 2>/dev/null; do
     printf '\r%s %s' "$C_LCYAN${spin:i%10:1}$C_RESET" "$msg"
     sleep 0.08
-    i=$((i+1))
+    i=$((i + 1))
   done
   wait "$pid" 2>/dev/null
   printf '\r\033[K'
@@ -375,10 +435,10 @@ cc_print_env_summary() {
   for bin in $known; do
     plugin=$(cc_manager_for_binary "$bin")
     if command -v "$bin" >/dev/null 2>&1; then
-      found=$((found+1))
+      found=$((found + 1))
       if [ -f "$CC_PLUGINS_DIR/${plugin}.sh" ]; then
         printf '  %s%-11s%s %s%s%s %s\n' "$C_LBLUE" "$bin" "$C_RESET" "$C_LGREEN" "$I_OK" "$C_RESET" "${C_SUCCESS}plugin loaded${C_RESET}"
-        active=$((active+1))
+        active=$((active + 1))
       else
         printf '  %s%-11s%s %s%s%s %s\n' "$C_LBLUE" "$bin" "$C_RESET" "$C_LYELLOW" "$I_OK" "$C_RESET" "${C_WARN}no plugin${C_RESET}"
       fi
@@ -393,7 +453,7 @@ cc_print_env_summary() {
 cc_scan_plugin() {
   local prefix=$1 name=$2 icon=$3
   local sf="$CC_STATE_DIR/${prefix}.scan" ef="$CC_STATE_DIR/${prefix}.err"
-  "${prefix}_scan_cache" > "$sf" 2> "$ef" &
+  "${prefix}_scan_cache" >"$sf" 2>"$ef" &
   local pid=$!
   [ "$CC_QUIET" -eq 0 ] && cc_spinner "$pid" "  ${icon} ${name} scanning..." || wait "$pid"
   printf '%s' "$sf"
@@ -427,39 +487,39 @@ cc_print_report() {
     while IFS= read -r line; do
       local type=${line%%|*}
       case "$type" in
-        TOT)
-          IFS='|' read -r _ dir kb <<< "$line"
-          rows_m+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2)")
-          rows_i+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f3)")
-          rows_p+=("$dir")
-          rows_t+=("${kb:-0}")
-          rows_c+=(0)
-          rows_s+=(0)
-          CC_TOTAL_CACHE_KB=$((CC_TOTAL_CACHE_KB + ${kb:-0}))
-          ;;
-        ORPHAN)
-          IFS='|' read -r _ dir path bytes reason <<< "$line"
-          local key="${dir}|${path}"
-          local dup=0 j
-          for j in "${!seen_paths[@]}"; do [ "${seen_paths[$j]}" = "$key" ] && dup=1; done
-          if [ "$dup" -eq 0 ]; then
-            seen_paths+=("$key")
-            local idx=-1
-            for j in "${!rows_p[@]}"; do [ "${rows_p[$j]}" = "$dir" ] && idx=$j; done
-            if [ "$idx" -ge 0 ]; then
-              rows_c[$idx]=$((rows_c[$idx]+1))
-              rows_s[$idx]=$((rows_s[$idx]+${bytes:-0}))
-            fi
-            CC_TOTAL_ORPHAN_COUNT=$((CC_TOTAL_ORPHAN_COUNT+1))
-            CC_TOTAL_ORPHAN_BYTES=$((CC_TOTAL_ORPHAN_BYTES+${bytes:-0}))
+      TOT)
+        IFS='|' read -r _ dir kb <<<"$line"
+        rows_m+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2)")
+        rows_i+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f3)")
+        rows_p+=("$dir")
+        rows_t+=("${kb:-0}")
+        rows_c+=(0)
+        rows_s+=(0)
+        CC_TOTAL_CACHE_KB=$((CC_TOTAL_CACHE_KB + ${kb:-0}))
+        ;;
+      ORPHAN)
+        IFS='|' read -r _ dir path bytes reason <<<"$line"
+        local key="${dir}|${path}"
+        local dup=0 j
+        for j in "${!seen_paths[@]}"; do [ "${seen_paths[$j]}" = "$key" ] && dup=1; done
+        if [ "$dup" -eq 0 ]; then
+          seen_paths+=("$key")
+          local idx=-1
+          for j in "${!rows_p[@]}"; do [ "${rows_p[$j]}" = "$dir" ] && idx=$j; done
+          if [ "$idx" -ge 0 ]; then
+            rows_c[$idx]=$((rows_c[$idx] + 1))
+            rows_s[$idx]=$((rows_s[$idx] + ${bytes:-0}))
           fi
-          ;;
-        ERR)
-          IFS='|' read -r _ dir msg <<< "$line"
-          CC_ERRORS+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2): ${dir} — ${msg}")
-          ;;
+          CC_TOTAL_ORPHAN_COUNT=$((CC_TOTAL_ORPHAN_COUNT + 1))
+          CC_TOTAL_ORPHAN_BYTES=$((CC_TOTAL_ORPHAN_BYTES + ${bytes:-0}))
+        fi
+        ;;
+      ERR)
+        IFS='|' read -r _ dir msg <<<"$line"
+        CC_ERRORS+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2): ${dir} — ${msg}")
+        ;;
       esac
-    done < "$scan_file"
+    done <"$scan_file"
   done
 
   if [ "$CC_QUIET" -eq 0 ]; then
@@ -472,7 +532,7 @@ cc_print_report() {
       printf '\n'
       printf '  %s%s%s %s%s%s\n' "$C_LCYAN" "${rows_i[$j]}" "$C_RESET" "$C_BOLD$C_WHITE" "${rows_m[$j]}" "$C_RESET"
       printf '    %sPath: %s    %s%s%s\n' "$C_LBLUE" "$C_RESET" "$C_DIM" "${rows_p[$j]}" "$C_RESET"
-      printf '    %sTotal: %s   %s%s%s\n' "$C_LBLUE" "$C_RESET" "$C_LGREEN" "$(cc_format_bytes $((rows_t[$j]*1024)))" "$C_RESET"
+      printf '    %sTotal: %s   %s%s%s\n' "$C_LBLUE" "$C_RESET" "$C_LGREEN" "$(cc_format_bytes $((rows_t[$j] * 1024)))" "$C_RESET"
 
       # FIXED VISUAL BAR
       printf '    %sVisual: %s %s\n' "$C_LBLUE" "$C_RESET" "$(cc_progress_bar "${rows_t[$j]}" "$max_kb" 28)"
@@ -480,20 +540,21 @@ cc_print_report() {
       printf '    %sOrphans: %s %s%s%s (%s%s%s)\n' \
         "$C_LBLUE" "$C_RESET" "$C_COUNT" "${rows_c[$j]}" "$C_RESET" "$C_LYELLOW" "$(cc_format_bytes ${rows_s[$j]})" "$C_RESET"
 
-      [ "$j" -lt "$((${#rows_m[@]}-1))" ] && cc_print_divider 48
+      [ "$j" -lt "$((${#rows_m[@]} - 1))" ] && cc_print_divider 48
     done
 
     cc_section_title "Summary"
     local w=46
     printf '  %s%s%s\n' "$C_ACCENT" "$(cc_hbar "$w" "$B_H")" "$C_RESET"
-    printf '  %s%s %s%sTotal cache scanned:%s %s%s%s\n' "$C_ACCENT" "$B_V" "$C_LCYAN" "$I_CHART" "$C_RESET" "$C_LCYAN$C_BOLD" "$(cc_format_bytes $((CC_TOTAL_CACHE_KB*1024)))" "$C_RESET"
-    printf '  %s%s %s%sTotal recoverable:%s   %s%s%s\n' "$C_ACCENT" "$B_V" "$C_LGREEN" "$I_BROOM" "$C_RESET" "$C_LGREEN$C_BOLD" "$(cc_format_bytes "$CC_TOTAL_ORPHAN_BYTES")" "$C_RESET"
-    printf '  %s%s %s%sOrphaned files:%s      %s%d%s\n' "$C_ACCENT" "$B_V" "$C_LYELLOW" "$I_PKG" "$C_RESET" "$C_COUNT$C_BOLD" "$CC_TOTAL_ORPHAN_COUNT" "$C_RESET"
+    printf '  %s%s %s%s Total cache scanned:%s %s%s%s\n' "$C_ACCENT" "$B_V" "$C_LCYAN" "$I_CHART" "$C_RESET" "$C_LCYAN$C_BOLD" "$(cc_format_bytes $((CC_TOTAL_CACHE_KB * 1024)))" "$C_RESET"
+    printf '  %s%s %s%s Total recoverable:%s   %s%s%s\n' "$C_ACCENT" "$B_V" "$C_LGREEN" "$I_BROOM" "$C_RESET" "$C_LGREEN$C_BOLD" "$(cc_format_bytes "$CC_TOTAL_ORPHAN_BYTES")" "$C_RESET"
+    printf '  %s%s %s%s Orphaned files:%s      %s%d%s\n' "$C_ACCENT" "$B_V" "$C_LYELLOW" "$I_PKG" "$C_RESET" "$C_COUNT$C_BOLD" "$CC_TOTAL_ORPHAN_COUNT" "$C_RESET"
     printf '  %s%s%s\n' "$C_ACCENT" "$(cc_hbar "$w" "$B_H")" "$C_RESET"
 
     if [ ${#CC_ERRORS[@]} -gt 0 ]; then
       cc_section_title "Errors / warnings" 52
-      local err; for err in "${CC_ERRORS[@]}"; do
+      local err
+      for err in "${CC_ERRORS[@]}"; do
         printf '  %s%s%s %s%s\n' "$C_LRED" "$I_WARN" "$C_RESET" "$C_DIM" "$err" "$C_RESET"
       done
     fi
@@ -508,7 +569,7 @@ cc_prompt_confirm() {
   while true; do
     printf '%s%s%s %sDelete all orphaned files? [y/N]%s ' "$C_LCYAN" "$I_ARROW" "$C_RESET" "$C_BOLD$C_WHITE" "$C_RESET"
     read -r ans
-    case "$ans" in [Yy]|[Yy][Ee][Ss]) return 0 ;; [Nn]|[Nn][Oo]|'') return 1 ;; *) echo "yes or no" ;; esac
+    case "$ans" in [Yy] | [Yy][Ee][Ss]) return 0 ;; [Nn] | [Nn][Oo] | '') return 1 ;; *) echo "yes or no" ;; esac
   done
 }
 
@@ -527,13 +588,17 @@ cc_list_orphans_to_delete() {
       [ "$type" = "ORPHAN" ] || continue
       [ -z "$path" ] && continue
       local key="${dir}|${path}"
-      local dup=0 j; for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$key" ] && dup=1; done
+      local dup=0 j
+      for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$key" ] && dup=1; done
       [ "$dup" -eq 1 ] && continue
       seen+=("$key")
-      [ "$mgr_printed" -eq 0 ] && { printf '\n  %s%s%s %s%s%s\n' "$C_LCYAN" "$icon" "$C_RESET" "$C_BOLD$C_WHITE" "$name" "$C_RESET"; mgr_printed=1; }
+      [ "$mgr_printed" -eq 0 ] && {
+        printf '\n  %s%s%s %s%s%s\n' "$C_LCYAN" "$icon" "$C_RESET" "$C_BOLD$C_WHITE" "$name" "$C_RESET"
+        mgr_printed=1
+      }
       printf '    %s%s%s %s%s%s\n' "$C_LRED" "$I_DOT" "$C_RESET" "$C_DIM" "$path" "$C_RESET"
       printf '      %s%s %s— %s%s%s\n' "$C_LYELLOW" "$(cc_format_bytes "$bytes")" "$C_RESET" "$C_PATH" "$reason" "$C_RESET"
-    done < "$scan_file"
+    done <"$scan_file"
   done
 
   printf '\n'
@@ -550,7 +615,7 @@ cc_prompt_final_confirm() {
   while true; do
     printf '%s%s%s %sAre you sure? These files will be permanently deleted. [y/N]%s ' "$C_LRED" "$I_STOP" "$C_RESET" "$C_BOLD$C_LRED" "$C_RESET"
     read -r ans
-    case "$ans" in [Yy]|[Yy][Ee][Ss]) return 0 ;; [Nn]|[Nn][Oo]|'') return 1 ;; *) echo "yes or no" ;; esac
+    case "$ans" in [Yy] | [Yy][Ee][Ss]) return 0 ;; [Nn] | [Nn][Oo] | '') return 1 ;; *) echo "yes or no" ;; esac
   done
 }
 
@@ -562,7 +627,7 @@ cc_perform_deletion() {
     scan_file="$CC_STATE_DIR/${prefix}.scan"
     [ -f "$scan_file" ] || continue
     result=$("${prefix}_clean_orphans" "$scan_file")
-    IFS='|' read -r d f r <<< "$result"
+    IFS='|' read -r d f r <<<"$result"
     total_deleted=$((total_deleted + d))
     total_failed=$((total_failed + f))
     total_reclaimed=$((total_reclaimed + r))
@@ -573,7 +638,7 @@ cc_perform_deletion() {
 cc_print_final_summary() {
   local result=$1
   local deleted failed reclaimed
-  IFS='|' read -r deleted failed reclaimed <<< "$result"
+  IFS='|' read -r deleted failed reclaimed <<<"$result"
 
   if [ "$CC_QUIET" -eq 0 ]; then
     local w=42
@@ -597,7 +662,7 @@ cc_print_final_summary() {
 }
 
 cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$C_RESET" "$1" >&2; }
-cc_log_warn()  { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "$1" "$C_RESET" >&2; }
+cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "$1" "$C_RESET" >&2; }
 cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "$1" "$C_RESET" >&2; }
 
 # ---------------------------------------------------------------------------
@@ -616,12 +681,18 @@ cc_main() {
   cc_discover_plugins
 
   if [ ${#CC_ACTIVE_PLUGINS[@]} -eq 0 ]; then
-    [ "$CC_QUIET" -eq 0 ] && { cc_print_banner; cc_print_env_summary; }
+    [ "$CC_QUIET" -eq 0 ] && {
+      cc_print_banner
+      cc_print_env_summary
+    }
     cc_log_warn "No supported package managers detected."
     exit 0
   fi
 
-  [ "$CC_QUIET" -eq 0 ] && { cc_print_banner; cc_print_env_summary; }
+  [ "$CC_QUIET" -eq 0 ] && {
+    cc_print_banner
+    cc_print_env_summary
+  }
 
   cc_run_scans
   cc_print_report

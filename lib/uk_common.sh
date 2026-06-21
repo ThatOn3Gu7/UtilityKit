@@ -126,7 +126,7 @@ uk_prompt() {
   [[ -n "$example" ]] && printf '   %sExample: %s%s\n' "$UK_C_DIM" "$example" "$UK_C_RESET" >&2
   [[ -n "$note" ]] && printf '   %s%s%s\n' "$UK_C_DIM" "$note" "$UK_C_RESET" >&2
   printf ' %s ' "$UK_I_ARROW" >&2
-  read -r reply
+  read -r reply </dev/tty
   printf '%s\n' "${reply:-$default}"
 }
 
