@@ -55,7 +55,43 @@ lr_main() {
   done
 
   [[ ${#LR_PATHS[@]} -gt 0 ]] || lr_default_paths
-  [[ ${#LR_PATHS[@]} -gt 0 ]] || { uk_error 'No log directories found. Use --path.'; return 1; }
+
+  if [[ ${#LR_PATHS[@]} -eq 0 && -t 0 && -t 1 ]]; then
+    uk_header 'UtilityKit Log Rotator' 'Archive old logs and purge stale archives'
+    local input_path
+    input_path="$(uk_prompt \
+      'Enter a log directory to scan' \
+      './logs' \
+      '/var/log  |  ~/.pm2/logs  |  ~/project/logs' \
+      'The tool will find files older than your threshold and archive them.')"
+    LR_PATHS+=("$input_path")
+
+    LR_ARCHIVE_AFTER="$(uk_prompt \
+      'Archive logs older than how many days?' \
+      '7' \
+      '7  →  weekly cleanup  |  30  →  monthly  |  1  →  aggressive' \
+      'Files older than this threshold get packaged into a tar.gz archive.')"
+
+    LR_PURGE_AFTER="$(uk_prompt \
+      'Purge old archive files after how many days?' \
+      '30' \
+      '30  →  keep one month  |  90  →  keep a quarter  |  7  →  aggressive' \
+      'Archive files older than this threshold are permanently deleted.')"
+
+    LR_ARCHIVE_DIR="$(uk_prompt \
+      'Enter output directory for archive files (leave blank for default)' \
+      '' \
+      '~/log-archives  |  /tmp/archives  |  leave blank for UtilityKit state dir' \
+      'Compressed archives will be written here. The directory is created if needed.')"
+
+    if uk_confirm 'Apply archiving and purging now? (dry-run if you say no)' 'N'; then
+      LR_APPLY=1
+    fi
+  elif [[ ${#LR_PATHS[@]} -eq 0 ]]; then
+    uk_error 'No log directories found. Use --path.'
+    return 1
+  fi
+
   LR_ARCHIVE_DIR=${LR_ARCHIVE_DIR:-"$(uk_state_dir)/log_archives"}
   mkdir -p "$LR_ARCHIVE_DIR"
 
@@ -67,10 +103,16 @@ lr_main() {
   for path in "${LR_PATHS[@]}"; do
     : > "$list_file"
     lr_collect_logs "$path" "$list_file"
+
+    printf '\n  %s%s%s\n' "$UK_C_BOLD" "$path" "$UK_C_RESET"
+    printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+
     if [[ -s "$list_file" ]]; then
       archive="$(lr_archive_path "$path")"
-      uk_note "Archive candidate from $path -> $archive"
-      sed "s#^#  - $path/#" "$list_file"
+      printf '  %sFiles older than %d day(s) — will be archived:%s\n' \
+        "$UK_C_DIM" "$LR_ARCHIVE_AFTER" "$UK_C_RESET"
+      sed "s#^#  $UK_C_CYAN•$UK_C_RESET $path/#" "$list_file"
+      printf '  %sTarget archive:%s %s\n' "$UK_C_DIM" "$UK_C_RESET" "$archive"
       if (( LR_APPLY == 1 )); then
         tar -czf "$archive" -C "$path" -T "$list_file"
         while IFS= read -r old_log; do rm -f "$path/$old_log"; done < "$list_file"
@@ -78,12 +120,21 @@ lr_main() {
         uk_success "Created $archive"
       fi
     else
-      uk_note "No logs older than $LR_ARCHIVE_AFTER day(s) in $path"
+      printf '  %s(no logs older than %d day(s) found — nothing to archive)%s\n' \
+        "$UK_C_DIM" "$LR_ARCHIVE_AFTER" "$UK_C_RESET"
     fi
   done
 
-  uk_note "Purge preview for archives older than $LR_PURGE_AFTER day(s):"
-  find "$LR_ARCHIVE_DIR" -type f -name '*.tar.gz' -mtime +"$LR_PURGE_AFTER" -print 2>/dev/null | sed 's/^/  - /' || true
+  printf '\n  %s%sPurge check%s — archives older than %d day(s):\n' \
+    "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" "$LR_PURGE_AFTER"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+  local stale_list
+  stale_list="$(find "$LR_ARCHIVE_DIR" -type f -name '*.tar.gz' -mtime +"$LR_PURGE_AFTER" -print 2>/dev/null || true)"
+  if [[ -n "$stale_list" ]]; then
+    printf '%s\n' "$stale_list" | sed "s/^/  $UK_C_DIM- /" | sed "s/$/$UK_C_RESET/"
+  else
+    printf '  %s(no stale archives found)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+  fi
   if (( LR_APPLY == 1 )); then
     while IFS= read -r stale; do
       [[ -n "$stale" ]] || continue
