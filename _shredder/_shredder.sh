@@ -39,15 +39,58 @@ sd_main() {
     esac
     shift
   done
-  (( ${#SD_FILES[@]} > 0 )) || { sd_usage; return 1; }
+  if (( ${#SD_FILES[@]} == 0 )) && [[ -t 0 && -t 1 ]]; then
+    uk_header 'UtilityKit Shredder' 'Secure file erasure with overwrite passes'
+
+    local input_file
+    input_file="$(uk_prompt \
+      'Enter path of the file to securely erase' \
+      '' \
+      '~/secret.txt  |  ./credentials.env  |  /tmp/private.key' \
+      'The file will be overwritten multiple times before being deleted.')"
+    [[ -n "$input_file" ]] || { uk_warn 'No file entered. Exiting.'; return 0; }
+    SD_FILES+=("$input_file")
+
+    SD_PASSES="$(uk_prompt \
+      'How many overwrite passes?' \
+      '3' \
+      '3  →  good default  |  7  →  DoD standard  |  1  →  fast, less thorough' \
+      'More passes take longer but overwrite the file contents more thoroughly.')"
+
+    if uk_confirm \
+      'Apply secure erase now? (this permanently destroys the file and cannot be undone)' \
+      'N'; then
+      SD_APPLY=1
+    fi
+  elif (( ${#SD_FILES[@]} == 0 )); then
+    sd_usage
+    return 1
+  fi
+
   uk_header 'UtilityKit Shredder' "Passes: $SD_PASSES"
   local f
   for f in "${SD_FILES[@]}"; do
+    if [[ ! -f "$f" ]]; then
+      uk_warn "Skipping — file not found: $f"
+      continue
+    fi
     if (( SD_APPLY == 1 )); then
+      printf '  %s%sShredding:%s %s%s%s\n' \
+        "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" \
+        "$UK_C_DIM" "$f" "$UK_C_RESET"
+      printf '  %s(%d overwrite pass(es) then unlink)%s\n' \
+        "$UK_C_DIM" "$SD_PASSES" "$UK_C_RESET"
       sd_secure_delete "$f"
-      uk_success "Securely removed $f"
+      uk_success "Securely erased: $f"
     else
-      uk_note "Would securely erase $f"
+      printf '\n  %s%sDry-run preview%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+      printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+      printf '  %sFile:%s    %s\n' "$UK_C_BOLD" "$UK_C_RESET" "$f"
+      printf '  %sMethod:%s  %s\n' "$UK_C_BOLD" "$UK_C_RESET" \
+        "$(uk_has_cmd shred && printf 'shred -n %d -z -u' "$SD_PASSES" || printf 'urandom overwrite x%d then rm' "$SD_PASSES")"
+      printf '  %sPasses:%s  %d\n' "$UK_C_BOLD" "$UK_C_RESET" "$SD_PASSES"
+      printf '  %s(re-run with --apply to permanently erase this file)%s\n' \
+        "$UK_C_DIM" "$UK_C_RESET"
     fi
   done
 }

@@ -84,8 +84,17 @@ df_scan() {
     return 0
   fi
 
-  awk -F '\t' '{printf "Canonical: %s\n  duplicate: %s\n", $1, $2}' "$duplicates_file"
-
+  printf '\n  %s%sDuplicate groups found%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+  while IFS=$'\t' read -r canon dup; do
+    printf '\n  %sKeep:%s   %s%s%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$canon" "$UK_C_RESET"
+    printf '  %sDupe:%s   %s%s%s  %s(will be %s if applied)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$dup" "$UK_C_RESET" \
+      "$UK_C_DIM" "${DF_ACTION:-removed}" "$UK_C_RESET"
+  done < "$duplicates_file"
+  printf '\n'
+  
   if [[ "$DF_ACTION" == 'report' ]]; then
     uk_note 'Preview only. Use --delete or --hardlink with --apply to modify files.'
     return 0
@@ -114,7 +123,9 @@ df_scan() {
 }
 
 df_main() {
+  local seen_args=0
   while [[ $# -gt 0 ]]; do
+    seen_args=1
     case "$1" in
       --delete) DF_ACTION='delete' ;;
       --hardlink) DF_ACTION='hardlink' ;;
@@ -124,6 +135,48 @@ df_main() {
     esac
     shift
   done
+
+  if (( seen_args == 0 )) && [[ -t 0 && -t 1 ]]; then
+    uk_header 'UtilityKit Duplicate Finder' 'Size-first, hash-second duplicate detection'
+
+    DF_DIR="$(uk_prompt \
+      'Enter directory to scan for duplicates' \
+      '.' \
+      '~/Downloads  |  ~/Pictures  |  ./assets' \
+      'The tool matches file sizes first, then hashes exact-size candidates to confirm.')"
+
+    printf '\n'
+    printf '  %s1)%s Report only          %s(show duplicates, make no changes)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s2)%s Delete duplicates    %s(remove dupes, keep the first copy of each)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s3)%s Replace with hardlinks %s(save space while keeping both paths intact)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '\n'
+    printf ' %s Choose an action [1-3]: ' "$UK_I_ARROW"
+    read -r mode </dev/tty
+
+    case "$mode" in
+      2)
+        DF_ACTION='delete'
+        if uk_confirm \
+          'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
+          DF_APPLY=1
+        fi
+        ;;
+      3)
+        DF_ACTION='hardlink'
+        if uk_confirm \
+          'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
+          DF_APPLY=1
+        fi
+        ;;
+      *)
+        DF_ACTION='report'
+        ;;
+    esac
+  fi
+
   df_scan
 }
 
