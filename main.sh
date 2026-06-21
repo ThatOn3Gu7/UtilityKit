@@ -66,26 +66,26 @@ EOF
 }
 
 uk_home_menu() {
-  printf '  Please select a utility from the suite below:\n\n'
+  printf '  %s❯ %sPlease select a utility from the suite below:%s\n\n' "$UK_C_BOLD" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET"
   printf '    %s1)%s %s↻ Apply Changes%s    %s(Robust Directory Synchronization)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %s2)%s %s✎ Batch Rename%s     %s(Recursive File Renaming & Copying)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_BLUE" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %s3)%s %s🗑 Cache Cleaner%s    %s(Intelligent System Cache Cleanup)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_MAGENTA" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %s4)%s %s► Symlink Manager%s  %s(Dotfiles & System Config Management)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_YELLOW" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %s5)%s %s◆ Disk Analyzer%s    %s(Storage Inspection & Quick Archiving)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %s6)%s %s⚙ Setup / Install%s  %s(Launcher & Path Configuration)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %sm)%s %s⋯ More tools%s       %s(Load additional utilities)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '    %sm)%s %s☰ More tools%s       %s(Load additional utilities)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    %sq)%s %s✖ Quit UtilityKit%s  %s(Quit out of UtilityKit)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_RED" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
 }
 
 uk_more_menu_page_1() {
-  printf '  More tools — Page 1 of 2\n\n'
-  printf '    1) Env Manager       2) Git Sweep         3) Project Scaffold\n'
-  printf '    4) Duplicate Finder  5) Log Rotator       6) Process Killer\n'
-  printf '    7) Port Inspector    8) Next Page         b) Back to Home\n\n'
+  printf ' %s❯ %sMore tools%s — %sPage 1 of 2%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  printf '    %s1)%s Env Manager       2) Git Sweep         3) Project Scaffold\n' "$UK_C_BOLD" "$UK_C_RESET"
+  printf '    %s4)%s Duplicate Finder  5) Log Rotator       6) Process Killer\n' "$UK_C_BOLD" "$UK_C_RESET"
+  printf '    %s7)%s Port Inspector    8) Next Page         b) Back to Home\n\n' "$UK_C_BOLD" "$UK_C_RESET"
 }
 
 uk_more_menu_page_2() {
-  printf '  More tools — Page 2 of 2\n\n'
+  printf '  %s❯ %sMore tools%s — %sPage 2 of 2%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
   printf '    1) SSL Checker       2) API Tester        3) Password Generator\n'
   printf '    4) SSH Assistant     5) Shredder          6) Media Convert\n'
   printf '    7) Markdown TOC      8) Pomodoro          9) Cheat Sheet\n'
