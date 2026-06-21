@@ -67,13 +67,14 @@ cs_search() {
 cs_interactive() {
   local choice done_loop=0
   while (( done_loop == 0 )); do
-    uk_header 'UtilityKit Cheat Sheet' 'Save, list, show, or search snippets. Choose q to return to the main dashboard.'
-    printf '  1) list saved snippets\n'
-    printf '  2) add a new snippet\n'
-    printf '  3) show a saved snippet\n'
-    printf '  4) search snippets\n'
-    printf '  q) return to main dashboard\n\n'
-    printf ' %s Choose an action: ' "$UK_I_ARROW"
+    uk_header 'UtilityKit Cheat Sheet' 'Your personal markdown snippet store'
+    printf '  %s1)%s List saved snippets     %s(show all snippet names you have stored)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s2)%s Add a new snippet       %s(save a one-liner or short block with tags)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s3)%s Show a snippet          %s(display full contents of a saved snippet)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %s4)%s Search snippets         %s(grep across all saved snippet content)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %sq)%s Return to dashboard\n' "$UK_C_BOLD" "$UK_C_RESET"
+    printf '\n'
+    printf ' %s Choose an action [1-4/q]: ' "$UK_I_ARROW"
     read -r choice
     case "$choice" in
       1)
@@ -81,17 +82,37 @@ cs_interactive() {
         ;;
       2)
         CS_ACTION='add'
-        CS_NAME="$(uk_prompt 'Enter a snippet name' '' 'docker-logs' 'This becomes the saved snippet identifier.')"
-        CS_TAGS="$(uk_prompt 'Enter optional tags (comma separated)' '' 'docker,logs' 'Tags are stored for your own organization.')"
-        CS_TEXT="$(uk_prompt 'Enter one-line snippet text' '' 'docker logs -f app' 'You can later show or search for this snippet.')"
+        CS_NAME="$(uk_prompt \
+          'Enter a name for this snippet' \
+          '' \
+          'docker-logs  |  git-undo  |  ffmpeg-compress' \
+          'This becomes the filename. Use short lowercase names with hyphens.')"
+        CS_TAGS="$(uk_prompt \
+          'Enter optional tags (comma separated, or leave blank)' \
+          '' \
+          'docker,logs  |  git,undo  |  ffmpeg,video' \
+          'Tags are stored in the file header for your own organization only.')"
+        CS_TEXT="$(uk_prompt \
+          'Enter the snippet text (one line, or leave blank to type multi-line next)' \
+          '' \
+          'docker logs -f app  |  git reset HEAD~1  |  ffmpeg -i in.mp4 out.webm' \
+          'For multi-line snippets leave this blank — you will be prompted to type freely.')"
         cs_add
         ;;
       3)
-        CS_NAME="$(uk_prompt 'Enter snippet name to display' '' 'docker-logs' 'Use one of the names shown in the list action.')"
+        CS_NAME="$(uk_prompt \
+          'Enter the snippet name to display' \
+          '' \
+          'docker-logs  |  git-undo  |  ffmpeg-compress' \
+          'Use the exact name shown in the list. Tab completion is not available here.')"
         cs_show
         ;;
       4)
-        CS_TERM="$(uk_prompt 'Enter a search term' '' 'docker' 'The search scans all saved markdown snippets.')"
+        CS_TERM="$(uk_prompt \
+          'Enter a search term to look for across all snippets' \
+          '' \
+          'docker  |  reset  |  ffmpeg' \
+          'The search scans both snippet names and their full content.')"
         cs_search
         ;;
       q|Q|quit|exit)
