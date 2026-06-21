@@ -29,7 +29,7 @@ syntax_check() {
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
-  local cmds=(apply rename cacheclean symlink disk env git docker scaffold dup logs proc port ssl api pass ssh shred media toc pomodoro cheat zen)
+  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup logs proc port ssl api pass ssh shred media toc pomodoro cheat zen)
   local cmd
   for cmd in "${cmds[@]}"; do
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1
@@ -44,6 +44,13 @@ core_smoke() {
   printf 'old file\n' > "$TMP/dst/obsolete.txt"
   NO_COLOR=1 bash "$ROOT/_apply_changes/_apply_changes.sh" --apply --yes --mirror "$TMP/src" "$TMP/dst" >/dev/null
   [[ -f "$TMP/dst/sub/b.txt" && ! -f "$TMP/dst/obsolete.txt" ]]
+
+
+  mkdir -p "$TMP/move_src/sub" "$TMP/move_out"
+  printf 'alpha' > "$TMP/move_src/a.txt"
+  printf 'skip' > "$TMP/move_src/sub/skip.md"
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_move_in_batch/_move_in_batch.sh" --target "$TMP/move_src" --output "$TMP/move_out" --exclude .md >/dev/null
+  [[ -f "$TMP/move_out/a.txt" && ! -f "$TMP/move_out/sub/skip.md" ]]
 
   mkdir -p "$TMP/rename_src"
   printf '1' > "$TMP/rename_src/file.js"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  _move_in_batch.sh — Batch File Mover  v2.0.0
+#  _move_in_batch.sh — Batch File Mover  v2.0.1
 # ==============================================================================
 #  Move or copy files from a target directory to an output directory, with
 #  exclusion patterns, optional flattening, interactive confirmation, live
@@ -30,9 +30,9 @@ IFS=$'\n\t'
 # ==============================================================================
 #  0.  METADATA
 # ==============================================================================
-readonly SCRIPT_NAME="Batch File Mover"
-readonly SCRIPT_VERSION="2.0.0"
-readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
+MIB_SCRIPT_NAME="Batch File Mover"
+MIB_SCRIPT_VERSION="2.0.1"
+MIB_SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 # ==============================================================================
 #  1.  TERMINAL CAPABILITY DETECTION
@@ -296,6 +296,10 @@ draw_progress() {
     local label="$3"
 
     (( total == 0 )) && return
+    if [[ ! -t 1 ]]; then
+        [[ "$label" == "Complete" ]] && printf "  %s Processed %d/%d file(s): %s\n" "$I_GEAR" "$current" "$total" "$label"
+        return 0
+    fi
 
     local term_width
     term_width=$(tput cols 2>/dev/null || echo 80)
@@ -364,7 +368,7 @@ _expand_tilde() {
 # ==============================================================================
 
 show_help() {
-    print_banner "$SCRIPT_NAME" "v${SCRIPT_VERSION}"
+    print_banner "$MIB_SCRIPT_NAME" "v${MIB_SCRIPT_VERSION}"
 
     printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "USAGE")"
     printf "\n"
@@ -379,7 +383,7 @@ show_help() {
     printf "    %-22s %s\n" "$(colorize "$C_GREEN"  "-t, --target")"     "Source directory (required)"
     printf "    %-22s %s\n" "$(colorize "$C_YELLOW" "-o, --output")"     "Destination directory (required)"
     printf "    %-22s %s\n" "$(colorize "$C_RED"    "-e, --exclude")"    "Extensions / patterns to skip"
-    printf "    %-22s %s\n" "$(colorize "$C_MAGENTA""-f, --flatten")"    "Strip subdirectory structure"
+    printf "    %-22s %s\n" "$(colorize "$C_MAGENTA" "-f, --flatten")"    "Strip subdirectory structure"
     printf "    %-22s %s\n" "$(colorize "$C_BLUE"   "-m, --method")"     "Transfer method: cp (default) or mv"
     printf "    %-22s %s\n" "$(colorize "$C_CYAN"   "-h, --help")"       "Show this help"
     printf "\n"
@@ -403,9 +407,9 @@ show_help() {
 
 show_version() {
     printf "%s %s\n" \
-        "$(colorize "${C_BOLD}${C_CYAN}" "$SCRIPT_NAME")" \
-        "$(colorize "$C_GREEN" "v${SCRIPT_VERSION}")"
-    printf "%s\n" "$(colorize "$C_DIM" "$SCRIPT_URL")"
+        "$(colorize "${C_BOLD}${C_CYAN}" "$MIB_SCRIPT_NAME")" \
+        "$(colorize "$C_GREEN" "v${MIB_SCRIPT_VERSION}")"
+    printf "%s\n" "$(colorize "$C_DIM" "$MIB_SCRIPT_URL")"
     printf "\n"
     printf "  Bash:          %s\n" "${BASH_VERSION}"
     printf "  Unicode:       %s\n" "$([[ "$CAP_USE_UNICODE"  == true ]] && echo "enabled" || echo "disabled")"
@@ -559,15 +563,33 @@ move_in_batch() {
 
     mkdir -p "$output"
 
+    # Refuse destination nesting inside the source tree; otherwise a re-run can
+    # recursively copy/move the previous output back into itself.
+    local real_target real_output
+    real_target="$(realpath "$target" 2>/dev/null || (cd "$target" && pwd -P))"
+    real_output="$(realpath "$output" 2>/dev/null || (cd "$output" && pwd -P))"
+    if [[ "$real_output" == "$real_target" || "$real_output" == "$real_target"/* ]]; then
+        msg_error "Output directory must not be the source directory or inside it: $output"
+        return 1
+    fi
+
     # ---- scan files ----
     msg_working "Scanning for files in $(colorize "${C_BOLD}${C_CYAN}" "$target") ..."
 
     local files=()
     local total_size=0
-    while IFS=$'\t' read -r -d '' filepath file_size; do
+    while IFS= read -r -d '' filepath; do
+        local file_size
+        if file_size=$(stat -c '%s' "$filepath" 2>/dev/null); then
+            :
+        elif file_size=$(stat -f '%z' "$filepath" 2>/dev/null); then
+            :
+        else
+            file_size=0
+        fi
         files+=("$filepath")
         total_size=$(( total_size + file_size ))
-    done < <(find "$target" -type f -printf '%p\t%s\0' 2>/dev/null | sort -z)
+    done < <(find "$target" -type f -print0 2>/dev/null | sort -z)
 
     local total_files=${#files[@]}
 
@@ -657,7 +679,7 @@ move_in_batch() {
         mode_tags+="$(colorize "$C_MAGENTA" " [flatten]")"
     fi
 
-    print_banner "Batch Move Operation" "v${SCRIPT_VERSION}"
+    print_banner "Batch Move Operation" "v${MIB_SCRIPT_VERSION}"
 
     msg_info "Source:      $(colorize "$C_BOLD" "$target")"
     msg_info "Output:      $(colorize "${C_BOLD}${C_CYAN}" "$output")"
@@ -984,10 +1006,14 @@ move_in_batch() {
     fi
 }
 
+mib_main() {
+    move_in_batch "$@"
+}
+
 # ==============================================================================
 #  11. ENTRY POINT
 # ==============================================================================
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    move_in_batch "$@"
+    mib_main "$@"
 fi

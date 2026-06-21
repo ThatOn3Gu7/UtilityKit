@@ -4,7 +4,7 @@ set -euo pipefail
 readonly UK_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$UK_ROOT_DIR/lib/uk_common.sh"
 
-readonly UK_VERSION='4.1.1'
+readonly UK_VERSION='4.1.2'
 
 uk_source_tool() {
   local path="$1"
@@ -15,6 +15,7 @@ uk_source_tool() {
 
 uk_source_tool "$UK_ROOT_DIR/_apply_changes/_apply_changes.sh"
 uk_source_tool "$UK_ROOT_DIR/_rename_batch/_rename_batch.sh"
+uk_source_tool "$UK_ROOT_DIR/_move_in_batch/_move_in_batch.sh"
 uk_source_tool "$UK_ROOT_DIR/_cache_clean/_cache_clean.sh"
 uk_source_tool "$UK_ROOT_DIR/_symlink_manager/_symlink_manager.sh"
 uk_source_tool "$UK_ROOT_DIR/_disk_analyzer/_disk_analyzer.sh"
@@ -89,10 +90,11 @@ uk_more_menu_page_2() {
   printf '    1) SSL Checker       2) API Tester        3) Password Generator\n'
   printf '    4) SSH Assistant     5) Shredder          6) Media Convert\n'
   printf '    7) Markdown TOC      8) Pomodoro          9) Cheat Sheet\n'
+  printf '   10) Move in Batch\n'
   if [[ "$(uk_platform)" != 'termux' ]]; then
-    printf '   10) Docker Janitor\n'
+    printf '   11) Docker Janitor\n'
   else
-    printf '   10) Docker Janitor    %s(unavailable in Termux)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    printf '   11) Docker Janitor    %s(unavailable in Termux)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
   printf '    p) Previous Page     b) Back to Home      q) Quit\n\n'
 }
@@ -111,8 +113,12 @@ run_apply_wizard() {
   [[ "$mirror" =~ ^[Yy]$ ]] && custom+=" --mirror"
   [[ "$force" =~ ^[Yy]$ ]] && custom+=" --force"
   [[ "$include_runtime" =~ ^[Yy]$ ]] && custom+=" --include-runtime"
-  [[ -z "$custom" ]] && custom=' --dry-run'
-  ( eval ac_main $custom "$(uk_expand_path "$src")" "$(uk_expand_path "$dst")" )
+  local args=()
+  [[ "$apply" =~ ^[Yy]$ ]] && args+=(--apply --yes) || args+=(--dry-run)
+  [[ "$mirror" =~ ^[Yy]$ ]] && args+=(--mirror)
+  [[ "$force" =~ ^[Yy]$ ]] && args+=(--force)
+  [[ "$include_runtime" =~ ^[Yy]$ ]] && args+=(--include-runtime)
+  ( ac_main "${args[@]}" "$(uk_expand_path "$src")" "$(uk_expand_path "$dst")" )
 }
 
 run_rename_wizard() {
@@ -452,6 +458,24 @@ run_toc_wizard() {
   rm -f "$before" "$after"
 }
 
+run_move_wizard() {
+  uk_section_title 'Move in Batch'
+  local target output method flatten excludes exclude_args=()
+  target="$(uk_prompt 'Enter source directory to copy/move from' '.' '~/Downloads' 'Files under this directory will be transferred recursively.')"
+  output="$(uk_prompt 'Enter output directory' './moved-files' '~/Organized' 'The destination must not be inside the source directory.')"
+  method="$(uk_prompt 'Transfer method (cp or mv)' 'cp' 'mv' 'cp keeps originals; mv removes originals after transfer.')"
+  flatten="$(uk_prompt 'Flatten subdirectories? (y/N)' 'N' 'y' 'Flatten puts all files directly in the output root with collision renames.')"
+  excludes="$(uk_prompt 'Optional exclusions separated by spaces' '' '.git .md node_modules' 'Matches filename suffixes and path components; leave blank for none.')"
+  if [[ -n "$excludes" ]]; then
+    # shellcheck disable=SC2206
+    exclude_args=(--exclude $excludes)
+  fi
+  local args=(--target "$(uk_expand_path "$target")" --output "$(uk_expand_path "$output")" --method "$method")
+  [[ "$flatten" =~ ^[Yy]$ ]] && args+=(--flatten)
+  [[ ${#exclude_args[@]} -gt 0 ]] && args+=("${exclude_args[@]}")
+  ( mib_main "${args[@]}" )
+}
+
 run_pomodoro_wizard() {
   ( po_main )
 }
@@ -480,6 +504,7 @@ run_tool() {
   case "$cmd" in
     apply|apply-changes) ( [[ $# -gt 0 ]] && ac_main "$@" || run_apply_wizard ) ;;
     rename|rename-batch) ( [[ $# -gt 0 ]] && rb_main "$@" || run_rename_wizard ) ;;
+    move|move-in-batch|move-batch) ( [[ $# -gt 0 ]] && mib_main "$@" || run_move_wizard ) ;;
     cacheclean|cache-clean) ( [[ $# -gt 0 ]] && cc_main "$@" || cc_main ) ;;
     symlink|symlink-manager) ( [[ $# -gt 0 ]] && sm_main "$@" || run_symlink_wizard ) ;;
     disk|disk-analyzer) ( [[ $# -gt 0 ]] && da_main "$@" || run_disk_wizard ) ;;
@@ -522,10 +547,11 @@ Usage:
 Dashboard-visible commands:
   apply, rename, cacheclean, symlink, disk, env, git, scaffold, dup,
   logs, proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
-  cheat, setup
+  cheat, move, setup
 
 Additional direct commands:
   docker      Docker janitor (mainly useful off Termux)
+  move        Batch copy/move files into an output directory
   zen         Hidden CLI-only screensaver experiment
   help        This help screen
 EOF
@@ -538,7 +564,7 @@ home_menu_loop() {
     uk_main_banner
     uk_home_menu
      echo ""
-     printf "  %sChoose an option [1-6/m/q]: %s" "${C_BOLD}${C_CYAN}${I_ARROW} " "${C_RESET}"
+     printf "  %sChoose an option [1-6/m/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
    # printf '  %sChoose an option [1-6/m/q]: %s' "$UK_I_ARROW" "$UK_C_RESET"
     read -r choice
     case "$choice" in
@@ -564,7 +590,7 @@ more_menu_loop_page_1() {
   while true; do
     uk_main_banner
     uk_more_menu_page_1
-    printf "  %sChoose an option [1-8/b/q]: %s" "${C_BOLD}${C_CYAN}${I_ARROW} " "${C_RESET}"
+    printf "  %sChoose an option [1-8/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
     read -r choice
     case "$choice" in
       1) uk_menu_execute env ;;
@@ -589,7 +615,7 @@ more_menu_loop_page_2() {
   while true; do
     uk_main_banner
     uk_more_menu_page_2
-    printf "  %sChoose an option [1-10/p/b/q]: %s" "${C_BOLD}${C_CYAN}${I_ARROW} " "${C_RESET}"
+    printf "  %sChoose an option [1-11/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
     read -r choice
     case "$choice" in
       1) uk_menu_execute ssl ;;
@@ -601,7 +627,8 @@ more_menu_loop_page_2() {
       7) uk_menu_execute toc ;;
       8) uk_menu_execute pomodoro ;;
       9) uk_menu_execute cheat ;;
-      10)
+      10) uk_menu_execute move ;;
+      11)
         if [[ "$(uk_platform)" == 'termux' ]]; then
           uk_warn 'Docker Janitor is disabled in the Termux dashboard.'
         else
@@ -611,7 +638,7 @@ more_menu_loop_page_2() {
       p|P|prev|previous) return 0 ;;
       b|B|back) return 0 ;;
       q|Q|quit|exit) exit 0 ;;
-      *) uk_warn 'Invalid selection. Please enter 1-10, p, b, or q.' ;;
+      *) uk_warn 'Invalid selection. Please enter 1-11, p, b, or q.' ;;
     esac
     printf '\n  %sPress Enter to stay in More Tools Page 2...%s' "$UK_C_DIM" "$UK_C_RESET"
     read -r
