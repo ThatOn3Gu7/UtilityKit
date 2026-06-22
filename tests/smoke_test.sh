@@ -29,7 +29,7 @@ syntax_check() {
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
-  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup logs proc port ssl api pass ssh shred media toc pomodoro cheat zen)
+  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup logs proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo zen)
   local cmd
   for cmd in "${cmds[@]}"; do
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1
@@ -161,10 +161,46 @@ EOF
   NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_zen_mode/_zen_mode.sh" --mode waves --duration 1 >/dev/null
 }
 
+
+new_tools_smoke() {
+  printf '{"users":[{"name":"ada","id":1}],"ok":true}
+' > "$TMP/data.json"
+  bash "$ROOT/_json_explorer/_json_explorer.sh" "$TMP/data.json" --path users.0.name | grep -q 'ada'
+
+  printf '# Doc
+
+[local](ref.txt)
+' > "$TMP/doc.md"
+  printf 'ref' > "$TMP/ref.txt"
+  bash "$ROOT/_link_checker/_link_checker.sh" "$TMP/doc.md" >/dev/null
+
+  printf 'name,role
+ada,dev
+' > "$TMP/data.csv"
+  bash "$ROOT/_csv_toolkit/_csv_toolkit.sh" "$TMP/data.csv" --columns | grep -q name
+
+  printf 'hello' > "$TMP/hash.txt"
+  bash "$ROOT/_hash_tools/_hash_tools.sh" "$TMP/hash.txt" | grep -q hash.txt
+
+  bash "$ROOT/_git_stats/_git_stats.sh" --repo "$ROOT" >/dev/null
+
+  mkdir -p "$TMP/backup_src" "$TMP/backup_dst"
+  printf 'copy' > "$TMP/backup_src/file.txt"
+  bash "$ROOT/_backup_sync/_backup_sync.sh" --source "$TMP/backup_src" --dest "$TMP/backup_dst" >/dev/null
+
+  bash "$ROOT/_project_search/_project_search.sh" --text 'UtilityKit' "$ROOT/README.md" >/dev/null || true
+  bash "$ROOT/_regex_lab/_regex_lab.sh" --pattern 'Util' --text 'UtilityKit' | grep -q Util
+  bash "$ROOT/_license_helper/_license_helper.sh" --generate mit --name Tester | grep -q 'MIT License'
+  bash "$ROOT/_toolbox_bootstrap/_toolbox_bootstrap.sh" >/dev/null
+  bash "$ROOT/_font_inspector/_font_inspector.sh" --glyphs >/dev/null
+  bash "$ROOT/_system_snapshot/_system_snapshot.sh" >/dev/null
+}
+
 run_test 'Syntax check' syntax_check
 run_test 'Help / routing coverage' help_check
 run_test 'Core tool smoke tests' core_smoke
 run_test 'Roadmap tool smoke tests' roadmap_smoke
+run_test 'New utility smoke tests' new_tools_smoke
 
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
 (( FAIL == 0 ))
