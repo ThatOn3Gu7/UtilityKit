@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Added 27 new cross-platform utility modules, each with a README and direct `main.sh` command route:
+  network probe, cron manager, dotenv vault, disk health, service watcher, git stats,
+  backup sync, clipboard manager, weather, JSON explorer, tmux session manager,
+  font inspector, toolbox bootstrap, project search, GitHub helper, link checker,
+  log inspector, CSV toolkit, hash tools, archive manager, system snapshot,
+  open files, battery doctor, release helper, license helper, regex lab, and todo manager.
+- Added smoke-test help coverage and functional smoke checks for representative new tools.
+
+
+### Changed
+- Reworked expanded dashboard navigation so More Tools pages advance with `n`/`p` instead of requiring numbered next-page hops.
+- Restyled all secondary dashboard pages to match the main dashboard with one-line-per-tool entries, icons, colors, and short descriptions.
+- Added guided `main.sh <new-tool>` prompts for the new utilities so dashboard-launched tools ask self-explanatory questions instead of dropping users into terse usage output.
+
+### Notes
+- New tools are designed to degrade safely on minimal systems and Termux: optional dependencies are detected at runtime, and unavailable backends produce warnings rather than hard failures where possible.
+
+
 All notable changes to UtilityKit are documented here.
 
 ## [4.1.1] - 2026-06-19

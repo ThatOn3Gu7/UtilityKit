@@ -36,6 +36,33 @@ uk_source_tool "$UK_ROOT_DIR/_media_convert/_media_convert.sh"
 uk_source_tool "$UK_ROOT_DIR/_markdown_toc/_markdown_toc.sh"
 uk_source_tool "$UK_ROOT_DIR/_pomodoro/_pomodoro.sh"
 uk_source_tool "$UK_ROOT_DIR/_cheat_sheet/_cheat_sheet.sh"
+uk_source_tool "$UK_ROOT_DIR/_network_probe/_network_probe.sh"
+uk_source_tool "$UK_ROOT_DIR/_cron_manager/_cron_manager.sh"
+uk_source_tool "$UK_ROOT_DIR/_dotenv_vault/_dotenv_vault.sh"
+uk_source_tool "$UK_ROOT_DIR/_disk_health/_disk_health.sh"
+uk_source_tool "$UK_ROOT_DIR/_service_watcher/_service_watcher.sh"
+uk_source_tool "$UK_ROOT_DIR/_git_stats/_git_stats.sh"
+uk_source_tool "$UK_ROOT_DIR/_backup_sync/_backup_sync.sh"
+uk_source_tool "$UK_ROOT_DIR/_clipboard_manager/_clipboard_manager.sh"
+uk_source_tool "$UK_ROOT_DIR/_weather/_weather.sh"
+uk_source_tool "$UK_ROOT_DIR/_json_explorer/_json_explorer.sh"
+uk_source_tool "$UK_ROOT_DIR/_tmux_session/_tmux_session.sh"
+uk_source_tool "$UK_ROOT_DIR/_font_inspector/_font_inspector.sh"
+uk_source_tool "$UK_ROOT_DIR/_toolbox_bootstrap/_toolbox_bootstrap.sh"
+uk_source_tool "$UK_ROOT_DIR/_project_search/_project_search.sh"
+uk_source_tool "$UK_ROOT_DIR/_github_helper/_github_helper.sh"
+uk_source_tool "$UK_ROOT_DIR/_link_checker/_link_checker.sh"
+uk_source_tool "$UK_ROOT_DIR/_log_inspector/_log_inspector.sh"
+uk_source_tool "$UK_ROOT_DIR/_csv_toolkit/_csv_toolkit.sh"
+uk_source_tool "$UK_ROOT_DIR/_hash_tools/_hash_tools.sh"
+uk_source_tool "$UK_ROOT_DIR/_archive_manager/_archive_manager.sh"
+uk_source_tool "$UK_ROOT_DIR/_system_snapshot/_system_snapshot.sh"
+uk_source_tool "$UK_ROOT_DIR/_open_files/_open_files.sh"
+uk_source_tool "$UK_ROOT_DIR/_battery_doctor/_battery_doctor.sh"
+uk_source_tool "$UK_ROOT_DIR/_release_helper/_release_helper.sh"
+uk_source_tool "$UK_ROOT_DIR/_license_helper/_license_helper.sh"
+uk_source_tool "$UK_ROOT_DIR/_regex_lab/_regex_lab.sh"
+uk_source_tool "$UK_ROOT_DIR/_todo_manager/_todo_manager.sh"
 uk_source_tool "$UK_ROOT_DIR/_zen_mode/_zen_mode.sh"
 
 uk_expand_path() {
@@ -52,12 +79,13 @@ uk_main_banner() {
   cat <<EOF
 ${UK_C_BRIGHT_CYAN}
 
-███████╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗
-██╔════╝╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝
-███████╗   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   
-╚════██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   
-███████║   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   
-╚══════╝   ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝${UK_C_RESET}
+██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗
+██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝
+██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   
+██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   
+╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   
+ ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝${UK_C_RESET}
+
 EOF
   printf '%s\n' "${UK_C_DIM}----------------------------------------------------------------------${UK_C_RESET}"
   printf "        %s %s READY%s   %s %s UtilityKit Central Hub %s Suite %sv%s%s\n" \
@@ -78,25 +106,95 @@ uk_home_menu() {
   printf '    %sq)%s %s✖ Quit UtilityKit%s  %s(Quit out of UtilityKit)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_RED" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
 }
 
+uk_menu_line() {
+  local num="$1" icon="$2" color="$3" name="$4" desc="$5"
+  printf '    %s%2s)%s %s%s %-20s%s %s(%s)%s\n' \
+    "$UK_C_BOLD" "$num" "$UK_C_RESET" "$color" "$icon" "$name" "$UK_C_RESET" "$UK_C_DIM" "$desc" "$UK_C_RESET"
+}
+
+uk_menu_nav() {
+  printf '\n    %sn)%s %sNext page%s       %sp)%s %sPrevious%s       %sb)%s %sBack home%s       %sq)%s %sQuit%s\n\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_RED" "$UK_C_RESET"
+}
+
 uk_more_menu_page_1() {
-  printf ' %s❯ %sMore tools%s — %sPage 1 of 2%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s1)%s Env Manager       2) Git Sweep         3) Project Scaffold\n' "$UK_C_BOLD" "$UK_C_RESET"
-  printf '    %s4)%s Duplicate Finder  5) Log Rotator       6) Process Killer\n' "$UK_C_BOLD" "$UK_C_RESET"
-  printf '    %s7)%s Port Inspector    8) Next Page         b) Back to Home\n\n' "$UK_C_BOLD" "$UK_C_RESET"
+  printf '  %s❯ %sMore tools%s — %sPage 1 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  uk_menu_line 1 '◎' "$UK_C_CYAN" 'Env Manager' 'compare, validate, and switch .env profiles'
+  uk_menu_line 2 '⑂' "$UK_C_GREEN" 'Git Sweep' 'clean merged branches, stashes, and artifacts'
+  uk_menu_line 3 '▣' "$UK_C_BRIGHT_BLUE" 'Project Scaffold' 'generate starter projects from guided templates'
+  uk_menu_line 4 '◆' "$UK_C_MAGENTA" 'Duplicate Finder' 'find exact duplicate files and reclaim space'
+  uk_menu_line 5 '◴' "$UK_C_YELLOW" 'Log Rotator' 'archive old logs and purge stale archives'
+  uk_menu_line 6 '✖' "$UK_C_RED" 'Process Killer' 'inspect memory pressure and terminate processes'
+  uk_menu_line 7 '◉' "$UK_C_BRIGHT_CYAN" 'Port Inspector' 'find which process owns a local port'
+  uk_menu_nav
 }
 
 uk_more_menu_page_2() {
-  printf '  %s❯ %sMore tools%s — %sPage 2 of 2%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    1) SSL Checker       2) API Tester        3) Password Generator\n'
-  printf '    4) SSH Assistant     5) Shredder          6) Media Convert\n'
-  printf '    7) Markdown TOC      8) Pomodoro          9) Cheat Sheet\n'
-  printf '   10) Move in Batch\n'
+  printf '  %s❯ %sMore tools%s — %sPage 2 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  uk_menu_line 1 '🔒' "$UK_C_CYAN" 'SSL Checker' 'inspect certificate expiry, DNS, and TLS support'
+  uk_menu_line 2 '⇄' "$UK_C_GREEN" 'API Tester' 'send HTTP requests and save reusable profiles'
+  uk_menu_line 3 '✦' "$UK_C_YELLOW" 'Password Gen' 'generate passphrases or random strings'
+  uk_menu_line 4 '⇢' "$UK_C_BRIGHT_BLUE" 'SSH Assistant' 'list SSH hosts and run connection helpers'
+  uk_menu_line 5 '⌫' "$UK_C_RED" 'Shredder' 'securely erase sensitive files with fallbacks'
+  uk_menu_line 6 '▧' "$UK_C_MAGENTA" 'Media Convert' 'batch convert images/videos when tools exist'
+  uk_menu_line 7 '☷' "$UK_C_CYAN" 'Markdown TOC' 'generate TOCs, check links, align tables'
+  uk_menu_line 8 '◷' "$UK_C_GREEN" 'Pomodoro' 'run focused work/break cycles'
+  uk_menu_line 9 '☰' "$UK_C_YELLOW" 'Cheat Sheet' 'store, search, and show command snippets'
+  uk_menu_line 10 '⇥' "$UK_C_BRIGHT_CYAN" 'Move in Batch' 'copy/move files safely with exclusions'
   if [[ "$(uk_platform)" != 'termux' ]]; then
-    printf '   11) Docker Janitor\n'
+    uk_menu_line 11 '⬢' "$UK_C_BRIGHT_BLUE" 'Docker Janitor' 'clean containers, images, and volumes'
   else
-    printf '   11) Docker Janitor    %s(unavailable in Termux)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    uk_menu_line 11 '⬢' "$UK_C_DIM" 'Docker Janitor' 'unavailable / usually not useful in Termux'
   fi
-  printf '    p) Previous Page     b) Back to Home      q) Quit\n\n'
+  uk_menu_nav
+}
+
+uk_more_menu_page_3() {
+  printf '  %s❯ %sNew utilities%s — %sPage 3 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  uk_menu_line 1 '⌁' "$UK_C_BRIGHT_CYAN" 'Network Probe' 'ping, DNS, public IP, and route diagnostics'
+  uk_menu_line 2 '◍' "$UK_C_GREEN" 'Service Watcher' 'check HTTP services and response times'
+  uk_menu_line 3 '⑂' "$UK_C_YELLOW" 'Git Stats' 'summarize authors, branches, and changed files'
+  uk_menu_line 4 '{}' "$UK_C_MAGENTA" 'JSON Explorer' 'pretty-print, inspect, and extract JSON paths'
+  uk_menu_line 5 '🔗' "$UK_C_CYAN" 'Link Checker' 'validate Markdown local and HTTP links'
+  uk_menu_line 6 '⇄' "$UK_C_GREEN" 'Backup Sync' 'dry-run-first backup wrapper with fallbacks'
+  uk_menu_line 7 '⌕' "$UK_C_BRIGHT_BLUE" 'Project Search' 'search files/text with rg/grep/find fallbacks'
+  uk_menu_line 8 '≡' "$UK_C_YELLOW" 'Log Inspector' 'summarize warnings, errors, repeated lines'
+  uk_menu_line 9 '▤' "$UK_C_MAGENTA" 'CSV Toolkit' 'inspect CSV headers and preview rows'
+  uk_menu_nav
+}
+
+uk_more_menu_page_4() {
+  printf '  %s❯ %sNew utilities%s — %sPage 4 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  uk_menu_line 1 '◷' "$UK_C_CYAN" 'Cron Manager' 'list/add/remove crontab entries safely'
+  uk_menu_line 2 '🔐' "$UK_C_GREEN" 'Dotenv Vault' 'encrypt selected .env values with gpg'
+  uk_menu_line 3 '◆' "$UK_C_YELLOW" 'Disk Health' 'SMART health check when smartctl exists'
+  uk_menu_line 4 '▣' "$UK_C_MAGENTA" 'Clipboard Manager' 'store/search/re-copy clipboard snippets'
+  uk_menu_line 5 '☁' "$UK_C_BRIGHT_CYAN" 'Weather' 'terminal forecast lookup with cache fallback'
+  uk_menu_line 6 '▥' "$UK_C_GREEN" 'Tmux Session' 'list, create, attach, or kill tmux sessions'
+  uk_menu_line 7 'A' "$UK_C_BRIGHT_BLUE" 'Font Inspector' 'check glyph support and list fonts'
+  uk_menu_line 8 '⚙' "$UK_C_YELLOW" 'Toolbox Audit' 'detect recommended CLI tools'
+  uk_menu_line 9 '' "$UK_C_MAGENTA" 'GitHub Helper' 'wrap common gh CLI tasks'
+  uk_menu_nav
+}
+
+uk_more_menu_page_5() {
+  printf '  %s❯ %sNew utilities%s — %sPage 5 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+  uk_menu_line 1 '#' "$UK_C_CYAN" 'Hash Tools' 'create checksums for files and trees'
+  uk_menu_line 2 '▦' "$UK_C_GREEN" 'Archive Manager' 'list, create, and safely extract archives'
+  uk_menu_line 3 '◈' "$UK_C_YELLOW" 'System Snapshot' 'collect a compact diagnostic summary'
+  uk_menu_line 4 '◉' "$UK_C_MAGENTA" 'Open Files' 'find processes using paths or ports'
+  uk_menu_line 5 '▰' "$UK_C_BRIGHT_CYAN" 'Battery Doctor' 'show battery and power diagnostics'
+  uk_menu_line 6 '✦' "$UK_C_GREEN" 'Release Helper' 'run git release checks and optional tags'
+  uk_menu_line 7 '§' "$UK_C_BRIGHT_BLUE" 'License Helper' 'detect or generate simple license text'
+  uk_menu_line 8 '.*' "$UK_C_YELLOW" 'Regex Lab' 'test regex patterns against text/files'
+  uk_menu_line 9 '☑' "$UK_C_MAGENTA" 'Todo Manager' 'plain-text tasks with tags and search'
+  printf '\n    %sp)%s %sPrevious%s       %sb)%s %sBack home%s       %sq)%s %sQuit%s\n\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_RED" "$UK_C_RESET"
 }
 
 run_apply_wizard() {
@@ -488,6 +586,188 @@ run_setup_wizard() {
   bash "$UK_ROOT_DIR/setup.sh"
 }
 
+
+uk_demo_file() {
+  local kind="$1" dir path
+  dir="$(uk_state_dir)/demo-fixtures"
+  mkdir -p "$dir"
+  case "$kind" in
+    json)
+      path="$dir/demo.json"
+      [[ -f "$path" ]] || printf '{"users":[{"name":"ada","email":"ada@example.com"}],"ok":true}\n' > "$path"
+      ;;
+    csv)
+      path="$dir/demo.csv"
+      [[ -f "$path" ]] || printf 'name,role\nada,developer\nlinus,maintainer\n' > "$path"
+      ;;
+    log)
+      path="$dir/demo.log"
+      [[ -f "$path" ]] || printf 'INFO boot\nWARN cache nearly full\nERROR demo failure\nERROR demo failure\n' > "$path"
+      ;;
+    env)
+      path="$dir/demo.env"
+      [[ -f "$path" ]] || printf 'API_TOKEN=demo-token\nAPP_ENV=local\n' > "$path"
+      ;;
+    archive)
+      path="$dir/demo.tar.gz"
+      if [[ ! -f "$path" ]]; then
+        printf 'demo archive content\n' > "$dir/archive-demo.txt"
+        tar -czf "$path" -C "$dir" archive-demo.txt 2>/dev/null || true
+      fi
+      ;;
+    md)
+      path="$dir/demo.md"
+      [[ -f "$path" ]] || { printf '# Demo\n\n[README](../../README.md)\n' > "$path"; }
+      ;;
+    *) path="$dir/demo.txt"; [[ -f "$path" ]] || printf 'UtilityKit demo\n' > "$path" ;;
+  esac
+  printf '%s\n' "$path"
+}
+
+run_new_utility_wizard() {
+  local tool="$1"
+  case "$tool" in
+    network)
+      uk_section_title 'Network Probe'
+      local host count dns public trace args=()
+      host="$(uk_prompt 'Host to test with ping and route tracing' 'example.com' 'github.com | 1.1.1.1' 'Use a domain or IP address. Missing ping/traceroute tools will be skipped safely.')"
+      count="$(uk_prompt 'How many ping packets should be sent?' '4' '4' 'Small numbers are better on mobile networks.')"
+      dns="$(uk_prompt 'Domain to use for DNS resolution timing' "$host" 'example.com' 'Usually this can be the same as the target host.')"
+      public="$(uk_prompt 'Look up public IP using curl? (Y/n)' 'Y' 'n' 'Requires curl and an internet connection.')"
+      trace="$(uk_prompt 'Attempt traceroute/tracepath? (Y/n)' 'Y' 'n' 'Skipped automatically if traceroute tools are unavailable.')"
+      args+=("$host" --count "$count" --dns "$dns")
+      [[ "$public" =~ ^[Nn]$ ]] && args+=(--no-public-ip)
+      [[ "$trace" =~ ^[Nn]$ ]] && args+=(--no-trace)
+      ( np_main "${args[@]}" ) ;;
+    service)
+      uk_section_title 'Service Watcher'
+      local urls expect interval
+      urls="$(uk_prompt 'Enter one or more URLs separated by spaces' 'https://example.com' 'https://example.com http://127.0.0.1:3000' 'The tool checks HTTP status and response time for each URL.')"
+      expect="$(uk_prompt 'Expected status codes/ranges' '2xx,3xx' '200,204,2xx' 'Anything outside this list is marked down.')"
+      interval="$(uk_prompt 'Loop interval in seconds (0 for one-time check)' '0' '10' 'Use 0 for a single run.')"
+      # shellcheck disable=SC2206
+      local arr=($urls)
+      ( sw_main "${arr[@]}" --expect "$expect" --interval "$interval" ) ;;
+    git-stats)
+      uk_section_title 'Git Stats'
+      local repo since
+      repo="$(uk_prompt 'Git repository directory to analyze' '.' '~/project' 'Must be inside a Git work tree.')"
+      since="$(uk_prompt 'Since date/filter' '30 days ago' '30 days ago | 2026-01-01' 'Default shows recent activity; use direct CLI without --since for all history.')"
+      if [[ -n "$since" ]]; then ( gst_main --repo "$(uk_expand_path "$repo")" --since "$since" ); else ( gst_main --repo "$(uk_expand_path "$repo")" ); fi ;;
+    json)
+      uk_section_title 'JSON Explorer'
+      local file mode path
+      file="$(uk_prompt 'JSON file path' "$(uk_demo_file json)" './package.json' 'A demo JSON file is used if you just press Enter.')"
+      mode="$(uk_prompt 'Mode: pretty, summary, keys, or path' 'summary' 'path' 'summary shows structure; path extracts a dot path like users.0.name.')"
+      case "$mode" in
+        keys) ( jx_main "$(uk_expand_path "$file")" --keys ) ;;
+        path) path="$(uk_prompt 'Dot path to extract' 'users.0.name' 'users.0.email' 'Use numbers for array indexes.')"; ( jx_main "$(uk_expand_path "$file")" --path "$path" ) ;;
+        pretty) ( jx_main "$(uk_expand_path "$file")" ) ;;
+        *) ( jx_main "$(uk_expand_path "$file")" --summary ) ;;
+      esac ;;
+    links)
+      uk_section_title 'Link Checker'
+      local files http args=()
+      files="$(uk_prompt 'Markdown files to check, separated by spaces' 'README.md' 'README.md docs/*.md' 'Local relative links are checked by default.')"
+      http="$(uk_prompt 'Also check HTTP/HTTPS links? (y/N)' 'N' 'y' 'HTTP checks require network access and can be slower.')"
+      # shellcheck disable=SC2206
+      args=($files)
+      [[ "$http" =~ ^[Yy]$ ]] && args+=(--http)
+      ( lc_main "${args[@]}" ) ;;
+    backup)
+      uk_section_title 'Backup Sync'
+      local src dst apply delete
+      src="$(uk_prompt 'Source directory to back up' '.' '~/project' 'The contents of this directory are copied into the destination.')"
+      dst="$(uk_prompt 'Destination directory' "$(uk_state_dir)/backup-demo" '~/backup/project' 'Created if missing. Dry-run is default.')"
+      delete="$(uk_prompt 'Mirror delete files missing from source? (y/N)' 'N' 'y' 'Dangerous; only enable when destination is dedicated backup storage.')"
+      apply="$(uk_prompt 'Apply backup now? (y/N)' 'N' 'y' 'No files are copied unless you answer yes.')"
+      local args=(--source "$(uk_expand_path "$src")" --dest "$(uk_expand_path "$dst")")
+      [[ "$delete" =~ ^[Yy]$ ]] && args+=(--delete)
+      [[ "$apply" =~ ^[Yy]$ ]] && args+=(--apply)
+      ( bs_main "${args[@]}" ) ;;
+    search)
+      uk_section_title 'Project Search'
+      local dir mode term
+      dir="$(uk_prompt 'Directory to search' '.' '~/project' 'Search respects available rg/grep/find behavior.')"
+      mode="$(uk_prompt 'Search by text or filename? (text/name)' 'text' 'name' 'Text searches file contents; name searches paths.')"
+      term="$(uk_prompt 'Search pattern' 'UtilityKit' 'TODO | *.sh' 'Use a text pattern or filename glob.')"
+      if [[ "$mode" == name ]]; then ( psrch_main --name "$term" "$(uk_expand_path "$dir")" ); else ( psrch_main --text "$term" "$(uk_expand_path "$dir")" ); fi ;;
+    log-inspect)
+      uk_section_title 'Log Inspector'
+      local file pattern
+      file="$(uk_prompt 'Log file to inspect' "$(uk_demo_file log)" './app.log' 'A demo log is used if you just press Enter.')"
+      pattern="$(uk_prompt 'Error/warning regex pattern' 'error|warn|fail|exception' 'ERROR|WARN|panic' 'Case-insensitive grep pattern.')"
+      ( li_main "$(uk_expand_path "$file")" --pattern "$pattern" ) ;;
+    csv)
+      uk_section_title 'CSV Toolkit'
+      local file mode
+      file="$(uk_prompt 'CSV file to inspect' "$(uk_demo_file csv)" './data.csv' 'A demo CSV is used if you just press Enter.')"
+      mode="$(uk_prompt 'Show columns or preview rows? (columns/preview)' 'preview' 'columns' 'Columns prints headers; preview prints first rows.')"
+      if [[ "$mode" == columns ]]; then ( csvt_main "$(uk_expand_path "$file")" --columns ); else ( csvt_main "$(uk_expand_path "$file")" ); fi ;;
+    cron)
+      uk_section_title 'Cron Manager'
+      local mode line num apply
+      mode="$(uk_prompt 'Action: list, add, or remove' 'list' 'add' 'Requires crontab; Termux may need cronie installed.')"
+      case "$mode" in
+        add) line="$(uk_prompt 'Full cron entry' '*/15 * * * * echo UtilityKit cron demo' '*/15 * * * * /path/to/script.sh' 'Five cron fields followed by the command.')"; apply="$(uk_prompt 'Apply crontab change? (y/N)' 'N' 'y' 'Dry-run is shown unless you confirm.')"; [[ "$apply" =~ ^[Yy]$ ]] && ( cm_main --add "$line" --apply ) || ( cm_main --add "$line" ) ;;
+        remove) num="$(uk_prompt 'Line number to remove from crontab listing' '1' '2' 'Run list first if you are unsure.')"; apply="$(uk_prompt 'Apply crontab change? (y/N)' 'N' 'y' 'Dry-run is shown unless you confirm.')"; [[ "$apply" =~ ^[Yy]$ ]] && ( cm_main --remove "$num" --apply ) || ( cm_main --remove "$num" ) ;;
+        *) ( cm_main --list ) ;;
+      esac ;;
+    dotenv)
+      uk_section_title 'Dotenv Vault'
+      local file key action apply
+      file="$(uk_prompt 'Dotenv file path' "$(uk_demo_file env)" './.env.local' 'A demo dotenv file is used if you just press Enter; encryption still requires gpg.')"
+      action="$(uk_prompt 'Action: encrypt or decrypt' 'encrypt' 'decrypt' 'Encrypt modifies selected key only when applied; decrypt prints or writes decrypted output.')"
+      if [[ "$action" == decrypt ]]; then ( dv_main --file "$(uk_expand_path "$file")" --decrypt ); else key="$(uk_prompt 'Key to encrypt' 'API_TOKEN' 'API_TOKEN' 'Must already exist in the dotenv file.')"; apply="$(uk_prompt 'Apply encryption to file? (y/N)' 'N' 'y' 'A backup is created when applied.')"; [[ "$apply" =~ ^[Yy]$ ]] && ( dv_main --file "$(uk_expand_path "$file")" --encrypt "$key" --apply ) || ( dv_main --file "$(uk_expand_path "$file")" --encrypt "$key" ); fi ;;
+    disk-health)
+      uk_section_title 'Disk Health'
+      local mode dev
+      mode="$(uk_prompt 'Action: list or device' 'list' 'device' 'Requires smartctl and device permissions; often unavailable in Termux.')"
+      if [[ "$mode" == device ]]; then dev="$(uk_prompt 'Device path' '/dev/sda' '/dev/sda | /dev/nvme0' 'Use a device shown by --list.')"; ( dh_main --device "$dev" ); else ( dh_main --list ); fi ;;
+    clipboard)
+      uk_section_title 'Clipboard Manager'
+      local mode text term id
+      mode="$(uk_prompt 'Action: list, add, search, copy, or clear' 'list' 'add' 'Stores history in UtilityKit state directory.')"
+      case "$mode" in add) text="$(uk_prompt 'Text to save in history' 'UtilityKit clipboard demo' 'ssh user@host' 'Avoid storing secrets.')"; ( cbm_main --add "$text" );; search) term="$(uk_prompt 'Search term' 'UtilityKit' 'docker' 'Case-sensitive grep search.')"; ( cbm_main --search "$term" );; copy) id="$(uk_prompt 'Entry line number to copy' '1' '3' 'Use list to see numbers.')"; ( cbm_main --copy "$id" );; clear) ( cbm_main --clear );; *) ( cbm_main --list );; esac ;;
+    weather)
+      uk_section_title 'Weather'
+      local loc units
+      loc="$(uk_prompt 'Location' 'Kathmandu' 'Kathmandu | London | 27.7,85.3' 'Uses wttr.in through curl; cached result is shown if lookup fails.')"
+      units="$(uk_prompt 'Units: metric or imperial' 'metric' 'imperial' 'Metric uses Celsius; imperial uses Fahrenheit.')"
+      ( wt_main "$loc" --units "$units" ) ;;
+    tmux)
+      uk_section_title 'Tmux Session'
+      local mode name
+      mode="$(uk_prompt 'Action: list, new, attach, or kill' 'list' 'new' 'Requires tmux; Termux users can install with pkg install tmux.')"
+      case "$mode" in new) name="$(uk_prompt 'New session name' 'work' 'api-server' 'Short memorable names are best.')"; ( tms_main --new "$name" );; attach) name="$(uk_prompt 'Session name to attach' 'work' 'work' 'Attaching hands control to tmux.')"; ( tms_main --attach "$name" );; kill) name="$(uk_prompt 'Session name to kill' 'work' 'work' 'This closes the tmux session.')"; ( tms_main --kill "$name" );; *) ( tms_main --list );; esac ;;
+    font) ( fi_main --glyphs ) ;;
+    toolbox) ( tb_main ) ;;
+    github) ( ghh_main --status ) ;;
+    hash)
+      local paths; paths="$(uk_prompt 'Files/directories to hash, separated by spaces' 'README.md' './README.md' 'Directories are traversed recursively.')"; # shellcheck disable=SC2206
+      local arr=($paths); ( ht_main "${arr[@]}" ) ;;
+    archive)
+      local mode archive dest out paths
+      mode="$(uk_prompt 'Action: list, extract, or create' 'list' 'create' 'A demo archive is listed if you just press Enter.')"
+      case "$mode" in extract) archive="$(uk_prompt 'Archive file' "$(uk_demo_file archive)" './backup.tar.gz' 'Archive paths are checked before extraction.')"; dest="$(uk_prompt 'Destination directory' './extracted' './out' 'Created if missing.')"; ( am_main --extract "$(uk_expand_path "$archive")" --dest "$(uk_expand_path "$dest")" );; create) out="$(uk_prompt 'Output archive path' './archive.tar.gz' './backup.tar.gz' 'Use .zip only if zip is installed.')"; paths="$(uk_prompt 'Input paths separated by spaces' '.' './src README.md' 'These paths are added to the archive.')"; # shellcheck disable=SC2206
+      local arr=($paths); ( am_main --create "$(uk_expand_path "$out")" "${arr[@]}" );; *) archive="$(uk_prompt 'Archive file to list' "$(uk_demo_file archive)" './backup.tar.gz' 'Supports tar archives and zip when unzip exists.')"; ( am_main --list "$(uk_expand_path "$archive")" );; esac ;;
+    snapshot)
+      local out; out="$(uk_prompt 'Optional output file' '' './snapshot.txt' 'Default prints to terminal; enter a path to save a copy.')"; [[ -n "$out" ]] && ( ssn_main --output "$(uk_expand_path "$out")" ) || ( ssn_main ) ;;
+    open-files)
+      local mode val; mode="$(uk_prompt 'Inspect by path or port?' 'path' 'port' 'Requires lsof for best results.')"; val="$(uk_prompt 'Path or port value' 'README.md' './file.txt | 3000' 'Enter a filesystem path or TCP port.')"; [[ "$mode" == port ]] && ( of_main --port "$val" ) || ( of_main --path "$(uk_expand_path "$val")" ) ;;
+    battery) ( bd_main ) ;;
+    release)
+      local repo tag; repo="$(uk_prompt 'Git repository directory' '.' '~/project' 'Shows status and recent commits.')"; tag="$(uk_prompt 'Optional tag to preview' '' 'v1.2.3' 'Default only shows status; enter a tag to preview tag creation.')"; [[ -n "$tag" ]] && ( rel_main --repo "$(uk_expand_path "$repo")" --tag "$tag" ) || ( rel_main --repo "$(uk_expand_path "$repo")" ) ;;
+    license)
+      local name; name="$(uk_prompt 'Name for MIT license generation' 'UtilityKit User' 'Your Name' 'Generated text is printed to terminal.')"; [[ -n "$name" ]] && ( lic_main --generate mit --name "$name" ) || ( lic_main --detect ) ;;
+    regex)
+      local pattern text; pattern="$(uk_prompt 'Regex pattern' 'Util' 'error|warn' 'Uses grep extended regex.')"; text="$(uk_prompt 'Text to test' 'UtilityKit warning example' 'UtilityKit warning example' 'For file mode use direct CLI --file.')"; ( rx_main --pattern "$pattern" --text "$text" ) ;;
+    todo)
+      local mode text tag term id; mode="$(uk_prompt 'Action: list, add, done, or search' 'list' 'add' 'Tasks are stored as plain text in UtilityKit data dir.')"; case "$mode" in add) text="$(uk_prompt 'Task text' 'Review UtilityKit' 'Review UtilityKit PR' 'Short actionable tasks work best.')"; tag="$(uk_prompt 'Optional tag' 'utilitykit' 'utilitykit' 'Tags help searching later.')"; ( td_main --add "$text" --tag "$tag" );; done) id="$(uk_prompt 'Task line number to mark done' '1' '1' 'Use list to see numbers.')"; ( td_main --done "$id" );; search) term="$(uk_prompt 'Search term' 'review' 'review' 'Searches task text and tags.')"; ( td_main --search "$term" );; *) ( td_main --list );; esac ;;
+    *) uk_warn "No wizard is available for $tool yet. Showing help."; run_tool "$tool" --help ;;
+  esac
+}
+
 uk_menu_execute() {
   local status=0
   run_tool "$@"
@@ -531,6 +811,33 @@ run_tool() {
     toc|markdown-toc) ( [[ $# -gt 0 ]] && mt_main "$@" || run_toc_wizard ) ;;
     pomodoro|pomo) ( [[ $# -gt 0 ]] && po_main "$@" || run_pomodoro_wizard ) ;;
     cheat|cheat-sheet) ( [[ $# -gt 0 ]] && cs_main "$@" || run_cheat_wizard ) ;;
+    net|network|network-probe) ( [[ $# -gt 0 ]] && np_main "$@" || run_new_utility_wizard network ) ;;
+    cron|cron-manager) ( [[ $# -gt 0 ]] && cm_main "$@" || run_new_utility_wizard cron ) ;;
+    dotenv|dotenv-vault) ( [[ $# -gt 0 ]] && dv_main "$@" || run_new_utility_wizard dotenv ) ;;
+    disk-health|smart) ( [[ $# -gt 0 ]] && dh_main "$@" || run_new_utility_wizard disk-health ) ;;
+    watch|service|service-watcher) ( [[ $# -gt 0 ]] && sw_main "$@" || run_new_utility_wizard service ) ;;
+    git-stats|gstats) ( [[ $# -gt 0 ]] && gst_main "$@" || run_new_utility_wizard git-stats ) ;;
+    backup|backup-sync) ( [[ $# -gt 0 ]] && bs_main "$@" || run_new_utility_wizard backup ) ;;
+    clip|clipboard|clipboard-manager) ( [[ $# -gt 0 ]] && cbm_main "$@" || run_new_utility_wizard clipboard ) ;;
+    weather) ( [[ $# -gt 0 ]] && wt_main "$@" || run_new_utility_wizard weather ) ;;
+    json|json-explorer) ( [[ $# -gt 0 ]] && jx_main "$@" || run_new_utility_wizard json ) ;;
+    tmux|tmux-session) ( [[ $# -gt 0 ]] && tms_main "$@" || run_new_utility_wizard tmux ) ;;
+    font|font-inspector) ( [[ $# -gt 0 ]] && fi_main "$@" || run_new_utility_wizard font ) ;;
+    toolbox|toolbox-bootstrap) ( [[ $# -gt 0 ]] && tb_main "$@" || run_new_utility_wizard toolbox ) ;;
+    search|project-search) ( [[ $# -gt 0 ]] && psrch_main "$@" || run_new_utility_wizard search ) ;;
+    github|github-helper) ( [[ $# -gt 0 ]] && ghh_main "$@" || run_new_utility_wizard github ) ;;
+    links|link-checker) ( [[ $# -gt 0 ]] && lc_main "$@" || run_new_utility_wizard links ) ;;
+    log-inspect|log-inspector) ( [[ $# -gt 0 ]] && li_main "$@" || run_new_utility_wizard log-inspect ) ;;
+    csv|csv-toolkit) ( [[ $# -gt 0 ]] && csvt_main "$@" || run_new_utility_wizard csv ) ;;
+    hash|hash-tools) ( [[ $# -gt 0 ]] && ht_main "$@" || run_new_utility_wizard hash ) ;;
+    archive|archive-manager) ( [[ $# -gt 0 ]] && am_main "$@" || run_new_utility_wizard archive ) ;;
+    snapshot|system-snapshot) ( [[ $# -gt 0 ]] && ssn_main "$@" || run_new_utility_wizard snapshot ) ;;
+    open-files|lsof) ( [[ $# -gt 0 ]] && of_main "$@" || run_new_utility_wizard open-files ) ;;
+    battery|battery-doctor) ( [[ $# -gt 0 ]] && bd_main "$@" || run_new_utility_wizard battery ) ;;
+    release|release-helper) ( [[ $# -gt 0 ]] && rel_main "$@" || run_new_utility_wizard release ) ;;
+    license|license-helper) ( [[ $# -gt 0 ]] && lic_main "$@" || run_new_utility_wizard license ) ;;
+    regex|regex-lab) ( [[ $# -gt 0 ]] && rx_main "$@" || run_new_utility_wizard regex ) ;;
+    todo|todo-manager) ( [[ $# -gt 0 ]] && td_main "$@" || run_new_utility_wizard todo ) ;;
     setup|install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
     help|--help|-h) uk_main_show_help ;;
     zen|zen-mode) ( zm_main "$@" ) ;;
@@ -544,16 +851,17 @@ uk_main_show_help() {
 Usage:
   ./main.sh <command> [args]
 
-Dashboard-visible commands:
-  apply, rename, cacheclean, symlink, disk, env, git, scaffold, dup,
+Core commands:
+  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
   logs, proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
-  cheat, move, setup
+  cheat, setup, docker, zen
 
-Additional direct commands:
-  docker      Docker janitor (mainly useful off Termux)
-  move        Batch copy/move files into an output directory
-  zen         Hidden CLI-only screensaver experiment
-  help        This help screen
+New utility commands:
+  network, cron, dotenv, disk-health, service, git-stats, backup, clipboard,
+  weather, json, tmux, font, toolbox, search, github, links, log-inspect,
+  csv, hash, archive, snapshot, open-files, battery, release, license, regex, todo
+
+Use ./main.sh <command> --help for each tool's detailed options.
 EOF
 }
 
@@ -590,7 +898,7 @@ more_menu_loop_page_1() {
   while true; do
     uk_main_banner
     uk_more_menu_page_1
-    printf "  %sChoose an option [1-8/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
+    printf "  %sChoose an option [1-7/n/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
     read -r choice
     case "$choice" in
       1) uk_menu_execute env ;;
@@ -600,10 +908,10 @@ more_menu_loop_page_1() {
       5) uk_menu_execute logs ;;
       6) uk_menu_execute proc ;;
       7) uk_menu_execute port ;;
-      8|n|next) more_menu_loop_page_2; return 0 ;;
+      n|N|next) more_menu_loop_page_2; return 0 ;;
       b|B|back) return 0 ;;
       q|Q|quit|exit) exit 0 ;;
-      *) uk_warn 'Invalid selection. Please enter 1-8, b, or q.' ;;
+      *) uk_warn 'Invalid selection. Please enter 1-7, n, b, or q.' ;;
     esac
     printf '\n  %sPress Enter to stay in More Tools Page 1...%s' "$UK_C_DIM" "$UK_C_RESET"
     read -r
@@ -615,7 +923,7 @@ more_menu_loop_page_2() {
   while true; do
     uk_main_banner
     uk_more_menu_page_2
-    printf "  %sChoose an option [1-11/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
+    printf "  %sChoose an option [1-11/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
     read -r choice
     case "$choice" in
       1) uk_menu_execute ssl ;;
@@ -635,12 +943,97 @@ more_menu_loop_page_2() {
           uk_menu_execute docker
         fi
         ;;
+      n|N|next) more_menu_loop_page_3; return 0 ;;
       p|P|prev|previous) return 0 ;;
       b|B|back) return 0 ;;
       q|Q|quit|exit) exit 0 ;;
-      *) uk_warn 'Invalid selection. Please enter 1-11, p, b, or q.' ;;
+      *) uk_warn 'Invalid selection. Please enter 1-11, n, p, b, or q.' ;;
     esac
     printf '\n  %sPress Enter to stay in More Tools Page 2...%s' "$UK_C_DIM" "$UK_C_RESET"
+    read -r
+  done
+}
+
+
+more_menu_loop_page_3() {
+  local choice
+  while true; do
+    uk_main_banner
+    uk_more_menu_page_3
+    printf "  %sChoose an option [1-9/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
+    read -r choice
+    case "$choice" in
+      1) uk_menu_execute network ;;
+      2) uk_menu_execute service ;;
+      3) uk_menu_execute git-stats ;;
+      4) uk_menu_execute json ;;
+      5) uk_menu_execute links ;;
+      6) uk_menu_execute backup ;;
+      7) uk_menu_execute search ;;
+      8) uk_menu_execute log-inspect ;;
+      9) uk_menu_execute csv ;;
+      n|N|next) more_menu_loop_page_4; return 0 ;;
+      p|P|prev|previous) return 0 ;;
+      b|B|back) return 0 ;;
+      q|Q|quit|exit) exit 0 ;;
+      *) uk_warn 'Invalid selection. Please enter 1-9, n, p, b, or q.' ;;
+    esac
+    printf '\n  %sPress Enter to stay in New Utilities Page 3...%s' "$UK_C_DIM" "$UK_C_RESET"
+    read -r
+  done
+}
+
+more_menu_loop_page_4() {
+  local choice
+  while true; do
+    uk_main_banner
+    uk_more_menu_page_4
+    printf "  %sChoose an option [1-9/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
+    read -r choice
+    case "$choice" in
+      1) uk_menu_execute cron ;;
+      2) uk_menu_execute dotenv ;;
+      3) uk_menu_execute disk-health ;;
+      4) uk_menu_execute clipboard ;;
+      5) uk_menu_execute weather ;;
+      6) uk_menu_execute tmux ;;
+      7) uk_menu_execute font ;;
+      8) uk_menu_execute toolbox ;;
+      9) uk_menu_execute github ;;
+      n|N|next) more_menu_loop_page_5; return 0 ;;
+      p|P|prev|previous) return 0 ;;
+      b|B|back) return 0 ;;
+      q|Q|quit|exit) exit 0 ;;
+      *) uk_warn 'Invalid selection. Please enter 1-9, n, p, b, or q.' ;;
+    esac
+    printf '\n  %sPress Enter to stay in New Utilities Page 4...%s' "$UK_C_DIM" "$UK_C_RESET"
+    read -r
+  done
+}
+
+more_menu_loop_page_5() {
+  local choice
+  while true; do
+    uk_main_banner
+    uk_more_menu_page_5
+    printf "  %sChoose an option [1-9/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
+    read -r choice
+    case "$choice" in
+      1) uk_menu_execute hash ;;
+      2) uk_menu_execute archive ;;
+      3) uk_menu_execute snapshot ;;
+      4) uk_menu_execute open-files ;;
+      5) uk_menu_execute battery ;;
+      6) uk_menu_execute release ;;
+      7) uk_menu_execute license ;;
+      8) uk_menu_execute regex ;;
+      9) uk_menu_execute todo ;;
+      p|P|prev|previous) return 0 ;;
+      b|B|back) return 0 ;;
+      q|Q|quit|exit) exit 0 ;;
+      *) uk_warn 'Invalid selection. Please enter 1-9, p, b, or q.' ;;
+    esac
+    printf '\n  %sPress Enter to stay in New Utilities Page 5...%s' "$UK_C_DIM" "$UK_C_RESET"
     read -r
   done
 }

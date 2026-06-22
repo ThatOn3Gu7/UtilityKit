@@ -22,3 +22,35 @@ This document maps the uploaded `idea.md` roadmap into the implemented UtilityKi
 | CLI Deep-Work Timer | `_pomodoro/` | Implemented |
 | Interactive Console Knowledge Base | `_cheat_sheet/` | Implemented |
 | Console Screensavers | `_zen_mode/` | Implemented |
+
+## Expanded utility roadmap — implemented
+
+| Roadmap idea | Implemented directory | Status |
+|---|---|---|
+| Network connectivity diagnostics | `_network_probe/` | Implemented with Termux/minimal fallbacks |
+| Cron schedule manager | `_cron_manager/` | Implemented; requires `crontab` backend |
+| Per-value dotenv vault | `_dotenv_vault/` | Implemented as gpg-only safety wrapper |
+| Disk SMART health checker | `_disk_health/` | Implemented; requires `smartctl` and permissions |
+| HTTP service watcher | `_service_watcher/` | Implemented |
+| Git repository stats | `_git_stats/` | Implemented |
+| Guided backup sync | `_backup_sync/` | Implemented with rsync/cp fallback |
+| Clipboard manager | `_clipboard_manager/` | Implemented as session/manual history helper |
+| Weather lookup | `_weather/` | Implemented with cached fallback |
+| JSON explorer | `_json_explorer/` | Implemented with Python backend |
+| Tmux session helper | `_tmux_session/` | Implemented; requires `tmux` |
+| Font preview / inspector | `_font_inspector/` | Implemented as glyph/font inspector |
+| Recommended CLI toolbox audit | `_toolbox_bootstrap/` | Implemented |
+| Project search | `_project_search/` | Implemented with rg/grep/find fallbacks |
+| GitHub helper | `_github_helper/` | Implemented; requires `gh` |
+| Link checker | `_link_checker/` | Implemented |
+| Log inspector | `_log_inspector/` | Implemented |
+| CSV toolkit | `_csv_toolkit/` | Implemented with Python backend |
+| Hash tools | `_hash_tools/` | Implemented |
+| Archive manager | `_archive_manager/` | Implemented |
+| System snapshot | `_system_snapshot/` | Implemented |
+| Open files / ports helper | `_open_files/` | Implemented; requires `lsof` for best results |
+| Battery doctor | `_battery_doctor/` | Implemented with Termux/Linux/macOS backend detection |
+| Release helper | `_release_helper/` | Implemented |
+| License helper | `_license_helper/` | Implemented |
+| Regex lab | `_regex_lab/` | Implemented |
+| Todo manager | `_todo_manager/` | Implemented |
