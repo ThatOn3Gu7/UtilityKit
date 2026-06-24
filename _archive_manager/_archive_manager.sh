@@ -46,6 +46,9 @@ am_main(){
     extract)
       [[ -f "$archive" ]] || { uk_error "Archive not found: $archive"; return 1; }
       uk_note 'Previewing archive paths for unsafe absolute/parent traversal entries...'
+      if [[ "$archive" == *.zip ]]; then
+       uk_has_cmd unzip || { uk_error 'unzip is required for zip archives.'; return 1; }
+      fi
       if bad_paths="$(am_check_archive_paths "$archive")" && [[ -z "$bad_paths" ]]; then
         mkdir -p "$dest"
         case "$archive" in

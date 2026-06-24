@@ -1,9 +1,121 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
-bs_usage(){ echo 'Usage: _backup_sync.sh --source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...'; }
-bs_main(){ local src='' dst='' apply=0 delete=0 excludes=(); while [[ $# -gt 0 ]]; do case "$1" in --source|-s) shift; src="${1:-}";; --dest|-d) shift; dst="${1:-}";; --apply) apply=1;; --delete) delete=1;; --exclude) shift; excludes+=("${1:-}");; -h|--help) bs_usage; return 0;; esac; shift; done; [[ -d "$src" && -n "$dst" ]] || { bs_usage; return 1; }; mkdir -p "$dst"; uk_header 'UtilityKit Backup Sync' "$src -> $dst"; if uk_has_cmd rsync; then local args=(-a --itemize-changes --human-readable --exclude node_modules --exclude .git); (( delete==1 )) && args+=(--delete); for e in "${excludes[@]}"; do args+=(--exclude "$e"); done; (( apply==0 )) && args+=(--dry-run); rsync "${args[@]}" "$src"/ "$dst"/; else uk_warn 'rsync unavailable; using cp fallback without delete support.'; (( apply==1 )) && cp -a "$src"/. "$dst"/ || find "$src" -type f | sed 's/^/  would copy: /'; fi; (( apply==0 )) && uk_note 'Dry-run only. Re-run with --apply.'; return 0; }
+
+# Usage
+bs_usage() {
+  cat <<'USAGE'
+Usage:
+  _backup_sync.sh --source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...
+
+Options:
+  --source, -s DIR      Source directory
+  --dest, -d DIR        Destination directory
+  --apply               Actually perform the copy; otherwise dry-run
+  --delete              Delete files in destination that are not in source (requires rsync)
+  --exclude PATTERN     Exclude files/dirs matching pattern (can be repeated)
+  -h, --help            Show this help
+USAGE
+}
+
+# Main
+bs_main() {
+  local src='' dst='' apply=0 delete=0
+  local excludes=()
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --source|-s) shift; src="${1:-}" ;;
+      --dest|-d)   shift; dst="${1:-}" ;;
+      --apply)     apply=1 ;;
+      --delete)    delete=1 ;;
+      --exclude)   shift; excludes+=("${1:-}") ;;
+      -h|--help)   bs_usage; return 0 ;;
+      *)           uk_error "Unknown option: $1"; return 1 ;;
+    esac
+    shift
+  done
+
+  # Validate inputs
+  if [[ -z "$src" || -z "$dst" ]]; then
+    bs_usage
+    return 1
+  fi
+  if [[ ! -d "$src" ]]; then
+    uk_error "Source directory does not exist: $src"
+    return 1
+  fi
+
+  mkdir -p "$dst"
+
+  uk_header 'UtilityKit Backup Sync' "$src → $dst"
+
+  # Build exclusion patterns (always ignore .git and node_modules)
+  local default_excludes=(".git" "node_modules")
+  local all_excludes=("${default_excludes[@]}" "${excludes[@]}")
+
+  # If rsync is available, use it (supports --delete and efficient sync)
+  if uk_has_cmd rsync; then
+    local args=(-a --itemize-changes --human-readable)
+    (( delete == 1 )) && args+=(--delete)
+    (( apply == 0 )) && args+=(--dry-run)
+
+    for pattern in "${all_excludes[@]}"; do
+      args+=(--exclude "$pattern")
+    done
+
+    rsync "${args[@]}" "$src"/ "$dst"/
+    (( apply == 0 )) && uk_note 'Dry-run only. Re-run with --apply to perform the sync.'
+    return 0
+  fi
+
+  
+  # Fallback: cp + find (no --delete support)
+  if (( delete == 1 )); then
+    uk_warn 'rsync is not available; --delete will be ignored.'
+  fi
+
+  # Build find prune expression for all excludes
+  local find_prune=()
+  for pattern in "${all_excludes[@]}"; do
+    # Simple pattern: we assume no wildcards or paths; just name-based pruning
+    find_prune+=(-name "$pattern" -prune -o)
+  done
+
+  if (( apply == 1 )); then
+    uk_note 'Copying files using cp (rsync not available)...'
+    # Copy all files and directories, preserving attributes, excluding patterns
+    # Use find to locate everything under src, then cp -a --parents
+    # But cp --parents may not be available on all systems; simpler: use tar pipe?
+    # Safer: use find to copy with cp -a and create destination directories.
+    # We'll use find to copy each item individually.
+    while IFS= read -r -d '' item; do
+      local rel="${item#"$src"/}"
+      local target="$dst/$rel"
+      if [[ -d "$item" && ! -L "$item" ]]; then
+        mkdir -p "$target"
+        # copy permissions if needed? but we will copy files later.
+      elif [[ -f "$item" || -L "$item" ]]; then
+        mkdir -p "$(dirname "$target")"
+        cp -a "$item" "$target" 2>/dev/null || cp -p "$item" "$target"
+      fi
+    done < <(find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print0 2>/dev/null)
+    uk_success "Copy completed."
+  else
+    uk_note 'Dry-run: files that would be copied (excluding patterns):'
+    find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print 2>/dev/null | while IFS= read -r item; do
+      echo "  would copy: ${item#"$src"/}"
+    done
+    uk_note 'Dry-run only. Re-run with --apply to perform the copy (rsync not available).'
+  fi
+}
+
+
+# Entry point
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
     bash "$SCRIPT_DIR/../main.sh" backup

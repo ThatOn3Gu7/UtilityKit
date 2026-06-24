@@ -96,8 +96,8 @@ da_main() {
 
   local items=()
   while IFS= read -r line; do
-    [[ -n "$line" ]] && items+=("$line")
-  done < <(du -ah --max-depth=1 "$target_dir" 2>/dev/null | grep -Ev "$DA_EXCLUDE_REGEX" | sort -hr | head -n $((DA_COUNT + 1)))
+    items+=("$line")
+  done < <(du -ah --max-depth=1 "$target_dir" 2>/dev/null | grep -Ev "$DA_EXCLUDE_REGEX" | sort -hr | head -n $((DA_COUNT + 1)) || true)
 
   if [[ ${#items[@]} -eq 0 ]]; then
     printf "  %s No items found or permission denied.\n\n" "${C_YELLOW}${I_WARN}${C_RESET}"

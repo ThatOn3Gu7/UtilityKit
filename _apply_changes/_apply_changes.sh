@@ -59,22 +59,22 @@ _setup_colors
 log_action() {
   local msg="$*"
   if [[ -n "${LOG_FILE:-}" ]]; then
-    printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$msg" >> "$LOG_FILE"
+    printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$msg" >>"$LOG_FILE"
   fi
 }
 
-info() { 
-  printf "${BOLD}${FG_CYAN}[INFO]${R}  %s\n" "$*"; 
-  log_action "[INFO]  $*";
+info() {
+  printf "${BOLD}${FG_CYAN}[INFO]${R}  %s\n" "$*"
+  log_action "[INFO]  $*"
 }
-warn() { 
-  printf "${BOLD}${FG_BRIGHT_YELLOW}[WARN]${R}  %s\n" "$*" >&2; 
-  log_action "[WARN]  $*";
+warn() {
+  printf "${BOLD}${FG_BRIGHT_YELLOW}[WARN]${R}  %s\n" "$*" >&2
+  log_action "[WARN]  $*"
 }
-fail() { 
-  printf "${BOLD}${FG_BRIGHT_RED}[ERROR]${R} %s\n" "$*" >&2; 
-  log_action "[ERROR] $*";
-  exit 1; 
+fail() {
+  printf "${BOLD}${FG_BRIGHT_RED}[ERROR]${R} %s\n" "$*" >&2
+  log_action "[ERROR] $*"
+  exit 1
 }
 
 # Adaptive Temporary Directory Resolution (Termux, Android, macOS, Linux)
@@ -85,9 +85,11 @@ get_temp_dir() {
     printf '%s\n' "/tmp"
   elif [[ -n "${HOME:-}" && -d "$HOME" && -w "$HOME" ]]; then
     mkdir -p "$HOME/.apply_temp" 2>/dev/null || true
-    printf '%s\n' "$HOME/.apply_temp"
-  else
-    printf '%s\n' "."
+    if [[ -d "$HOME/.apply_temp" && -w "$HOME/.apply_temp" ]]; then
+      printf '%s\n' "$HOME/.apply_temp"
+    else
+      printf '%s\n' "."
+    fi
   fi
 }
 
@@ -95,15 +97,15 @@ get_temp_dir() {
 cleanup_and_trap() {
   local exit_code=$?
   local sig="${1:-EXIT}"
-  
+
   [[ $TRAP_RUN -eq 0 ]] || return 0
   TRAP_RUN=1
-  
+
   release_lock
   if [[ -n "${CHANGES_FILE:-}" && -f "$CHANGES_FILE" ]]; then
     rm -f "$CHANGES_FILE" 2>/dev/null || true
   fi
-  
+
   if [[ "${APPLY_IN_PROGRESS:-0}" -eq 1 ]]; then
     printf "\n" >&2
     warn "${FG_BRIGHT_RED}⚠️ WARNING: Synchronization was abruptly interrupted ($sig) while actively applying changes!${R}"
@@ -113,7 +115,7 @@ cleanup_and_trap() {
       warn "  tar -xzf $(abs_path "$BACKUP_FILE") -C $(dirname "$TARGET_DIR")"
     fi
   fi
-  
+
   [[ "$sig" == "EXIT" ]] || exit "$exit_code"
 }
 
@@ -171,14 +173,14 @@ EOF
 # Colored + symbol-prefixed label for a change kind
 kind_label() {
   case "$1" in
-    CREATE)  printf "${BOLD}${FG_BRIGHT_GREEN}✚ CREATE ${R}" ;;
-    UPDATE)  printf "${BOLD}${FG_BRIGHT_CYAN}↻ UPDATE ${R}" ;;
-    REPLACE) printf "${BOLD}${FG_BRIGHT_YELLOW}⟳ REPLACE${R}" ;;
-    DELETE)  printf "${BOLD}${FG_BRIGHT_RED}✖ DELETE ${R}" ;;
-    MKDIR)   printf "${BOLD}${FG_BRIGHT_BLUE}⊕ MKDIR  ${R}" ;;
-    SYMLINK) printf "${BOLD}${FG_BRIGHT_MAGENTA}⇢ SYMLINK${R}" ;;
-    CHMOD)   printf "${DIM}⌀ CHMOD  ${R}" ;;
-    *)       printf "${DIM}%-9s${R}" "$1" ;;
+  CREATE) printf "${BOLD}${FG_BRIGHT_GREEN}✚ CREATE ${R}" ;;
+  UPDATE) printf "${BOLD}${FG_BRIGHT_CYAN}↻ UPDATE ${R}" ;;
+  REPLACE) printf "${BOLD}${FG_BRIGHT_YELLOW}⟳ REPLACE${R}" ;;
+  DELETE) printf "${BOLD}${FG_BRIGHT_RED}✖ DELETE ${R}" ;;
+  MKDIR) printf "${BOLD}${FG_BRIGHT_BLUE}⊕ MKDIR  ${R}" ;;
+  SYMLINK) printf "${BOLD}${FG_BRIGHT_MAGENTA}⇢ SYMLINK${R}" ;;
+  CHMOD) printf "${DIM}⌀ CHMOD  ${R}" ;;
+  *) printf "${DIM}%-9s${R}" "$1" ;;
   esac
 }
 
@@ -193,12 +195,12 @@ abs_path() {
 # Non-fatal Graceful Concurrency Locking
 acquire_lock() {
   [[ $NO_LOCK -eq 0 ]] || return 0
-  
+
   local target_hash temp_base
   temp_base="$(get_temp_dir)"
   target_hash=$(printf '%s' "$TARGET_DIR" | md5sum | awk '{print $1}' 2>/dev/null || echo "default")
   LOCK_DIR="$temp_base/.apply_sync_lock_${UID:-0}_${target_hash}"
-  
+
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     local pid
     pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo "unknown")
@@ -214,7 +216,7 @@ acquire_lock() {
       fi
     fi
   fi
-  printf '%s\n' "$$" > "$LOCK_DIR/pid" 2>/dev/null || {
+  printf '%s\n' "$$" >"$LOCK_DIR/pid" 2>/dev/null || {
     warn "⚠️ Unable to write PID to lock directory '$LOCK_DIR'. Proceeding safely without locking."
     LOCK_ACQUIRED=0
     return 0
@@ -235,21 +237,21 @@ release_lock() {
 check_disk_space() {
   local dst="$1" backup_dir="$2" src="$3"
   info "Performing pre-flight disk space safety check..."
-  
+
   local src_size_kb avail_dst_kb avail_bak_kb req_bak_kb req_dst_kb
   src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}' || echo 0)
-  
+
   local target_size_kb
   target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print $1}' || echo 0)
-  
+
   # Buffer: 1x target size + 20MB safety margin for backup archive
   req_bak_kb=$((target_size_kb + 20480))
   # Buffer: source changed size + 20MB safety margin for target copying
   req_dst_kb=$((src_size_kb + 20480))
-  
+
   avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
   avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
-  
+
   if [[ "$avail_bak_kb" =~ ^[0-9]+$ && "$avail_bak_kb" -lt "$req_bak_kb" ]]; then
     warn "Low available disk space on backup partition '$backup_dir'!"
     warn "Available: $((avail_bak_kb / 1024)) MB | Estimated Minimum Required: $((req_bak_kb / 1024)) MB"
@@ -261,7 +263,7 @@ check_disk_space() {
     warn "Available: $((avail_dst_kb / 1024)) MB | Estimated Minimum Required: $((req_dst_kb / 1024)) MB"
     fail "Insufficient disk space to perform safe synchronization. Please free up disk space."
   fi
-  
+
   info "✔ Disk space verification passed successfully."
 }
 
@@ -294,8 +296,8 @@ check_target_writable() {
 should_exclude_rel() {
   local rel="${1#./}"
   case "$rel" in
-    ''|.) return 1 ;;
-    .git|.git/*) return 0 ;;
+  '' | .) return 1 ;;
+  .git | .git/*) return 0 ;;
   esac
 
   if [[ ${#EXCLUDES[@]} -gt 0 ]]; then
@@ -309,7 +311,7 @@ should_exclude_rel() {
 
   if [[ $INCLUDE_RUNTIME -eq 0 ]]; then
     case "$rel" in
-      log/*.log|log/*.tmp|log/install.log|log/session_history.tmp) return 0 ;;
+    log/*.log | log/*.tmp | log/install.log | log/session_history.tmp) return 0 ;;
     esac
   fi
 
@@ -356,7 +358,7 @@ collect_changes() {
   # Build find prune expression for source to drastically optimize file traversal
   local prune_expr=()
   prune_expr+=("-name" ".git" "-prune")
-  
+
   if [[ $INCLUDE_RUNTIME -eq 0 ]]; then
     prune_expr+=("-o" "-path" "*/log" "-prune")
   fi
@@ -528,7 +530,7 @@ handle_apply_failure() {
   printf "\n" >&2
   warn "${FG_BRIGHT_RED}❌ CRITICAL ERROR: Execution failed while trying to apply '$kind' to '$rel'.${R}"
   warn "The target directory '$TARGET_DIR' is in an incomplete, partially updated runtime state."
-  
+
   if [[ -n "${BACKUP_FILE:-}" && -f "$BACKUP_FILE" ]]; then
     warn "A pristine pre-apply backup archive is available: $BACKUP_FILE"
     if [[ $YES -eq 1 ]]; then
@@ -567,7 +569,7 @@ execute_rollback() {
 
 apply_changes() {
   local src="$1" dst="$2" line kind rel target_path applied=0
-  
+
   APPLY_IN_PROGRESS=1
   log_action "Beginning active apply of $CHANGE_COUNT changes."
 
@@ -575,24 +577,24 @@ apply_changes() {
     [[ -n "$kind" && -n "$rel" ]] || continue
     log_action "Applying: $kind -> $rel"
     case "$kind" in
-      MKDIR|CREATE|UPDATE|REPLACE|SYMLINK)
-        copy_one "$src" "$dst" "$rel" || handle_apply_failure "$kind" "$rel"
-        ;;
-      CHMOD)
-        chmod_like_source "$src/$rel" "$dst/$rel" || handle_apply_failure "$kind" "$rel"
-        ;;
-      DELETE)
-        target_path="$dst/$rel"
-        if path_exists_or_link "$target_path"; then
-          if [[ ! -w "$target_path" && ! -L "$target_path" && -f "$target_path" ]]; then
-            chmod u+w "$target_path" 2>/dev/null || true
-          fi
-          rm -rf "$target_path" 2>/dev/null || handle_apply_failure "$kind" "$rel"
+    MKDIR | CREATE | UPDATE | REPLACE | SYMLINK)
+      copy_one "$src" "$dst" "$rel" || handle_apply_failure "$kind" "$rel"
+      ;;
+    CHMOD)
+      chmod_like_source "$src/$rel" "$dst/$rel" || handle_apply_failure "$kind" "$rel"
+      ;;
+    DELETE)
+      target_path="$dst/$rel"
+      if path_exists_or_link "$target_path"; then
+        if [[ ! -w "$target_path" && ! -L "$target_path" && -f "$target_path" ]]; then
+          chmod u+w "$target_path" 2>/dev/null || true
         fi
-        ;;
-      *)
-        fail "Internal error: unknown change kind '$kind' for '$rel'"
-        ;;
+        rm -rf "$target_path" 2>/dev/null || handle_apply_failure "$kind" "$rel"
+      fi
+      ;;
+    *)
+      fail "Internal error: unknown change kind '$kind' for '$rel'"
+      ;;
     esac
     applied=$((applied + 1))
   done <"$CHANGES_FILE"
@@ -628,47 +630,60 @@ ac_main() {
   POSITIONAL=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --apply) MODE="apply" ;;
-      --dry-run) MODE="dry-run" ;;
-      --mirror) MIRROR=1 ;;
-      --force) FORCE=1 ;;
-      --yes|-y) YES=1 ;;
-      --include-runtime|--include-logs|--no-default-excludes) INCLUDE_RUNTIME=1 ;;
-      --no-lock) NO_LOCK=1 ;;
-      --exclude)
+    --apply) MODE="apply" ;;
+    --dry-run) MODE="dry-run" ;;
+    --mirror) MIRROR=1 ;;
+    --force) FORCE=1 ;;
+    --yes | -y) YES=1 ;;
+    --include-runtime | --include-logs | --no-default-excludes) INCLUDE_RUNTIME=1 ;;
+    --no-lock) NO_LOCK=1 ;;
+    --exclude)
+      shift
+      [[ $# -gt 0 ]] || fail "--exclude requires a pattern argument."
+      EXCLUDES+=("$1")
+      ;;
+    --exclude=*) EXCLUDES+=("${1#--exclude=}") ;;
+    --log-file)
+      shift
+      [[ $# -gt 0 ]] || fail "--log-file requires a file argument."
+      LOG_FILE="$1"
+      ;;
+    --log-file=*) LOG_FILE="${1#--log-file=}" ;;
+    --backup-dir)
+      shift
+      [[ $# -gt 0 ]] || fail "--backup-dir requires a directory argument."
+      BACKUP_DIR="$1"
+      ;;
+    --backup-dir=*) BACKUP_DIR="${1#--backup-dir=}" ;;
+    --max-preview)
+      shift
+      [[ $# -gt 0 ]] || fail "--max-preview requires a number."
+      MAX_PREVIEW="$1"
+      ;;
+    --max-preview=*) MAX_PREVIEW="${1#--max-preview=}" ;;
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        POSITIONAL+=("$1")
         shift
-        [[ $# -gt 0 ]] || fail "--exclude requires a pattern argument."
-        EXCLUDES+=("$1")
-        ;;
-      --exclude=*) EXCLUDES+=("${1#--exclude=}") ;;
-      --log-file)
-        shift
-        [[ $# -gt 0 ]] || fail "--log-file requires a file argument."
-        LOG_FILE="$1"
-        ;;
-      --log-file=*) LOG_FILE="${1#--log-file=}" ;;
-      --backup-dir)
-        shift
-        [[ $# -gt 0 ]] || fail "--backup-dir requires a directory argument."
-        BACKUP_DIR="$1"
-        ;;
-      --backup-dir=*) BACKUP_DIR="${1#--backup-dir=}" ;;
-      --max-preview)
-        shift
-        [[ $# -gt 0 ]] || fail "--max-preview requires a number."
-        MAX_PREVIEW="$1"
-        ;;
-      --max-preview=*) MAX_PREVIEW="${1#--max-preview=}" ;;
-      -h|--help) usage; return 0 ;;
-      --) shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done; break ;;
-      --*) fail "Unknown option: $1" ;;
-      *) POSITIONAL+=("$1") ;;
+      done
+      break
+      ;;
+    --*) fail "Unknown option: $1" ;;
+    *) POSITIONAL+=("$1") ;;
     esac
     shift
   done
 
   [[ "$MAX_PREVIEW" =~ ^[0-9]+$ && "$MAX_PREVIEW" -gt 0 ]] || fail "--max-preview must be a positive integer."
-  [[ ${#POSITIONAL[@]} -eq 2 ]] || { usage >&2; return 2; }
+  [[ ${#POSITIONAL[@]} -eq 2 ]] || {
+    usage >&2
+    return 2
+  }
 
   SOURCE_DIR=$(abs_path "${POSITIONAL[0]}") || fail "Could not resolve source path: ${POSITIONAL[0]}"
   TARGET_DIR=$(abs_path "${POSITIONAL[1]}") || fail "Could not resolve target path: ${POSITIONAL[1]}"
@@ -678,10 +693,10 @@ ac_main() {
   [[ "$SOURCE_DIR" != "$TARGET_DIR" ]] || fail "Source and target are the same directory."
 
   case "$SOURCE_DIR/" in
-    "$TARGET_DIR"/*) fail "Source is inside target; refusing to avoid recursive copy/delete hazards." ;;
+  "$TARGET_DIR"/*) fail "Source is inside target; refusing to avoid recursive copy/delete hazards." ;;
   esac
   case "$TARGET_DIR/" in
-    "$SOURCE_DIR"/*) fail "Target is inside source; refusing to avoid recursive copy/delete hazards." ;;
+  "$SOURCE_DIR"/*) fail "Target is inside source; refusing to avoid recursive copy/delete hazards." ;;
   esac
 
   if [[ -n "$LOG_FILE" ]]; then
@@ -735,7 +750,10 @@ ac_main() {
   if [[ $YES -ne 1 ]]; then
     printf "\n${BOLD}${INVERSE} Type APPLY to update the target directory after creating a backup: ${R} "
     IFS= read -r confirmation
-    [[ "$confirmation" == "APPLY" ]] || { log_action "User aborted at APPLY confirmation."; fail "Confirmation did not match APPLY; aborted with no changes."; }
+    [[ "$confirmation" == "APPLY" ]] || {
+      log_action "User aborted at APPLY confirmation."
+      fail "Confirmation did not match APPLY; aborted with no changes."
+    }
   fi
 
   BACKUP_FILE=$(create_backup "$TARGET_DIR")

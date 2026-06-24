@@ -1,19 +1,62 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/uk_common.sh"
+# Source external library if available (will not break if missing due to fallbacks)
+[[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]] && source "$SCRIPT_DIR/../lib/uk_common.sh"
 
 DF_DIR='.'
 DF_ACTION='report'
 DF_APPLY=0
 
+# Fallback functions if not defined in uk_common.sh
+if ! declare -f uk_abs_path >/dev/null 2>&1; then
+  uk_abs_path() {
+    if command -v realpath >/dev/null; then
+      realpath "$1"
+    else
+      local dir file
+      dir="$(cd "$(dirname "$1")" && pwd -P)"
+      file="$(basename "$1")"
+      printf '%s/%s\n' "$dir" "$file"
+    fi
+  }
+fi
+
+if ! declare -f uk_confirm >/dev/null 2>&1; then
+  uk_confirm() {
+    local prompt="$1" default="$2"
+    local answer
+    printf '%s [%s/%s]: ' "$prompt" \
+      "$( [[ "$default" == "Y" ]] && echo "Y" || echo "y" )" \
+      "$( [[ "$default" == "N" ]] && echo "N" || echo "n" )" >&2
+    read -r answer
+    case "$answer" in
+      Y|y) return 0 ;;
+      N|n) return 1 ;;
+      *) [[ "$default" == "Y" || "$default" == "y" ]] && return 0 || return 1 ;;
+    esac
+  }
+fi
+
+# Fallback for logging if not defined
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "Note: %s\n" "$*"; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success: %s\n" "$*"; }; fi
+if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
+
 _df_hash() {
-  if uk_has_cmd sha256sum; then
+  if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | awk '{print $1}'
-  elif uk_has_cmd shasum; then
+  elif command -v shasum >/dev/null 2>&1; then
     shasum -a 256 "$1" | awk '{print $1}'
-  else
+  elif command -v md5sum >/dev/null 2>&1; then
     md5sum "$1" | awk '{print $1}'
+  elif command -v md5 >/dev/null 2>&1; then
+    md5 -q "$1" 2>/dev/null || md5 "$1" | awk '{print $NF}'
+  else
+    uk_error "No hash command found (sha256sum, shasum, md5sum, or md5)."
+    return 1
   fi
 }
 
@@ -31,27 +74,42 @@ USAGE
 }
 
 df_scan() {
-  local sizes_file duplicates_file current_size='' file size
+  if ! command -v find >/dev/null; then
+    uk_error "find command is required."
+    return 1
+  fi
+
+  # Removed sizes_file and duplicates_file from 'local' so they stay in scope for the EXIT trap
+  local current_size='' file size
+  
   sizes_file=$(mktemp)
   duplicates_file=$(mktemp)
+  
+  # Use double quotes so the exact temp file paths are evaluated immediately, 
+  # bypassing any strict unbound variable/scope issues during EXIT
+  trap "rm -f '$sizes_file' '$duplicates_file'" EXIT
 
   uk_header 'UtilityKit Duplicate Finder' "Directory: $(uk_abs_path "$DF_DIR")"
   uk_note 'Scanning files by size first, then hashing exact-size matches...'
 
   while IFS= read -r -d '' file; do
-    size=$(wc -c < "$file")
+    size=$(wc -c < "$file" 2>/dev/null || echo "0")
     printf '%s\t%s\n' "$size" "$file" >> "$sizes_file"
   done < <(find "$DF_DIR" \( -path '*/.git/*' -o -path '*/.git' -o -path '*/.hg/*' -o -path '*/.hg' -o -path '*/.svn/*' -o -path '*/.svn' \) -prune -o -type f -print0)
+
   sort -n "$sizes_file" -o "$sizes_file"
 
   local -a group=()
+  current_size=''
+  
   while IFS=$'\t' read -r size file; do
     if [[ "$size" != "$current_size" && ${#group[@]} -gt 0 ]]; then
       if (( ${#group[@]} > 1 )); then
         local candidate hash
-        declare -A first_for_hash=()
+        unset -v first_for_hash 2>/dev/null || true
+        declare -A first_for_hash
         for candidate in "${group[@]}"; do
-          hash=$(_df_hash "$candidate")
+          hash=$(_df_hash "$candidate") || continue
           if [[ -n "${first_for_hash[$hash]:-}" ]]; then
             printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >> "$duplicates_file"
           else
@@ -65,11 +123,13 @@ df_scan() {
     group+=("$file")
   done < "$sizes_file"
 
+  # Process last group
   if (( ${#group[@]} > 1 )); then
     local candidate hash
-    declare -A first_for_hash=()
+    unset -v first_for_hash 2>/dev/null || true
+    declare -A first_for_hash
     for candidate in "${group[@]}"; do
-      hash=$(_df_hash "$candidate")
+      hash=$(_df_hash "$candidate") || continue
       if [[ -n "${first_for_hash[$hash]:-}" ]]; then
         printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >> "$duplicates_file"
       else
@@ -80,9 +140,11 @@ df_scan() {
 
   if [[ ! -s "$duplicates_file" ]]; then
     uk_success 'No exact duplicates found.'
-    rm -f "$sizes_file" "$duplicates_file"
     return 0
   fi
+
+  local UK_C_BOLD=${UK_C_BOLD:-} UK_C_CYAN=${UK_C_CYAN:-} UK_C_RESET=${UK_C_RESET:-} 
+  local UK_C_GREEN=${UK_C_GREEN:-} UK_C_DIM=${UK_C_DIM:-} UK_I_ARROW=${UK_I_ARROW:-'>'}
 
   printf '\n  %s%sDuplicate groups found%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
@@ -94,13 +156,13 @@ df_scan() {
       "$UK_C_DIM" "${DF_ACTION:-removed}" "$UK_C_RESET"
   done < "$duplicates_file"
   printf '\n'
-  
+
   if [[ "$DF_ACTION" == 'report' ]]; then
     uk_note 'Preview only. Use --delete or --hardlink with --apply to modify files.'
     return 0
   fi
 
-  local canonical duplicate changed=0
+  local changed=0
   while IFS=$'\t' read -r canonical duplicate; do
     if (( DF_APPLY == 1 )); then
       case "$DF_ACTION" in
@@ -109,7 +171,10 @@ df_scan() {
           ;;
         hardlink)
           rm -f "$duplicate"
-          ln "$canonical" "$duplicate"
+          if ! ln "$canonical" "$duplicate"; then
+            uk_error "Failed to create hardlink from $canonical to $duplicate (different filesystems?)"
+            continue
+          fi
           ;;
       esac
       changed=$((changed + 1))
@@ -119,7 +184,6 @@ df_scan() {
   done < "$duplicates_file"
 
   (( DF_APPLY == 1 )) && uk_success "Processed $changed duplicate file(s)."
-  rm -f "$sizes_file" "$duplicates_file"
 }
 
 df_main() {
@@ -139,36 +203,32 @@ df_main() {
 
   if (( seen_args == 0 )) && [[ -t 0 && -t 1 ]]; then
     uk_header 'UtilityKit Duplicate Finder' 'Size-first, hash-second duplicate detection'
-
-    DF_DIR="$(uk_prompt \
-      'Enter directory to scan for duplicates' \
-      '.' \
-      '~/Downloads  |  ~/Pictures  |  ./assets' \
-      'The tool matches file sizes first, then hashes exact-size candidates to confirm.')"
+    
+    if declare -f uk_prompt >/dev/null 2>&1; then
+      DF_DIR="$(uk_prompt 'Enter directory to scan for duplicates' '.' '~/Downloads | ~/Pictures | ./assets' 'Matches sizes first, then hashes.')"
+    else
+      printf "Enter directory to scan for duplicates [default: .]: "
+      read -r DF_DIR
+      DF_DIR=${DF_DIR:-.}
+    fi
 
     printf '\n'
-    printf '  %s1)%s Report only          %s(show duplicates, make no changes)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-    printf '  %s2)%s Delete duplicates    %s(remove dupes, keep the first copy of each)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-    printf '  %s3)%s Replace with hardlinks %s(save space while keeping both paths intact)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-    printf '\n'
-    printf ' %s Choose an action [1-3]: ' "$UK_I_ARROW"
+    printf '  1) Report only          (show duplicates, make no changes)\n'
+    printf '  2) Delete duplicates    (remove dupes, keep the first copy of each)\n'
+    printf '  3) Replace with hardlinks (save space while keeping both paths intact)\n'
+    printf '\n Choose an action [1-3]: '
     read -r mode </dev/tty
 
     case "$mode" in
       2)
         DF_ACTION='delete'
-        if uk_confirm \
-          'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
+        if uk_confirm 'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
           DF_APPLY=1
         fi
         ;;
       3)
         DF_ACTION='hardlink'
-        if uk_confirm \
-          'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
+        if uk_confirm 'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
           DF_APPLY=1
         fi
         ;;

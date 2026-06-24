@@ -84,7 +84,7 @@ at_run_request() {
     curl_args+=(--data "$AT_BODY")
   fi
 
-  curl "${curl_args[@]}" 2>"$tmp_meta" > "$tmp_timing"
+  curl "${curl_args[@]}" 2>"$tmp_meta" > "$tmp_timing" || true
 
   printf '\n  %s%sRequest%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"

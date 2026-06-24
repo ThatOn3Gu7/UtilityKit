@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 
-dv_usage(){ cat <<'USAGE'
+dv_usage(){
+  cat <<'USAGE'
 Usage:
   _dotenv_vault.sh --file .env --encrypt KEY [--apply]
   _dotenv_vault.sh --file .env --decrypt [--output FILE]
@@ -65,7 +67,8 @@ dv_main(){
     local tmp line name token value
     tmp=$(mktemp)
     while IFS= read -r line || [[ -n "$line" ]]; do
-      if [[ "$line" =~ ^([^=#[:space:]]+)="ENC::"(.+)$ ]]; then
+      # FIX: no quotes in the regex – match KEY=ENC::TOKEN (without quotes)
+      if [[ "$line" =~ ^([^=#[:space:]]+)=ENC::(.+)$ ]]; then
         name="${BASH_REMATCH[1]}"
         token="${BASH_REMATCH[2]}"
         if value="$(dv_decrypt_token "$token")"; then
@@ -103,6 +106,7 @@ dv_main(){
       else
         uk_note "Encrypting value for $key with gpg. You may be prompted for a passphrase."
         token="$(dv_encrypt_value "$value")" || { rm -f "$tmp"; return 1; }
+        # Write without quotes (consistent with decryption regex)
         printf '%s=ENC::%s\n' "$name" "$token" >> "$tmp"
       fi
     else
@@ -111,10 +115,19 @@ dv_main(){
   done < "$file"
 
   (( found == 1 )) || { rm -f "$tmp"; uk_error "Key not found: $key"; return 1; }
+
   if (( apply == 1 )); then
-    cp "$file" "$file.bak.$(uk_stamp)"
+    # Check writability
+    if [[ ! -w "$file" ]]; then
+      uk_error "File '$file' is not writable."
+      rm -f "$tmp"
+      return 1
+    fi
+    local stamp
+    stamp="$(date '+%Y%m%d_%H%M%S')"
+    cp "$file" "$file.bak.$stamp"
     mv "$tmp" "$file"
-    uk_success "Encrypted $key in $file (backup created)."
+    uk_success "Encrypted $key in $file (backup created at $file.bak.$stamp)."
   else
     uk_note 'Dry-run preview. Use --apply to write changes.'
     cat "$tmp"
