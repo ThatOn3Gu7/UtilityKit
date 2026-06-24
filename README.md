@@ -19,7 +19,6 @@ The current dashboard build is tuned for Termux/mobile terminals with the origin
 - `_docker_janitor` — stopped container / dangling image / volume cleanup
 - `_project_scaffold` — starter generator for Bash, Flask, Node CLI, and Go service projects
 - `_duplicate_finder` — size-first, hash-second duplicate detector
-- `_log_rotator` — archive old logs and purge stale archives
 - `_process_killer` — RAM/swap summary and process killer
 - `_port_inspector` — find which process owns a listening port and optionally stop it
 - `_ssl_checker` — certificate expiry, DNS, and legacy TLS probe helper
@@ -41,7 +40,6 @@ The current dashboard build is tuned for Termux/mobile terminals with the origin
 - `_service_watcher` — HTTP endpoint status and timing checks with profiles
 - `_git_stats` — repository activity, author, file, and branch summaries
 - `_backup_sync` — safe backup preview/apply wrapper around `rsync` or `cp`
-- `_clipboard_manager` — lightweight clipboard history store/search/copy helper
 - `_weather` — terminal weather lookup with cached fallback
 - `_json_explorer` — JSON pretty-printing, path extraction, keys, and summary
 - `_tmux_session` — friendly tmux session list/create/attach/kill wrapper
@@ -119,7 +117,6 @@ UtilityKit/
 ├── _duplicate_finder/
 ├── _env_manager/
 ├── _git_sweep/
-├── _log_rotator/
 ├── _markdown_toc/
 ├── _media_convert/
 ├── _password_gen/
