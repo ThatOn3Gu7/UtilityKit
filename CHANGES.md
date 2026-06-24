@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+
+### Fixed (Deep Review)
+- fix: guard sourced tool scripts from enabling strict shell options in the parent shell.
+- fix: prevent rename, move, and apply-change color setup from clobbering shared UtilityKit color variables when sourced.
+- fix: URL-encode weather locations before calling wttr.in.
+- fix: make license detection robust when only LICENSE* or COPYING* exists.
+- fix: validate todo IDs before marking tasks done.
+- fix: clarify degraded battery backend output instead of silently swallowing unavailable backends.
+- fix: harden project scaffold target deletion against unsafe names and paths.
+- fix: add macOS-compatible fallbacks for find/stat/sort portability checks.
+- fix: align password generator passphrase entropy documentation with the 37-word built-in list.
+- fix: add deep review regression coverage for sourcing safety, known bug fixes, archive traversal, cron validation, and duplicate scans.
+
 ### Added
 - Added 27 new cross-platform utility modules, each with a README and direct `main.sh` command route:
   network probe, cron manager, dotenv vault, disk health, service watcher, git stats,

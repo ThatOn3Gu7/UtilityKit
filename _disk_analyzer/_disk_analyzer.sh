@@ -2,7 +2,6 @@
 #
 # _disk_analyzer.sh — Disk Space & Directory Size Analyzer with Quick Archiving
 
-set -euo pipefail
 
 DA_VERSION="1.1.0"
 DA_COUNT=10
@@ -148,5 +147,6 @@ da_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   da_main "$@"
 fi

@@ -46,6 +46,7 @@ uk_source_tool "$UK_ROOT_DIR/_service_watcher/_service_watcher.sh"
 uk_source_tool "$UK_ROOT_DIR/_git_stats/_git_stats.sh"
 uk_source_tool "$UK_ROOT_DIR/_backup_sync/_backup_sync.sh"
 uk_source_tool "$UK_ROOT_DIR/_clipboard_manager/_clipboard_manager.sh"
+uk_source_tool "$UK_ROOT_DIR/_log_rotator/_log_rotator.sh"
 uk_source_tool "$UK_ROOT_DIR/_weather/_weather.sh"
 uk_source_tool "$UK_ROOT_DIR/_json_explorer/_json_explorer.sh"
 uk_source_tool "$UK_ROOT_DIR/_tmux_session/_tmux_session.sh"
@@ -893,6 +894,8 @@ run_tool() {
   watch | service | service-watcher) ([[ $# -gt 0 ]] && sw_main "$@" || run_new_utility_wizard service) ;;
   git-stats | gstats) ([[ $# -gt 0 ]] && gst_main "$@" || run_new_utility_wizard git-stats) ;;
   backup | backup-sync) ([[ $# -gt 0 ]] && bs_main "$@" || run_new_utility_wizard backup) ;;
+  clipboard | clipboard-manager) ([[ $# -gt 0 ]] && cb_main "$@" || cb_main --help) ;;
+  logs | log-rotator) ([[ $# -gt 0 ]] && lr_main "$@" || lr_main --help) ;;
   weather) ([[ $# -gt 0 ]] && wt_main "$@" || run_new_utility_wizard weather) ;;
   json | json-explorer) ([[ $# -gt 0 ]] && jx_main "$@" || run_new_utility_wizard json) ;;
   tmux | tmux-session) ([[ $# -gt 0 ]] && tms_main "$@" || run_new_utility_wizard tmux) ;;
@@ -930,13 +933,13 @@ Usage:
   ./main.sh <command> [args]
 
 Core commands:
-  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
+  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup, logs,
   proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
   cheat, setup, docker, zen
 
 New utility commands:
   network, cron, dotenv, disk-health, service, git-stats, backup,
-  weather, json, tmux, font, toolbox, search, github, links, log-inspect,
+  clipboard, weather, json, tmux, font, toolbox, search, github, links, log-inspect,
   csv, hash, archive, snapshot, open-files, battery, release, license, regex, todo
 
 Use ./main.sh <command> --help for each tool's detailed options.

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 
@@ -189,6 +188,10 @@ ps_main() {
   fi
 
   [[ -n "$PS_TYPE" && -n "$PS_NAME" ]] || { ps_usage; return 1; }
+  if [[ "$PS_NAME" == "." || "$PS_NAME" == ".." || "$PS_NAME" == /* || "$PS_NAME" == */* || "$PS_NAME" == -* ]]; then
+    uk_error "Unsafe project name: $PS_NAME"
+    return 1
+  fi
   PS_DEST="$(uk_abs_path "${PS_DEST:-.}")"
   local out="$PS_DEST/$PS_NAME"
   if [[ -e "$out" && $PS_FORCE -ne 1 ]]; then
@@ -196,8 +199,9 @@ ps_main() {
     return 1
   fi
 
-  rm -rf "$out"
-  mkdir -p "$out"
+  [[ -n "$out" && "$out" != "/" ]] || { uk_error "Refusing unsafe target path: $out"; return 1; }
+  rm -rf -- "$out"
+  mkdir -p -- "$out"
   ps_write_common "$out" "$PS_NAME"
   case "$PS_TYPE" in
     bash) ps_gen_bash "$out" ;;
@@ -210,5 +214,6 @@ ps_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   ps_main "$@"
 fi

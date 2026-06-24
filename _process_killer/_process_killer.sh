@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 
@@ -107,5 +106,6 @@ pk_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   pk_main "$@"
 fi

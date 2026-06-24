@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -69,11 +68,16 @@ li_main() {
 
   # 2. Summary counts (using sort -S for memory safety)
   printf "\n=== Frequency Summary (Top 10) ===\n"
-  # Use sort -S to prevent memory exhaustion, and uniq -c to count
-  sort -S 50% "$file" | uniq -c | sort -rn | head -n 10 || true
+  # Use GNU sort -S when available, with a BSD/macOS fallback.
+  if sort -S 50% </dev/null >/dev/null 2>&1; then
+    sort -S 50% "$file" | uniq -c | sort -rn | head -n 10 || true
+  else
+    sort "$file" | uniq -c | sort -rn | head -n 10 || true
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
+  set -euo pipefail
   if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
     bash "$SCRIPT_DIR/../main.sh" log-inspect
   else

@@ -3,7 +3,6 @@
 # _symlink_manager.sh — Cross-platform intelligent dotfile/directory symlink manager
 # Features automatic backup of existing files/directories, dry-run mode, and status reporting.
 
-set -euo pipefail
 
 SM_VERSION="1.0.0"
 SM_MODE="dry-run"
@@ -207,5 +206,6 @@ sm_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   sm_main "$@"
 fi

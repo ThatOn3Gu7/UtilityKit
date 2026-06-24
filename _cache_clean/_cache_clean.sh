@@ -9,7 +9,6 @@
 # - Visual bars use ONLY safe ASCII (# and -) → no more weird ???? symbols
 # - Always a space after every symbol/emoji before text
 
-set -o pipefail
 
 VERSION="1.0.1"
 
@@ -719,5 +718,6 @@ cc_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   cc_main "$@"
 fi

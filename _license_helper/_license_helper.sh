@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -61,7 +60,7 @@ lic_main() {
 
   # Detection logic
   if [[ -z "$gen" ]]; then
-    if ! ls LICENSE* COPYING* >/dev/null 2>&1; then
+    if ! find . -maxdepth 1 \( -name 'LICENSE*' -o -name 'COPYING*' \) -print -quit | grep -q .; then
       uk_warn 'No license file (LICENSE* or COPYING*) found in current directory.'
     fi
     return 0
@@ -84,6 +83,7 @@ lic_main() {
 }
 
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
+  set -euo pipefail
   if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
     bash "$SCRIPT_DIR/../main.sh" license
   else

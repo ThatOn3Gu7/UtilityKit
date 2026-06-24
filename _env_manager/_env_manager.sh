@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -346,5 +345,6 @@ em_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   em_main "$@"
 fi

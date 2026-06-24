@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 
@@ -198,5 +197,6 @@ if [[ -z "$MT_FILE" ]] && [[ -t 0 && -t 1 ]]; then
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   mt_main "$@"
 fi

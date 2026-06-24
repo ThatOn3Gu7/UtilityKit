@@ -7,7 +7,6 @@
 # pre-flight disk space and permission checks, dynamic filesystem traversal pruning,
 # automated emergency auto-rollback on execution failure, and runtime audit logging.
 
-set -uo pipefail
 
 MODE="dry-run"
 MIRROR=0
@@ -28,33 +27,32 @@ TRAP_RUN=0
 # Color + style setup — disabled when not a TTY or NO_COLOR is set
 _setup_colors() {
   if [[ -t 1 && -t 2 && -z "${NO_COLOR:-}" ]]; then
-    R=$'\033[0m'
-    BOLD=$'\033[1m'
-    DIM=$'\033[2m'
-    ITALIC=$'\033[3m'
-    INVERSE=$'\033[7m'
-    FG_RED=$'\033[31m'
-    FG_GREEN=$'\033[32m'
-    FG_YELLOW=$'\033[33m'
-    FG_BLUE=$'\033[34m'
-    FG_MAGENTA=$'\033[35m'
-    FG_CYAN=$'\033[36m'
-    FG_WHITE=$'\033[37m'
-    FG_BRIGHT_RED=$'\033[91m'
-    FG_BRIGHT_GREEN=$'\033[92m'
-    FG_BRIGHT_YELLOW=$'\033[93m'
-    FG_BRIGHT_BLUE=$'\033[94m'
-    FG_BRIGHT_MAGENTA=$'\033[95m'
-    FG_BRIGHT_CYAN=$'\033[96m'
-    FG_BRIGHT_WHITE=$'\033[97m'
+    AC_R=$'\033[0m'
+    AC_BOLD=$'\033[1m'
+    AC_DIM=$'\033[2m'
+    AC_ITALIC=$'\033[3m'
+    AC_INVERSE=$'\033[7m'
+    AC_FG_RED=$'\033[31m'
+    AC_FG_GREEN=$'\033[32m'
+    AC_FG_YELLOW=$'\033[33m'
+    AC_FG_BLUE=$'\033[34m'
+    AC_FG_MAGENTA=$'\033[35m'
+    AC_FG_CYAN=$'\033[36m'
+    AC_FG_WHITE=$'\033[37m'
+    AC_FG_BRIGHT_RED=$'\033[91m'
+    AC_FG_BRIGHT_GREEN=$'\033[92m'
+    AC_FG_BRIGHT_YELLOW=$'\033[93m'
+    AC_FG_BRIGHT_BLUE=$'\033[94m'
+    AC_FG_BRIGHT_MAGENTA=$'\033[95m'
+    AC_FG_BRIGHT_CYAN=$'\033[96m'
+    AC_FG_BRIGHT_WHITE=$'\033[97m'
   else
-    R='' BOLD='' DIM='' ITALIC='' INVERSE=''
-    FG_RED='' FG_GREEN='' FG_YELLOW='' FG_BLUE='' FG_MAGENTA='' FG_CYAN='' FG_WHITE=''
-    FG_BRIGHT_RED='' FG_BRIGHT_GREEN='' FG_BRIGHT_YELLOW='' FG_BRIGHT_BLUE=''
-    FG_BRIGHT_MAGENTA='' FG_BRIGHT_CYAN='' FG_BRIGHT_WHITE=''
+    AC_R='' AC_BOLD='' AC_DIM='' AC_ITALIC='' AC_INVERSE=''
+    AC_FG_RED='' AC_FG_GREEN='' AC_FG_YELLOW='' AC_FG_BLUE='' AC_FG_MAGENTA='' AC_FG_CYAN='' AC_FG_WHITE=''
+    AC_FG_BRIGHT_RED='' AC_FG_BRIGHT_GREEN='' AC_FG_BRIGHT_YELLOW='' AC_FG_BRIGHT_BLUE=''
+    AC_FG_BRIGHT_MAGENTA='' AC_FG_BRIGHT_CYAN='' AC_FG_BRIGHT_WHITE=''
   fi
 }
-_setup_colors
 
 log_action() {
   local msg="$*"
@@ -64,15 +62,15 @@ log_action() {
 }
 
 info() {
-  printf "${BOLD}${FG_CYAN}[INFO]${R}  %s\n" "$*"
+  printf "${AC_BOLD}${AC_FG_CYAN}[INFO]${AC_R}  %s\n" "$*"
   log_action "[INFO]  $*"
 }
 warn() {
-  printf "${BOLD}${FG_BRIGHT_YELLOW}[WARN]${R}  %s\n" "$*" >&2
+  printf "${AC_BOLD}${AC_FG_BRIGHT_YELLOW}[WARN]${AC_R}  %s\n" "$*" >&2
   log_action "[WARN]  $*"
 }
 fail() {
-  printf "${BOLD}${FG_BRIGHT_RED}[ERROR]${R} %s\n" "$*" >&2
+  printf "${AC_BOLD}${AC_FG_BRIGHT_RED}[ERROR]${AC_R} %s\n" "$*" >&2
   log_action "[ERROR] $*"
   exit 1
 }
@@ -108,7 +106,7 @@ cleanup_and_trap() {
 
   if [[ "${APPLY_IN_PROGRESS:-0}" -eq 1 ]]; then
     printf "\n" >&2
-    warn "${FG_BRIGHT_RED}⚠️ WARNING: Synchronization was abruptly interrupted ($sig) while actively applying changes!${R}"
+    warn "${AC_FG_BRIGHT_RED}⚠️ WARNING: Synchronization was abruptly interrupted ($sig) while actively applying changes!${AC_R}"
     warn "The target directory '${TARGET_DIR:-}' may be in an inconsistent state."
     if [[ -n "${BACKUP_FILE:-}" && -f "$BACKUP_FILE" ]]; then
       warn "To restore your directory to its exact pristine state, execute:"
@@ -125,10 +123,10 @@ usage() {
   local script_name
   script_name="$(basename "$0")"
   cat <<EOF
-${BOLD}Usage:${R}
+${AC_BOLD}Usage:${AC_R}
   $script_name [options] <updated_source_dir> <local_target_dir>
 
-${BOLD}Enterprise Robustness Behavior:${R}
+${AC_BOLD}Enterprise Robustness Behavior:${AC_R}
   - Adaptive temp directory logic perfectly supports Termux, Android, and strict subshells.
   - Non-fatal concurrency locking prevents conflicts but falls back gracefully if restricted.
   - Permissive chmod handling guarantees smooth copying across Android /sdcard or SMB mounts.
@@ -137,35 +135,35 @@ ${BOLD}Enterprise Robustness Behavior:${R}
   - Dynamic filesystem traversal pruning speeds up large directory scans up to 100x.
   - Smart stat size comparison avoids opening large binary files for cmp.
   - Automated emergency rollback restores backup instantly if copying fails mid-execution.
-  - Always preserves target ${FG_CYAN}.git/${R}.
+  - Always preserves target ${AC_FG_CYAN}.git/${AC_R}.
 
-${BOLD}Options:${R}
-  ${BOLD}${FG_BRIGHT_CYAN}--apply${R}              Actually copy changes after showing the plan.
-  ${BOLD}${FG_BRIGHT_CYAN}--dry-run${R}            Preview only. This is the default.
-  ${BOLD}${FG_BRIGHT_CYAN}--mirror${R}             Also delete target files that do not exist in source
+${AC_BOLD}Options:${AC_R}
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--apply${AC_R}              Actually copy changes after showing the plan.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--dry-run${AC_R}            Preview only. This is the default.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--mirror${AC_R}             Also delete target files that do not exist in source
                        (excluding .git/, runtime logs, and custom exclusions). Use carefully.
-  ${BOLD}${FG_BRIGHT_CYAN}--force${R}              Allow applying even when target git tree has local changes.
-  ${BOLD}${FG_BRIGHT_CYAN}--yes${R}                Do not ask for interactive confirmation in --apply mode.
-  ${BOLD}${FG_BRIGHT_CYAN}--backup-dir <dir>${R}   Write backup archives to this directory instead of the
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--force${AC_R}              Allow applying even when target git tree has local changes.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--yes${AC_R}                Do not ask for interactive confirmation in --apply mode.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--backup-dir <dir>${AC_R}   Write backup archives to this directory instead of the
                        target's parent directory.
-  ${BOLD}${FG_BRIGHT_CYAN}--include-runtime${R}    Also sync runtime logs/tmp files under log/ (aliases:
-                       ${BOLD}--include-logs${R}, ${BOLD}--no-default-excludes${R}).
-  ${BOLD}${FG_BRIGHT_CYAN}--exclude <pattern>${R}  Exclude files or directories matching bash wildcard pattern
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--include-runtime${AC_R}    Also sync runtime logs/tmp files under log/ (aliases:
+                       ${AC_BOLD}--include-logs${AC_R}, ${AC_BOLD}--no-default-excludes${AC_R}).
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--exclude <pattern>${AC_R}  Exclude files or directories matching bash wildcard pattern
                        (can be specified multiple times).
-  ${BOLD}${FG_BRIGHT_CYAN}--log-file <file>${R}    Record a timestamped runtime audit log to this file.
-  ${BOLD}${FG_BRIGHT_CYAN}--no-lock${R}            Disable concurrency locking completely.
-  ${BOLD}${FG_BRIGHT_CYAN}--max-preview <n>${R}    Number of change lines to print before truncating
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--log-file <file>${AC_R}    Record a timestamped runtime audit log to this file.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--no-lock${AC_R}            Disable concurrency locking completely.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--max-preview <n>${AC_R}    Number of change lines to print before truncating
                        (default: 200).
-  ${BOLD}${FG_BRIGHT_CYAN}-h, --help${R}           Show this help.
+  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}-h, --help${AC_R}           Show this help.
 
-${BOLD}Examples:${R}
-  ${DIM}# Preview changes from source into target:${R}
+${AC_BOLD}Examples:${AC_R}
+  ${AC_DIM}# Preview changes from source into target:${AC_R}
   bash $script_name /path/to/source /path/to/target
 
-  ${DIM}# Apply changed/new files safely, with automatic Termux temp dir protection:${R}
+  ${AC_DIM}# Apply changed/new files safely, with automatic Termux temp dir protection:${AC_R}
   bash $script_name --apply /path/to/source /path/to/target
 
-  ${DIM}# Full mirror mode with runtime audit log and custom exclusions:${R}
+  ${AC_DIM}# Full mirror mode with runtime audit log and custom exclusions:${AC_R}
   bash $script_name --apply --mirror --log-file "sync.log" --exclude "node_modules" /src /dst
 EOF
 }
@@ -173,14 +171,14 @@ EOF
 # Colored + symbol-prefixed label for a change kind
 kind_label() {
   case "$1" in
-  CREATE) printf "${BOLD}${FG_BRIGHT_GREEN}✚ CREATE ${R}" ;;
-  UPDATE) printf "${BOLD}${FG_BRIGHT_CYAN}↻ UPDATE ${R}" ;;
-  REPLACE) printf "${BOLD}${FG_BRIGHT_YELLOW}⟳ REPLACE${R}" ;;
-  DELETE) printf "${BOLD}${FG_BRIGHT_RED}✖ DELETE ${R}" ;;
-  MKDIR) printf "${BOLD}${FG_BRIGHT_BLUE}⊕ MKDIR  ${R}" ;;
-  SYMLINK) printf "${BOLD}${FG_BRIGHT_MAGENTA}⇢ SYMLINK${R}" ;;
-  CHMOD) printf "${DIM}⌀ CHMOD  ${R}" ;;
-  *) printf "${DIM}%-9s${R}" "$1" ;;
+  CREATE) printf "${AC_BOLD}${AC_FG_BRIGHT_GREEN}✚ CREATE ${AC_R}" ;;
+  UPDATE) printf "${AC_BOLD}${AC_FG_BRIGHT_CYAN}↻ UPDATE ${AC_R}" ;;
+  REPLACE) printf "${AC_BOLD}${AC_FG_BRIGHT_YELLOW}⟳ REPLACE${AC_R}" ;;
+  DELETE) printf "${AC_BOLD}${AC_FG_BRIGHT_RED}✖ DELETE ${AC_R}" ;;
+  MKDIR) printf "${AC_BOLD}${AC_FG_BRIGHT_BLUE}⊕ MKDIR  ${AC_R}" ;;
+  SYMLINK) printf "${AC_BOLD}${AC_FG_BRIGHT_MAGENTA}⇢ SYMLINK${AC_R}" ;;
+  CHMOD) printf "${AC_DIM}⌀ CHMOD  ${AC_R}" ;;
+  *) printf "${AC_DIM}%-9s${AC_R}" "$1" ;;
   esac
 }
 
@@ -430,14 +428,14 @@ print_change_summary() {
     return 0
   fi
 
-  info "Detected ${BOLD}${FG_BRIGHT_WHITE}$CHANGE_COUNT${R} change(s). Summary:"
+  info "Detected ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$CHANGE_COUNT${AC_R} change(s). Summary:"
   while IFS=$'\t' read -r kind cnt; do
     printf '  %s  %s\n' "$(kind_label "$kind")" "$cnt"
   done < <(awk -F '\t' '{ count[$1]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
   printf '\n'
   info "Change preview (first $MAX_PREVIEW line(s)):"
   while IFS=$'\t' read -r kind rel; do
-    printf '  %s  %s\n' "$(kind_label "$kind")" "${DIM}${rel}${R}"
+    printf '  %s  %s\n' "$(kind_label "$kind")" "${AC_DIM}${rel}${AC_R}"
   done < <(sed -n "1,${MAX_PREVIEW}p" "$CHANGES_FILE")
   local total
   total=$(wc -l <"$CHANGES_FILE" | tr -d ' ')
@@ -464,7 +462,7 @@ check_git_safety() {
     dirty=$(filtered_git_dirty "$dst")
     if [[ -n "$dirty" && $FORCE -ne 1 ]]; then
       printf '%s\n' "$dirty" >&2
-      fail "Target git working tree has local changes. Commit/stash them first, or rerun with ${BOLD}--force${R} after reviewing the backup plan."
+      fail "Target git working tree has local changes. Commit/stash them first, or rerun with ${AC_BOLD}--force${AC_R} after reviewing the backup plan."
     fi
   fi
 }
@@ -489,7 +487,7 @@ create_backup() {
   fi
 
   backup_file="$backup_dir/${base}.backup.${timestamp}.tar.gz"
-  printf "${BOLD}${FG_CYAN}[INFO]${R}  Creating pre-apply backup archive: ${DIM}%s${R}\n" "$backup_file" >&2
+  printf "${AC_BOLD}${AC_FG_CYAN}[INFO]${AC_R}  Creating pre-apply backup archive: ${AC_DIM}%s${AC_R}\n" "$backup_file" >&2
   log_action "Creating tar.gz backup archive: $backup_file"
   tar -czf "$backup_file" -C "$parent" "$base" || fail "Backup creation failed! Synchronization aborted with zero changes to target."
   cp "$CHANGES_FILE" "${backup_file}.changes.txt" 2>/dev/null || true
@@ -528,7 +526,7 @@ handle_apply_failure() {
   local kind="$1" rel="$2"
   APPLY_IN_PROGRESS=0
   printf "\n" >&2
-  warn "${FG_BRIGHT_RED}❌ CRITICAL ERROR: Execution failed while trying to apply '$kind' to '$rel'.${R}"
+  warn "${AC_FG_BRIGHT_RED}❌ CRITICAL ERROR: Execution failed while trying to apply '$kind' to '$rel'.${AC_R}"
   warn "The target directory '$TARGET_DIR' is in an incomplete, partially updated runtime state."
 
   if [[ -n "${BACKUP_FILE:-}" && -f "$BACKUP_FILE" ]]; then
@@ -537,7 +535,7 @@ handle_apply_failure() {
       warn "Running in --yes mode: automatically executing emergency auto-rollback to restore target directory..."
       execute_rollback
     else
-      printf "\n${BOLD}${INVERSE} Emergency Auto-Recovery: Type ROLLBACK to automatically restore the target directory from backup: ${R} "
+      printf "\n${AC_BOLD}${AC_INVERSE} Emergency Auto-Recovery: Type ROLLBACK to automatically restore the target directory from backup: ${AC_R} "
       local response
       IFS= read -r response
       if [[ "$response" == "ROLLBACK" ]]; then
@@ -559,7 +557,7 @@ execute_rollback() {
   info "Extracting backup archive '$BACKUP_FILE' back into '$parent'..."
   log_action "Executing emergency auto-rollback from $BACKUP_FILE"
   if tar -xzf "$BACKUP_FILE" -C "$parent"; then
-    info "${BOLD}${FG_BRIGHT_GREEN}✔ Emergency auto-rollback completed successfully!${R} Target directory '$TARGET_DIR' has been fully restored to its exact pre-sync pristine state."
+    info "${AC_BOLD}${AC_FG_BRIGHT_GREEN}✔ Emergency auto-rollback completed successfully!${AC_R} Target directory '$TARGET_DIR' has been fully restored to its exact pre-sync pristine state."
     log_action "Emergency auto-rollback successful."
     exit 1
   else
@@ -600,12 +598,13 @@ apply_changes() {
   done <"$CHANGES_FILE"
 
   APPLY_IN_PROGRESS=0
-  info "Applied ${BOLD}${FG_BRIGHT_WHITE}$applied${R} change(s)."
+  info "Applied ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$applied${AC_R} change(s)."
   log_action "Successfully applied all $applied changes."
 }
 
 # Argument parsing & execution entry point -----------------------------------
 ac_main() {
+  _setup_colors
   trap 'cleanup_and_trap EXIT' EXIT
   trap 'cleanup_and_trap SIGINT' SIGINT
   trap 'cleanup_and_trap SIGTERM' SIGTERM
@@ -714,12 +713,12 @@ ac_main() {
   : >"$CHANGES_FILE" || fail "CRITICAL: Unable to create temporary plan file '$CHANGES_FILE'. Please verify your filesystem permissions."
   CHANGE_COUNT=0
 
-  info "Source: ${FG_CYAN}$SOURCE_DIR${R}"
-  info "Target: ${FG_CYAN}$TARGET_DIR${R}"
-  [[ $MIRROR -eq 1 ]] && warn "Mirror mode is enabled: non-excluded target files missing from source will be ${FG_BRIGHT_RED}deleted${R}."
-  [[ $INCLUDE_RUNTIME -eq 0 ]] && info "Runtime logs are excluded by default. Use ${BOLD}--include-runtime${R} (or ${BOLD}--include-logs${R}) to sync them."
-  [[ ${#EXCLUDES[@]} -gt 0 ]] && info "Active custom exclusions: ${BOLD}${FG_BRIGHT_WHITE}${EXCLUDES[*]}${R}"
-  [[ -n "$LOG_FILE" ]] && info "Audit logging active: ${DIM}$LOG_FILE${R}"
+  info "Source: ${AC_FG_CYAN}$SOURCE_DIR${AC_R}"
+  info "Target: ${AC_FG_CYAN}$TARGET_DIR${AC_R}"
+  [[ $MIRROR -eq 1 ]] && warn "Mirror mode is enabled: non-excluded target files missing from source will be ${AC_FG_BRIGHT_RED}deleted${AC_R}."
+  [[ $INCLUDE_RUNTIME -eq 0 ]] && info "Runtime logs are excluded by default. Use ${AC_BOLD}--include-runtime${AC_R} (or ${AC_BOLD}--include-logs${AC_R}) to sync them."
+  [[ ${#EXCLUDES[@]} -gt 0 ]] && info "Active custom exclusions: ${AC_BOLD}${AC_FG_BRIGHT_WHITE}${EXCLUDES[*]}${AC_R}"
+  [[ -n "$LOG_FILE" ]] && info "Audit logging active: ${AC_DIM}$LOG_FILE${AC_R}"
 
   collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
   print_change_summary
@@ -731,7 +730,7 @@ ac_main() {
   fi
 
   if [[ "$MODE" != "apply" ]]; then
-    info "Dry-run only. Rerun with ${BOLD}${FG_BRIGHT_CYAN}--apply${R} to copy these changes."
+    info "Dry-run only. Rerun with ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--apply${AC_R} to copy these changes."
     log_action "Dry-run completed."
     release_lock
     return 0
@@ -748,7 +747,7 @@ ac_main() {
   check_target_writable "$TARGET_DIR"
 
   if [[ $YES -ne 1 ]]; then
-    printf "\n${BOLD}${INVERSE} Type APPLY to update the target directory after creating a backup: ${R} "
+    printf "\n${AC_BOLD}${AC_INVERSE} Type APPLY to update the target directory after creating a backup: ${AC_R} "
     IFS= read -r confirmation
     [[ "$confirmation" == "APPLY" ]] || {
       log_action "User aborted at APPLY confirmation."
@@ -762,15 +761,15 @@ ac_main() {
   # Verify by recomputing the same plan.
   collect_changes "$SOURCE_DIR" "$TARGET_DIR" "$MIRROR"
   if [[ $CHANGE_COUNT -eq 0 ]]; then
-    info "${FG_BRIGHT_GREEN}✔ Verification succeeded:${R} target now matches the source for the selected sync mode."
+    info "${AC_FG_BRIGHT_GREEN}✔ Verification succeeded:${AC_R} target now matches the source for the selected sync mode."
     log_action "Verification succeeded."
   else
-    warn "${FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${R}"
+    warn "${AC_FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${AC_R}"
     log_action "Verification found remaining differences."
     print_change_summary
   fi
 
-  info "Backup archive: ${DIM}$BACKUP_FILE${R}"
+  info "Backup archive: ${AC_DIM}$BACKUP_FILE${AC_R}"
   info "If you need to restore, move the updated target aside and extract the backup into its parent directory."
   log_action "=== Synchronization Script Completed Successfully ==="
 
@@ -778,5 +777,6 @@ ac_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   ac_main "$@"
 fi

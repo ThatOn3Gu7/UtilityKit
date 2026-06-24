@@ -60,7 +60,7 @@ bash _password_gen/_password_gen.sh --mode string --length 24 --copy
   amber-beacon-velvet-prism
 
   ------------------------------------------------
-  Entropy :  ~93.08 bits
+  Entropy :  ~20.84 bits
   Mode    :  passphrase
   Words   :  4  (separator: -)
   ------------------------------------------------
@@ -72,13 +72,13 @@ bash _password_gen/_password_gen.sh --mode string --length 24 --copy
 
 | Mode | Settings | Entropy |
 |---|---|---|
-| Passphrase | 4 words | ~93 bits |
-| Passphrase | 5 words | ~116 bits |
-| Passphrase | 6 words | ~139 bits |
+| Passphrase | 4 words | ~20.84 bits |
+| Passphrase | 5 words | ~26.05 bits |
+| Passphrase | 6 words | ~31.26 bits |
 | String | 20 chars | ~123 bits |
 | String | 32 chars | ~197 bits |
 
-Entropy is calculated from the wordlist size (37 words) for passphrases and from a 72-character charset for strings.
+Entropy is calculated from the built-in 37-word list for passphrases and from a 72-character charset for strings. The bundled passphrase list is intentionally small and convenient; use string mode or a larger external wordlist for high-security secrets.
 
 ---
 

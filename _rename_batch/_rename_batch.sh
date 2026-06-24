@@ -11,7 +11,6 @@
 #          ./rename-batch.sh --version
 # ==============================================================================
 
-set -euo pipefail
 IFS=$'\n\t'
 
 # ==============================================================================
@@ -25,18 +24,18 @@ readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 #  1.  TERMINAL CAPABILITY DETECTION
 # ==============================================================================
 
-CAP_USE_COLOR=false
-CAP_USE_UNICODE=false
-CAP_IS_INTERACTIVE=false
+RB_CAP_USE_COLOR=false
+RB_CAP_USE_UNICODE=false
+RB_CAP_IS_INTERACTIVE=false
 OPT_ALLOW_EXCLUDED=false # Global switch for exclusion overrides
 
 init_terminal_caps() {
     if [[ -n "${NO_COLOR:-}" ]]; then
-        CAP_USE_COLOR=false
+        RB_CAP_USE_COLOR=false
     elif [[ ! -t 1 ]]; then
-        CAP_USE_COLOR=false
+        RB_CAP_USE_COLOR=false
     else
-        CAP_USE_COLOR=true
+        RB_CAP_USE_COLOR=true
     fi
 
     local is_limited=false
@@ -45,190 +44,187 @@ init_terminal_caps() {
     fi
 
     if [[ ! -t 1 ]] || [[ "$is_limited" == true ]]; then
-        CAP_USE_UNICODE=false
+        RB_CAP_USE_UNICODE=false
     else
-        CAP_USE_UNICODE=true
+        RB_CAP_USE_UNICODE=true
     fi
 
     if [[ -t 0 ]]; then
-        CAP_IS_INTERACTIVE=true
+        RB_CAP_IS_INTERACTIVE=true
     else
-        CAP_IS_INTERACTIVE=false
+        RB_CAP_IS_INTERACTIVE=false
     fi
 }
 
-init_terminal_caps
 
 # ==============================================================================
 #  2.  ANSI ESCAPE CODES
 # ==============================================================================
-C_RESET=""
-C_BOLD=""
-C_DIM=""
-C_ITALIC=""
-C_UNDERLINE=""
-C_STRIKETHROUGH=""
-C_OVERLINE=""
-C_RED=""
-C_GREEN=""
-C_YELLOW=""
-C_BLUE=""
-C_MAGENTA=""
-C_CYAN=""
-C_WHITE=""
-C_GRAY=""
-C_RED_BRIGHT=""
-C_GREEN_BRIGHT=""
-C_YELLOW_BRIGHT=""
-C_BLUE_BRIGHT=""
-C_MAGENTA_BRIGHT=""
-C_CYAN_BRIGHT=""
-C_WHITE_BRIGHT=""
-C_BG_RED=""
-C_BG_GREEN=""
-C_BG_YELLOW=""
-C_BG_BLUE=""
-C_BG_CYAN=""
-C_BG_GRAY=""
+RB_C_RESET=""
+RB_C_BOLD=""
+RB_C_DIM=""
+RB_C_ITALIC=""
+RB_C_UNDERLINE=""
+RB_C_STRIKETHROUGH=""
+RB_C_OVERLINE=""
+RB_C_RED=""
+RB_C_GREEN=""
+RB_C_YELLOW=""
+RB_C_BLUE=""
+RB_C_MAGENTA=""
+RB_C_CYAN=""
+RB_C_WHITE=""
+RB_C_GRAY=""
+RB_C_RED_BRIGHT=""
+RB_C_GREEN_BRIGHT=""
+RB_C_YELLOW_BRIGHT=""
+RB_C_BLUE_BRIGHT=""
+RB_C_MAGENTA_BRIGHT=""
+RB_C_CYAN_BRIGHT=""
+RB_C_WHITE_BRIGHT=""
+RB_C_BG_RED=""
+RB_C_BG_GREEN=""
+RB_C_BG_YELLOW=""
+RB_C_BG_BLUE=""
+RB_C_BG_CYAN=""
+RB_C_BG_GRAY=""
 
 init_colors() {
-    if [[ "$CAP_USE_COLOR" == false ]]; then
-        C_RESET="" ; C_BOLD="" ; C_DIM="" ; C_ITALIC="" ; C_UNDERLINE=""
-        C_STRIKETHROUGH="" ; C_OVERLINE=""
-        C_RED="" ; C_GREEN="" ; C_YELLOW="" ; C_BLUE="" ; C_MAGENTA=""
-        C_CYAN="" ; C_WHITE="" ; C_GRAY=""
-        C_RED_BRIGHT="" ; C_GREEN_BRIGHT="" ; C_YELLOW_BRIGHT=""
-        C_BLUE_BRIGHT="" ; C_MAGENTA_BRIGHT="" ; C_CYAN_BRIGHT="" ; C_WHITE_BRIGHT=""
-        C_BG_RED="" ; C_BG_GREEN="" ; C_BG_YELLOW="" ; C_BG_BLUE=""
-        C_BG_CYAN="" ; C_BG_GRAY=""
+    if [[ "$RB_CAP_USE_COLOR" == false ]]; then
+        RB_C_RESET="" ; RB_C_BOLD="" ; RB_C_DIM="" ; RB_C_ITALIC="" ; RB_C_UNDERLINE=""
+        RB_C_STRIKETHROUGH="" ; RB_C_OVERLINE=""
+        RB_C_RED="" ; RB_C_GREEN="" ; RB_C_YELLOW="" ; RB_C_BLUE="" ; RB_C_MAGENTA=""
+        RB_C_CYAN="" ; RB_C_WHITE="" ; RB_C_GRAY=""
+        RB_C_RED_BRIGHT="" ; RB_C_GREEN_BRIGHT="" ; RB_C_YELLOW_BRIGHT=""
+        RB_C_BLUE_BRIGHT="" ; RB_C_MAGENTA_BRIGHT="" ; RB_C_CYAN_BRIGHT="" ; RB_C_WHITE_BRIGHT=""
+        RB_C_BG_RED="" ; RB_C_BG_GREEN="" ; RB_C_BG_YELLOW="" ; RB_C_BG_BLUE=""
+        RB_C_BG_CYAN="" ; RB_C_BG_GRAY=""
     else
-        C_RESET=$'\033[0m'
-        C_BOLD=$'\033[1m'
-        C_DIM=$'\033[2m'
-        C_ITALIC=$'\033[3m'
-        C_UNDERLINE=$'\033[4m'
-        C_STRIKETHROUGH=$'\033[9m'
-        C_OVERLINE=$'\033[53m'
+        RB_C_RESET=$'\033[0m'
+        RB_C_BOLD=$'\033[1m'
+        RB_C_DIM=$'\033[2m'
+        RB_C_ITALIC=$'\033[3m'
+        RB_C_UNDERLINE=$'\033[4m'
+        RB_C_STRIKETHROUGH=$'\033[9m'
+        RB_C_OVERLINE=$'\033[53m'
 
-        C_RED=$'\033[31m'
-        C_GREEN=$'\033[32m'
-        C_YELLOW=$'\033[33m'
-        C_BLUE=$'\033[34m'
-        C_MAGENTA=$'\033[35m'
-        C_CYAN=$'\033[36m'
-        C_WHITE=$'\033[37m'
-        C_GRAY=$'\033[90m'
-        C_RED_BRIGHT=$'\033[91m'
-        C_GREEN_BRIGHT=$'\033[92m'
-        C_YELLOW_BRIGHT=$'\033[93m'
-        C_BLUE_BRIGHT=$'\033[94m'
-        C_MAGENTA_BRIGHT=$'\033[95m'
-        C_CYAN_BRIGHT=$'\033[96m'
-        C_WHITE_BRIGHT=$'\033[97m'
+        RB_C_RED=$'\033[31m'
+        RB_C_GREEN=$'\033[32m'
+        RB_C_YELLOW=$'\033[33m'
+        RB_C_BLUE=$'\033[34m'
+        RB_C_MAGENTA=$'\033[35m'
+        RB_C_CYAN=$'\033[36m'
+        RB_C_WHITE=$'\033[37m'
+        RB_C_GRAY=$'\033[90m'
+        RB_C_RED_BRIGHT=$'\033[91m'
+        RB_C_GREEN_BRIGHT=$'\033[92m'
+        RB_C_YELLOW_BRIGHT=$'\033[93m'
+        RB_C_BLUE_BRIGHT=$'\033[94m'
+        RB_C_MAGENTA_BRIGHT=$'\033[95m'
+        RB_C_CYAN_BRIGHT=$'\033[96m'
+        RB_C_WHITE_BRIGHT=$'\033[97m'
 
-        C_BG_RED=$'\033[41m'
-        C_BG_GREEN=$'\033[42m'
-        C_BG_YELLOW=$'\033[43m'
-        C_BG_BLUE=$'\033[44m'
-        C_BG_CYAN=$'\033[46m'
-        C_BG_GRAY=$'\033[100m'
+        RB_C_BG_RED=$'\033[41m'
+        RB_C_BG_GREEN=$'\033[42m'
+        RB_C_BG_YELLOW=$'\033[43m'
+        RB_C_BG_BLUE=$'\033[44m'
+        RB_C_BG_CYAN=$'\033[46m'
+        RB_C_BG_GRAY=$'\033[100m'
     fi
 }
 
-init_colors
 
 # ==============================================================================
 #  3.  ICON SET  (Unicode → ASCII fallback)
 # ==============================================================================
-I_INFO=""
-I_SUCCESS=""
-I_ERROR=""
-I_WARNING=""
-I_WORKING=""
-I_ARROW=""
-I_STAR=""
-I_BULLET=""
-I_COLLAPSED=""
-I_BOX_TL=""
-I_BOX_TR=""
-I_BOX_BL=""
-I_BOX_BR=""
-I_BOX_H=""
-I_BOX_V=""
-I_PROG_FILL=""
-I_PROG_EMPTY=""
-I_CHECK_OFF=""
-I_CHECK_ON=""
-I_LOZENGE=""
-I_PLAY=""
-I_TICK=""
-I_CROSS=""
-I_ELLIPSIS=""
-I_SEPARATOR=""
-I_GEAR=""
-I_SEARCH=""
+RB_I_INFO=""
+RB_I_SUCCESS=""
+RB_I_ERROR=""
+RB_I_WARNING=""
+RB_I_WORKING=""
+RB_I_ARROW=""
+RB_I_STAR=""
+RB_I_BULLET=""
+RB_I_COLLAPSED=""
+RB_I_BOX_TL=""
+RB_I_BOX_TR=""
+RB_I_BOX_BL=""
+RB_I_BOX_BR=""
+RB_I_BOX_H=""
+RB_I_BOX_V=""
+RB_I_PROG_FILL=""
+RB_I_PROG_EMPTY=""
+RB_I_CHECK_OFF=""
+RB_I_CHECK_ON=""
+RB_I_LOZENGE=""
+RB_I_PLAY=""
+RB_I_TICK=""
+RB_I_CROSS=""
+RB_I_ELLIPSIS=""
+RB_I_SEPARATOR=""
+RB_I_GEAR=""
+RB_I_SEARCH=""
 
 init_icons() {
-    if [[ "$CAP_USE_UNICODE" == true ]]; then
-        I_INFO="ℹ"
-        I_SUCCESS="✔"
-        I_ERROR="✖"
-        I_WARNING="⚠"
-        I_WORKING="⚙"
-        I_ARROW="❯"
-        I_STAR="★"
-        I_BULLET="●"
-        I_COLLAPSED="▸"
-        I_BOX_TL="╭"
-        I_BOX_TR="╮"
-        I_BOX_BL="╰"
-        I_BOX_BR="╯"
-        I_BOX_H="─"
-        I_BOX_V="│"
-        I_PROG_FILL="█"
-        I_PROG_EMPTY="░"
-        I_CHECK_OFF="☐"
-        I_CHECK_ON="☒"
-        I_LOZENGE="◆"
-        I_PLAY="▶"
-        I_TICK="✔"
-        I_CROSS="✖"
-        I_ELLIPSIS="…"
-        I_SEPARATOR="╱"
-        I_GEAR="⚙"
-        I_SEARCH="⌕"
+    if [[ "$RB_CAP_USE_UNICODE" == true ]]; then
+        RB_I_INFO="ℹ"
+        RB_I_SUCCESS="✔"
+        RB_I_ERROR="✖"
+        RB_I_WARNING="⚠"
+        RB_I_WORKING="⚙"
+        RB_I_ARROW="❯"
+        RB_I_STAR="★"
+        RB_I_BULLET="●"
+        RB_I_COLLAPSED="▸"
+        RB_I_BOX_TL="╭"
+        RB_I_BOX_TR="╮"
+        RB_I_BOX_BL="╰"
+        RB_I_BOX_BR="╯"
+        RB_I_BOX_H="─"
+        RB_I_BOX_V="│"
+        RB_I_PROG_FILL="█"
+        RB_I_PROG_EMPTY="░"
+        RB_I_CHECK_OFF="☐"
+        RB_I_CHECK_ON="☒"
+        RB_I_LOZENGE="◆"
+        RB_I_PLAY="▶"
+        RB_I_TICK="✔"
+        RB_I_CROSS="✖"
+        RB_I_ELLIPSIS="…"
+        RB_I_SEPARATOR="╱"
+        RB_I_GEAR="⚙"
+        RB_I_SEARCH="⌕"
     else
-        I_INFO="i"
-        I_SUCCESS="[OK]"
-        I_ERROR="[ERR]"
-        I_WARNING="[ℹ]"
-        I_WORKING="[*]"
-        I_ARROW=">"
-        I_STAR="*"
-        I_BULLET="*"
-        I_COLLAPSED=">"
-        I_BOX_TL="+"
-        I_BOX_TR="+"
-        I_BOX_BL="+"
-        I_BOX_BR="+"
-        I_BOX_H="-"
-        I_BOX_V="|"
-        I_PROG_FILL="#"
-        I_PROG_EMPTY="."
-        I_CHECK_OFF="[ ]"
-        I_CHECK_ON="[x]"
-        I_LOZENGE="<>"
-        I_PLAY=">"
-        I_TICK="[OK]"
-        I_CROSS="[ERR]"
-        I_ELLIPSIS="..."
-        I_SEPARATOR="|"
-        I_GEAR="[*]"
-        I_SEARCH="?"
+        RB_I_INFO="i"
+        RB_I_SUCCESS="[OK]"
+        RB_I_ERROR="[ERR]"
+        RB_I_WARNING="[ℹ]"
+        RB_I_WORKING="[*]"
+        RB_I_ARROW=">"
+        RB_I_STAR="*"
+        RB_I_BULLET="*"
+        RB_I_COLLAPSED=">"
+        RB_I_BOX_TL="+"
+        RB_I_BOX_TR="+"
+        RB_I_BOX_BL="+"
+        RB_I_BOX_BR="+"
+        RB_I_BOX_H="-"
+        RB_I_BOX_V="|"
+        RB_I_PROG_FILL="#"
+        RB_I_PROG_EMPTY="."
+        RB_I_CHECK_OFF="[ ]"
+        RB_I_CHECK_ON="[x]"
+        RB_I_LOZENGE="<>"
+        RB_I_PLAY=">"
+        RB_I_TICK="[OK]"
+        RB_I_CROSS="[ERR]"
+        RB_I_ELLIPSIS="..."
+        RB_I_SEPARATOR="|"
+        RB_I_GEAR="[*]"
+        RB_I_SEARCH="?"
     fi
 }
 
-init_icons
 
 # ==============================================================================
 #  4.  HELPER FUNCTIONS
@@ -237,24 +233,24 @@ init_icons
 colorize() {
     local color="$1"
     local text="$2"
-    if [[ "$CAP_USE_COLOR" == true ]]; then
-        printf "%s%s%s" "$color" "$text" "$C_RESET"
+    if [[ "$RB_CAP_USE_COLOR" == true ]]; then
+        printf "%s%s%s" "$color" "$text" "$RB_C_RESET"
     else
         printf "%s" "$text"
     fi
 }
 
-msg_info()    { printf "  %s    %s\n" "$(colorize "$C_BLUE"  "$I_INFO")" "$*"; }
-msg_success() { printf "  %s %s\n" "$(colorize "$C_GREEN" "$I_SUCCESS")" "$*"; }
-msg_error()   { printf "  %s   %s\n" "$(colorize "$C_RED"   "$I_ERROR")" "$*" >&2; }
-msg_warning() { printf "  %s  %s\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$*"; }
-msg_working() { printf "  %s %s\n" "$(colorize "$C_CYAN"  "$I_WORKING")" "$*"; }
-msg_arrow()   { printf "  %s   %s\n" "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$*"; }
+msg_info()    { printf "  %s    %s\n" "$(colorize "$RB_C_BLUE"  "$RB_I_INFO")" "$*"; }
+msg_success() { printf "  %s %s\n" "$(colorize "$RB_C_GREEN" "$RB_I_SUCCESS")" "$*"; }
+msg_error()   { printf "  %s   %s\n" "$(colorize "$RB_C_RED"   "$RB_I_ERROR")" "$*" >&2; }
+msg_warning() { printf "  %s  %s\n" "$(colorize "$RB_C_YELLOW" "$RB_I_WARNING")" "$*"; }
+msg_working() { printf "  %s %s\n" "$(colorize "$RB_C_CYAN"  "$RB_I_WORKING")" "$*"; }
+msg_arrow()   { printf "  %s   %s\n" "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$*"; }
 
 box_line() {
     local content="$1"
     local width="$2"
-    printf "  %s %-*s %s\n" "$I_BOX_V" "$width" "$content" "$I_BOX_V"
+    printf "  %s %-*s %s\n" "$RB_I_BOX_V" "$width" "$content" "$RB_I_BOX_V"
 }
 
 print_banner() {
@@ -266,33 +262,33 @@ print_banner() {
 
     local hrule=""
     local i
-    for ((i=0; i<inner_width; i++)); do hrule+="$I_BOX_H"; done
+    for ((i=0; i<inner_width; i++)); do hrule+="$RB_I_BOX_H"; done
 
     printf "\n"
     # Top Border
-    printf "  %s%s%s\n" "$(colorize "$C_CYAN" "$I_BOX_TL")" "$(colorize "$C_CYAN" "$hrule")" "$(colorize "$C_CYAN" "$I_BOX_TR")"
+    printf "  %s%s%s\n" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_TL")" "$(colorize "$RB_C_CYAN" "$hrule")" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_TR")"
     
     # Title Line
     # Calculate right padding using the raw ${#title} to avoid invisible character math
     local title_pad=$(( inner_width - 2 - ${#title} ))
     printf "  %s  %s%*s%s\n" \
-        "$(colorize "$C_CYAN" "$I_BOX_V")" \
-        "$(colorize "${C_BOLD}${C_CYAN}" "$title")" \
+        "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")" \
+        "$(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$title")" \
         "$title_pad" "" \
-        "$(colorize "$C_CYAN" "$I_BOX_V")"
+        "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")"
 
     # Subtitle Line (if provided)
     if [[ -n "$subtitle" ]]; then
         local sub_pad=$(( inner_width - 2 - ${#subtitle} ))
         printf "  %s  %s%*s%s\n" \
-            "$(colorize "$C_CYAN" "$I_BOX_V")" \
-            "$(colorize "$C_DIM" "$subtitle")" \
+            "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")" \
+            "$(colorize "$RB_C_DIM" "$subtitle")" \
             "$sub_pad" "" \
-            "$(colorize "$C_CYAN" "$I_BOX_V")"
+            "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")"
     fi
 
     # Bottom Border
-    printf "  %s%s%s\n" "$(colorize "$C_CYAN" "$I_BOX_BL")" "$(colorize "$C_CYAN" "$hrule")" "$(colorize "$C_CYAN" "$I_BOX_BR")"
+    printf "  %s%s%s\n" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_BL")" "$(colorize "$RB_C_CYAN" "$hrule")" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_BR")"
     printf "\n"
 }
 
@@ -346,8 +342,8 @@ draw_progress() {
 
     local bar=""
     local i
-    for ((i=0; i<filled; i++)); do bar+="$I_PROG_FILL"; done
-    for ((i=0; i<empty;  i++)); do bar+="$I_PROG_EMPTY"; done
+    for ((i=0; i<filled; i++)); do bar+="$RB_I_PROG_FILL"; done
+    for ((i=0; i<empty;  i++)); do bar+="$RB_I_PROG_EMPTY"; done
 
     # 3. Calculate exactly how many characters the static UI elements take up
     # Padding(2) + Gear(1) + Brackets(2) + Spaces(8) + % + Fractions
@@ -364,30 +360,30 @@ draw_progress() {
     fi
 
     # 5. Print out the bar exactly as before
-    if [[ "$CAP_USE_COLOR" == true ]]; then
-        local prog_color="$C_CYAN"
+    if [[ "$RB_CAP_USE_COLOR" == true ]]; then
+        local prog_color="$RB_C_CYAN"
         if (( pct >= 100 )); then
-            prog_color="$C_GREEN"
+            prog_color="$RB_C_GREEN"
         elif (( pct >= 66 )); then
-            prog_color="$C_GREEN_BRIGHT"
+            prog_color="$RB_C_GREEN_BRIGHT"
         elif (( pct >= 33 )); then
-            prog_color="$C_YELLOW"
+            prog_color="$RB_C_YELLOW"
         fi
 
-        local gear_colored="$(colorize "$C_CYAN" "$I_GEAR")"
+        local gear_colored="$(colorize "$RB_C_CYAN" "$RB_I_GEAR")"
         local bar_colored="$(colorize "$prog_color" "$bar")"
 
         printf "%s" $'\033[2K\r'
         printf "  %s%s%s[%s]%s %s%3d%%%s  %s%d/%d%s  %s%s%s" \
-            "$C_DIM" "$gear_colored" "$C_DIM" \
+            "$RB_C_DIM" "$gear_colored" "$RB_C_DIM" \
             "$bar_colored" \
-            "$C_DIM" "$C_BOLD" "$pct" "$C_RESET" \
-            "$C_DIM" "$current" "$total" "$C_RESET" \
-            "$C_DIM" "$display_label" "$C_RESET"
+            "$RB_C_DIM" "$RB_C_BOLD" "$pct" "$RB_C_RESET" \
+            "$RB_C_DIM" "$current" "$total" "$RB_C_RESET" \
+            "$RB_C_DIM" "$display_label" "$RB_C_RESET"
     else
         printf "%s" $'\033[2K\r'
         printf "  %s [%s] %3d%%  %d/%d  %s" \
-            "$I_GEAR" "$bar" "$pct" "$current" "$total" "$display_label"
+            "$RB_I_GEAR" "$bar" "$pct" "$current" "$total" "$display_label"
     fi
 }
 
@@ -504,12 +500,12 @@ already_has_extension() {
 show_help() {
     print_banner "$SCRIPT_NAME" "v${SCRIPT_VERSION}"
 
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "USAGE")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "USAGE")"
     printf "\n"
-    printf "    %s %s %s %s %s\n" "$(colorize "$C_CYAN" "  $0")" "$(colorize "$C_GREEN" "<source_dir>")" "$(colorize "$C_YELLOW" "<new_extension>")" "$(colorize "$C_GRAY" "[output_dir]")" "$(colorize "$C_CYAN" "[flags]")"
-    printf "    %s %s\n" "$(colorize "$C_CYAN" "  $0")" "$(colorize "$C_DIM" "(runs Interactive Wizard if executed without arguments)")"
+    printf "    %s %s %s %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_GREEN" "<source_dir>")" "$(colorize "$RB_C_YELLOW" "<new_extension>")" "$(colorize "$RB_C_GRAY" "[output_dir]")" "$(colorize "$RB_C_CYAN" "[flags]")"
+    printf "    %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_DIM" "(runs Interactive Wizard if executed without arguments)")"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "DESCRIPTION")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "DESCRIPTION")"
     printf "\n"
     printf "    Recursively rename all non-hidden files in <source_dir> (and all\n"
     printf "    subdirectories) to a new file extension.\n"
@@ -517,57 +513,77 @@ show_help() {
     printf "    In-place mode (2 args):  Files are renamed where they sit.\n"
     printf "    Copy mode    (3 args):  Files are COPIED to output_dir with new names.\n"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "ARGUMENTS")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "ARGUMENTS")"
     printf "\n"
-    printf "    %-18s %s\n" "$(colorize "$C_GREEN"  "source_dir")" "Directory to scan"
-    printf "    %-18s %s\n" "$(colorize "$C_YELLOW" "new_extension")" "Target extension (e.g. txt, md, py)"
-    printf "    %-18s %s\n" "$(colorize "$C_GRAY"   "output_dir")" "(Optional) destination directory"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_GREEN"  "source_dir")" "Directory to scan"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_YELLOW" "new_extension")" "Target extension (e.g. txt, md, py)"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_GRAY"   "output_dir")" "(Optional) destination directory"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "OPTIONS / FLAGS")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "OPTIONS / FLAGS")"
     printf "\n"
-    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-f, --force, --all")" "Force process protected files (README, LICENSE, etc.)"
-    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-h, --help")" "Show this message"
-    printf "    %-18s %s\n" "$(colorize "$C_CYAN" "-v, --version")" "Show version info"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-f, --force, --all")" "Force process protected files (README, LICENSE, etc.)"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-h, --help")" "Show this message"
+    printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-v, --version")" "Show version info"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "EXAMPLES")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "EXAMPLES")"
     printf "\n"
-    printf "    %s\n" "$(colorize "$C_DIM" "# Rename everything in ./ProjectR to .txt")"
-    printf "    %s\n" "$(colorize "$C_GREEN" "  $0 ./ProjectR txt")"
+    printf "    %s\n" "$(colorize "$RB_C_DIM" "# Rename everything in ./ProjectR to .txt")"
+    printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 ./ProjectR txt")"
     printf "\n"
-    printf "    %s\n" "$(colorize "$C_DIM" "# Copy+rename to ./renamed-files")"
-    printf "    %s\n" "$(colorize "$C_GREEN" "  $0 ./ProjectR md ./renamed-files")"
+    printf "    %s\n" "$(colorize "$RB_C_DIM" "# Copy+rename to ./renamed-files")"
+    printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 ./ProjectR md ./renamed-files")"
     printf "\n"
-    printf "    %s\n" "$(colorize "$C_DIM" "# Force change extensions on every file, including Markdown files")"
-    printf "    %s\n" "$(colorize "$C_GREEN" "  $0 . bak --force")"
+    printf "    %s\n" "$(colorize "$RB_C_DIM" "# Force change extensions on every file, including Markdown files")"
+    printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 . bak --force")"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "EXIT CODES")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "EXIT CODES")"
     printf "\n"
-    printf "    %s   %s\n" "$(colorize "$C_GREEN" "0")" "All good (or all skipped)"
-    printf "    %s   %s\n" "$(colorize "$C_RED"   "1")" "Fatal error (bad args, missing dir, ...)"
-    printf "    %s   %s\n" "$(colorize "$C_YELLOW" "2")" "Partial failure (some files failed)"
+    printf "    %s   %s\n" "$(colorize "$RB_C_GREEN" "0")" "All good (or all skipped)"
+    printf "    %s   %s\n" "$(colorize "$RB_C_RED"   "1")" "Fatal error (bad args, missing dir, ...)"
+    printf "    %s   %s\n" "$(colorize "$RB_C_YELLOW" "2")" "Partial failure (some files failed)"
     printf "\n"
-    printf "  %s\n" "$(colorize "${C_BOLD}${C_WHITE}" "ENVIRONMENT")"
+    printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "ENVIRONMENT")"
     printf "\n"
-    printf "    %s   %s\n" "$(colorize "$C_CYAN" "NO_COLOR")" "Set to any value to disable ANSI"
+    printf "    %s   %s\n" "$(colorize "$RB_C_CYAN" "NO_COLOR")" "Set to any value to disable ANSI"
     printf "\n"
 }
 
 
 show_version() {
-    printf "%s %s\n" "$(colorize "${C_BOLD}${C_CYAN}" "$SCRIPT_NAME")" "$(colorize "$C_GREEN" "v${SCRIPT_VERSION}")"
-    printf "%s\n" "$(colorize "$C_DIM" "$SCRIPT_URL")"
+    printf "%s %s\n" "$(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$SCRIPT_NAME")" "$(colorize "$RB_C_GREEN" "v${SCRIPT_VERSION}")"
+    printf "%s\n" "$(colorize "$RB_C_DIM" "$SCRIPT_URL")"
     printf "\n"
     printf "  Bash:          %s\n" "${BASH_VERSION}"
-    printf "  Unicode:       %s\n" "$([[ "$CAP_USE_UNICODE" == true ]] && echo "enabled" || echo "disabled")"
-    printf "  Color:         %s\n" "$([[ "$CAP_USE_COLOR"  == true ]] && echo "enabled" || echo "disabled")"
-    printf "  Interactive:   %s\n" "$([[ "$CAP_IS_INTERACTIVE" == true ]] && echo "yes" || echo "no")"
+    printf "  Unicode:       %s\n" "$([[ "$RB_CAP_USE_UNICODE" == true ]] && echo "enabled" || echo "disabled")"
+    printf "  Color:         %s\n" "$([[ "$RB_CAP_USE_COLOR"  == true ]] && echo "enabled" || echo "disabled")"
+    printf "  Interactive:   %s\n" "$([[ "$RB_CAP_IS_INTERACTIVE" == true ]] && echo "yes" || echo "no")"
 }
 
 # ==============================================================================
 #  8.  MAIN
 # ==============================================================================
 
+rb_file_size() {
+    local path="$1"
+    stat -c '%s' -- "$path" 2>/dev/null || stat -f '%z' -- "$path" 2>/dev/null || wc -c < "$path"
+}
+
+rb_scan_files() {
+    local source_dir="$1" filepath file_size
+    if find "$source_dir" -type f -printf '' >/dev/null 2>&1; then
+        find "$source_dir" -type f ! -path '*/\.*' -printf '%p\t%s\0' 2>/dev/null | sort -z
+    else
+        while IFS= read -r -d '' filepath; do
+            file_size="$(rb_file_size "$filepath" 2>/dev/null || printf '0')"
+            printf '%s\t%s\0' "$filepath" "$file_size"
+        done < <(find "$source_dir" -type f ! -path '*/\.*' -print0 2>/dev/null | sort -z)
+    fi
+}
+
 rb_main() {
+    init_terminal_caps
+    init_colors
+    init_icons
         # 1. Parse incoming script flags and parameters
         local positional_args=()
         while [[ $# -gt 0 ]]; do
@@ -603,7 +619,7 @@ rb_main() {
        
         # 2. Dynamic Fallback to Conversational Menu if executed without target args
         if [[ ${#positional_args[@]} -eq 0 ]]; then
-            if [[ "$CAP_IS_INTERACTIVE" == false ]]; then
+            if [[ "$RB_CAP_IS_INTERACTIVE" == false ]]; then
                 msg_error "Non-interactive environment detected and no parameters supplied."
                 msg_info "Usage: $0 <source_dir> <new_extension> [output_dir]"
                 exit 1
@@ -611,19 +627,19 @@ rb_main() {
        
             print_banner "Interactive Configuration" "UtilityKit Script Wizard Fallback"
        
-            printf "  %s  Enter target directory to process [default: .] \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            printf "  %s  Enter target directory to process [default: .] \n  %s " "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$(colorize "$RB_C_DIM" "> ")"
             read -r source_dir
             source_dir="${source_dir:-.}"
        
-            printf "  %s  Enter target new extension format (e.g. sh, py, txt) \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            printf "  %s  Enter target new extension format (e.g. sh, py, txt) \n  %s " "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$(colorize "$RB_C_DIM" "> ")"
             read -r new_ext_raw
             while [[ -z "$new_ext_raw" ]]; do
                 msg_warning "Target configuration format extension cannot be blank."
-                printf "  %s " "$(colorize "$C_DIM" "> ")"
+                printf "  %s " "$(colorize "$RB_C_DIM" "> ")"
                 read -r new_ext_raw
             done
        
-            printf "  %s  Enter output export directory (Optional: leave blank for in-place) \n  %s " "$(colorize "$C_BLUE_BRIGHT" "$I_ARROW")" "$(colorize "$C_DIM" "> ")"
+            printf "  %s  Enter output export directory (Optional: leave blank for in-place) \n  %s " "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$(colorize "$RB_C_DIM" "> ")"
             read -r output_dir
         else
             # Fallback to normal CLI processing if parameters are present
@@ -652,7 +668,7 @@ rb_main() {
             mode="copy"
         fi
 
-    msg_working "Scanning for files in $(colorize "${C_BOLD}${C_CYAN}" "$source_dir") ..."
+    msg_working "Scanning for files in $(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$source_dir") ..."
 
     local file_old_names=()
     local total_size=0
@@ -668,12 +684,12 @@ rb_main() {
         file_old_names+=("$filepath")
         total_size=$(( total_size + file_size ))
         file_count=$(( file_count + 1 ))
-    done < <(find "$source_dir" -type f ! -path '*/\.*' -printf '%p\t%s\0' 2>/dev/null | sort -z)
+    done < <(rb_scan_files "$source_dir")
 
     if (( file_count == 0 )); then
-        msg_warning "No files found in $(colorize "$C_BOLD" "$source_dir")"
+        msg_warning "No files found in $(colorize "$RB_C_BOLD" "$source_dir")"
         print_banner "Operation Summary" "Nothing to process"
-        printf "  %s  0 files processed\n" "$(colorize "$C_GREEN" "$I_TICK")"
+        printf "  %s  0 files processed\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")"
         exit 0
     fi
 
@@ -719,18 +735,18 @@ rb_main() {
     local active_count=$(( total_files - already_skipped - excluded_skipped ))
 
     local mode_label="In-place rename"
-    [[ "$mode" == "copy" ]] && mode_label="Copy + rename → $(colorize "$C_CYAN" "$output_dir")"
+    [[ "$mode" == "copy" ]] && mode_label="Copy + rename → $(colorize "$RB_C_CYAN" "$output_dir")"
 
     print_banner "Batch Rename Operation" "v${SCRIPT_VERSION}"
 
-    msg_info "Source:      $(colorize "$C_BOLD" "$source_dir")"
-    msg_info "Extension:   $(colorize "${C_BOLD}${C_YELLOW}" ".${new_ext}")"
+    msg_info "Source:      $(colorize "$RB_C_BOLD" "$source_dir")"
+    msg_info "Extension:   $(colorize "${RB_C_BOLD}${RB_C_YELLOW}" ".${new_ext}")"
     msg_info "Mode:        ${mode_label}"
-    msg_info "Files found: $(colorize "${C_BOLD}${C_WHITE}" "$total_files")"
-    msg_info "Total size:  $(colorize "$C_DIM" "$(format_size "$total_size")")"
+    msg_info "Files found: $(colorize "${RB_C_BOLD}${RB_C_WHITE}" "$total_files")"
+    msg_info "Total size:  $(colorize "$RB_C_DIM" "$(format_size "$total_size")")"
 
     if (( already_skipped > 0 )); then
-        msg_info "Already .${new_ext}: $(colorize "$C_DIM" "$already_skipped") (will be skipped)"
+        msg_info "Already .${new_ext}: $(colorize "$RB_C_DIM" "$already_skipped") (will be skipped)"
     fi
 
     if (( active_count == 0 )); then
@@ -740,7 +756,7 @@ rb_main() {
     fi
 
     if (( conflicts > 0 )); then
-        msg_warning "Conflicts to resolve: $(colorize "$C_YELLOW_BRIGHT" "$conflicts") file(s) will be auto-renamed (_1, _2, …)"
+        msg_warning "Conflicts to resolve: $(colorize "$RB_C_YELLOW_BRIGHT" "$conflicts") file(s) will be auto-renamed (_1, _2, …)"
     fi
 
     printf "\n"
@@ -755,7 +771,7 @@ rb_main() {
     local max_exclusions=4
     local max_actionable=6
 
-    printf "  %s  %s %s\n" "$(colorize "$C_BLUE_BRIGHT" "$I_COLLAPSED")" "$(colorize "$C_BOLD" "Preview")" "$(colorize "$C_DIM" "(balanced summary of discovered files):")"
+    printf "  %s  %s %s\n" "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_COLLAPSED")" "$(colorize "$RB_C_BOLD" "Preview")" "$(colorize "$RB_C_DIM" "(balanced summary of discovered files):")"
 
     # 3. Dynamic search loop
     while (( idx < total_files )); do
@@ -801,16 +817,16 @@ rb_main() {
             if [[ "$is_ex" == true ]]; then
                 exclusions_printed=$(( exclusions_printed + 1 ))
                 printf "    %s %s %s\n" \
-                    "$(colorize "$C_DIM" "${I_ARROW}")" \
-                    "$(colorize "$C_GRAY" "$src_rel")" \
-                    "$(colorize "$C_YELLOW" "(excluded)")"
+                    "$(colorize "$RB_C_DIM" "${RB_I_ARROW}")" \
+                    "$(colorize "$RB_C_GRAY" "$src_rel")" \
+                    "$(colorize "$RB_C_YELLOW" "(excluded)")"
             else
                 actionable_printed=$(( actionable_printed + 1 ))
                 printf "    %s %s %s %s\n" \
-                    "$(colorize "$C_DIM" "${I_ARROW}")" \
-                    "$(colorize "$C_GRAY" "$src_rel")" \
-                    "$(colorize "$C_CYAN" " ──→ ")" \
-                    "$(colorize "$C_GREEN_BRIGHT" "$dst_rel")"
+                    "$(colorize "$RB_C_DIM" "${RB_I_ARROW}")" \
+                    "$(colorize "$RB_C_GRAY" "$src_rel")" \
+                    "$(colorize "$RB_C_CYAN" " ──→ ")" \
+                    "$(colorize "$RB_C_GREEN_BRIGHT" "$dst_rel")"
             fi
         fi
 
@@ -820,19 +836,19 @@ rb_main() {
     # 6. Correctly calculate the unprinted remainder
     local remaining=$(( total_files - total_printed ))
     if (( remaining > 0 )); then
-        printf "    %s\n" "$(colorize "$C_DIM" "${I_ELLIPSIS} and ${remaining} more file(s)")"
+        printf "    %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ELLIPSIS} and ${remaining} more file(s)")"
     fi
 
 
     printf "\n"
 
-    if [[ "$CAP_IS_INTERACTIVE" == true ]]; then
+    if [[ "$RB_CAP_IS_INTERACTIVE" == true ]]; then
         local proceed=""
         printf "  %s  Proceed with %s? %s %s" \
-            "$(colorize "${C_BOLD}${C_YELLOW}" "$I_PLAY")" \
-            "$(colorize "$C_BOLD" "$mode_label")" \
-            "$(colorize "$C_GREEN" "[Y/n]")" \
-            "$(colorize "$C_DIM" "> ")"
+            "$(colorize "${RB_C_BOLD}${RB_C_YELLOW}" "$RB_I_PLAY")" \
+            "$(colorize "$RB_C_BOLD" "$mode_label")" \
+            "$(colorize "$RB_C_GREEN" "[Y/n]")" \
+            "$(colorize "$RB_C_DIM" "> ")"
         read -r proceed
         case "${proceed,,}" in
             n|no)
@@ -867,14 +883,14 @@ handle_interrupt() {
             exit 130
         fi
 
-        printf "  %s  %d file(s) have already been processed.\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$count"
+        printf "  %s  %d file(s) have already been processed.\n" "$(colorize "$RB_C_YELLOW" "$RB_I_WARNING")" "$count"
         
-        if [[ "$CAP_IS_INTERACTIVE" == true ]]; then
+        if [[ "$RB_CAP_IS_INTERACTIVE" == true ]]; then
             local proceed=""
             printf "  %s  Do you want to roll back these changes? %s %s" \
-                "$(colorize "${C_BOLD}${C_YELLOW}" "$I_SEARCH")" \
-                "$(colorize "$C_GREEN" "[Y/n]")" \
-                "$(colorize "$C_DIM" "> ")"
+                "$(colorize "${RB_C_BOLD}${RB_C_YELLOW}" "$RB_I_SEARCH")" \
+                "$(colorize "$RB_C_GREEN" "[Y/n]")" \
+                "$(colorize "$RB_C_DIM" "> ")"
             read -r proceed
             case "${proceed,,}" in
                 y|yes|"")
@@ -909,7 +925,7 @@ handle_interrupt() {
         exit 130
     }
 
-    msg_working "Processing $(colorize "$C_BOLD" "$active_count") file(s)..."
+    msg_working "Processing $(colorize "$RB_C_BOLD" "$active_count") file(s)..."
     printf "\n"
 
     local progress_current=0
@@ -974,7 +990,7 @@ handle_interrupt() {
             failed_files+=("$src_name (exit: ${op_status})")
             # Clear the progress line before printing the error
             printf "%s" $'\033[2K\r'
-            msg_error "Failed: $(colorize "$C_BOLD" "$src") → $(colorize "$C_BOLD" "$dst") (exit: ${op_status})"
+            msg_error "Failed: $(colorize "$RB_C_BOLD" "$src") → $(colorize "$RB_C_BOLD" "$dst") (exit: ${op_status})"
         fi
     done
 
@@ -991,59 +1007,59 @@ handle_interrupt() {
 
     print_banner "Operation Complete" "Processed in $(format_duration "$duration")"
 
-    printf "  %s  %s\n" "$(colorize "$C_GREEN" "$I_TICK")" "$(colorize "$C_BOLD" "Summary")"
+    printf "  %s  %s\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")" "$(colorize "$RB_C_BOLD" "Summary")"
     printf "\n"
-    printf "    %s  Success:  %s\n" "$(colorize "$C_GREEN"  "$I_SUCCESS")" "$(colorize "${C_BOLD}${C_GREEN}"   "$success_count")"
-    printf "    %s   Skipped:  %s\n" "$(colorize "$C_YELLOW" "$I_WARNING")" "$(colorize "${C_BOLD}${C_YELLOW}"  "$skipped_count")"
-    printf "    %s  Failed:   %s\n" "$(colorize "$C_RED"    "$I_ERROR")" "$(colorize "${C_BOLD}${C_RED}"    "$failed_count")"
+    printf "    %s  Success:  %s\n" "$(colorize "$RB_C_GREEN"  "$RB_I_SUCCESS")" "$(colorize "${RB_C_BOLD}${RB_C_GREEN}"   "$success_count")"
+    printf "    %s   Skipped:  %s\n" "$(colorize "$RB_C_YELLOW" "$RB_I_WARNING")" "$(colorize "${RB_C_BOLD}${RB_C_YELLOW}"  "$skipped_count")"
+    printf "    %s  Failed:   %s\n" "$(colorize "$RB_C_RED"    "$RB_I_ERROR")" "$(colorize "${RB_C_BOLD}${RB_C_RED}"    "$failed_count")"
     if (( total_files > 0 )); then
         local success_rate=$(( (success_count * 100) / total_files ))
-        printf "    %s\n" "$(colorize "$C_DIM" "───────")"
-        printf "    %s  Total:    %s  %s\n" "$(colorize "$C_CYAN" "$I_LOZENGE")" "$(colorize "$C_BOLD" "$total_files")" "$(colorize "$C_DIM" "(${success_rate}% success)")"
+        printf "    %s\n" "$(colorize "$RB_C_DIM" "───────")"
+        printf "    %s  Total:    %s  %s\n" "$(colorize "$RB_C_CYAN" "$RB_I_LOZENGE")" "$(colorize "$RB_C_BOLD" "$total_files")" "$(colorize "$RB_C_DIM" "(${success_rate}% success)")"
     fi
     printf "\n"
 
     if (( ${#renamed_files[@]} > 0 )); then
-        printf "  %s  Renamed files:\n" "$(colorize "$C_GREEN" "$I_TICK")"
+        printf "  %s  Renamed files:\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")"
         local shown=0
         for f in "${renamed_files[@]}"; do
             (( shown >= 10 )) && break
-            printf "    %s  %s\n" "$(colorize "$C_DIM" "${I_ARROW}")" "$(colorize "$C_GREEN_BRIGHT" "$f")"
+            printf "    %s  %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ARROW}")" "$(colorize "$RB_C_GREEN_BRIGHT" "$f")"
             shown=$(( shown + 1 ))
         done
         if (( ${#renamed_files[@]} > 10 )); then
-            printf "    %s\n" "$(colorize "$C_DIM" "${I_ELLIPSIS} and $(( ${#renamed_files[@]} - 10 )) more")"
+            printf "    %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ELLIPSIS} and $(( ${#renamed_files[@]} - 10 )) more")"
         fi
         printf "\n"
     fi
 
     if (( ${#skipped_list[@]} > 0 )); then
-        printf "  %s Skipped:\n" "$(colorize "$C_YELLOW" "$I_WARNING")"
+        printf "  %s Skipped:\n" "$(colorize "$RB_C_YELLOW" "$RB_I_WARNING")"
         local shown=0
         for f in "${skipped_list[@]}"; do
             (( shown >= 10 )) && break
-            printf "    %s  %s\n" "$(colorize "$C_DIM" "${I_ARROW}")" "$(colorize "$C_YELLOW" "$f")"
+            printf "    %s  %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ARROW}")" "$(colorize "$RB_C_YELLOW" "$f")"
             shown=$(( shown + 1 ))
         done
         if (( ${#skipped_list[@]} > 10 )); then
-            printf "    %s\n" "$(colorize "$C_DIM" "${I_ELLIPSIS} and $(( ${#skipped_list[@]} - 10 )) more")"
+            printf "    %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ELLIPSIS} and $(( ${#skipped_list[@]} - 10 )) more")"
         fi
         printf "\n"
     fi
 
     if (( ${#failed_files[@]} > 0 )); then
-        printf "  %s  Failed:\n" "$(colorize "$C_RED" "$I_ERROR")"
+        printf "  %s  Failed:\n" "$(colorize "$RB_C_RED" "$RB_I_ERROR")"
         for f in "${failed_files[@]}"; do
-            printf "    %s  %s\n" "$(colorize "$C_DIM" "${I_ARROW}")" "$(colorize "$C_RED" "$f")"
+            printf "    %s  %s\n" "$(colorize "$RB_C_DIM" "${RB_I_ARROW}")" "$(colorize "$RB_C_RED" "$f")"
         done
         printf "\n"
     fi
 
     if [[ "$mode" == "copy" ]]; then
-        msg_info "Originals preserved in: $(colorize "$C_DIM" "$source_dir")"
-        msg_info "Renamed copies in:    $(colorize "${C_BOLD}${C_CYAN}" "$output_dir")"
+        msg_info "Originals preserved in: $(colorize "$RB_C_DIM" "$source_dir")"
+        msg_info "Renamed copies in:    $(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$output_dir")"
     else
-        msg_info "Files renamed in-place at: $(colorize "$C_DIM" "$source_dir")"
+        msg_info "Files renamed in-place at: $(colorize "$RB_C_DIM" "$source_dir")"
     fi
     printf "\n"
 
@@ -1055,5 +1071,6 @@ handle_interrupt() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
     rb_main "$@"
 fi
