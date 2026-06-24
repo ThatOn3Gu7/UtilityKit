@@ -82,19 +82,19 @@ uk_main_banner() {
   cat <<EOF
 ${UK_C_BRIGHT_CYAN}
 
-██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗
-██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝
-██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   
-██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   
-╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   
- ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝${UK_C_RESET}
+    ██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗
+    ██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝
+    ██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   
+    ██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   
+    ╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   
+     ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝${UK_C_RESET}
 
 EOF
-  printf '%s\n' "${UK_C_DIM}----------------------------------------------------------------------${UK_C_RESET}"
-  printf "        %s %s READY%s   %s %s UtilityKit Central Hub %s Suite %sv%s%s\n" \
+  printf '%s\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
+  printf "           %s %s READY%s   %s %s UtilityKit Central Hub %s Suite %sv%s%s\n" \
     "$UK_C_GREEN" "$UK_I_READY" "$UK_C_RESET" "$UK_C_DIM$UK_I_SEP$UK_C_RESET" \
     "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET$UK_C_DIM$UK_I_SEP$UK_C_RESET" "$UK_C_BRIGHT_BLUE" "${UK_VERSION}" "$UK_C_RESET"
-  printf '%s\n\n' "${UK_C_DIM}----------------------------------------------------------------------${UK_C_RESET}"
+  printf '%s\n\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
 }
 
 uk_home_menu() {
@@ -111,8 +111,8 @@ uk_home_menu() {
 
 uk_menu_line() {
   local num="$1" icon="$2" color="$3" name="$4" desc="$5"
-  printf '    %s%2s)%s %s%s %-20s%s %s(%s)%s\n' \
-    "$UK_C_BOLD" "$num" "$UK_C_RESET" "$color" "$icon" "$name" "$UK_C_RESET" "$UK_C_DIM" "$desc" "$UK_C_RESET"
+  printf '    %s%2s)%s %s%s %-18s%s %s(%s)%s\n' \
+    "$UK_C_BOLD" "$num" "$UK_C_RESET" "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" "$UK_C_DIM" "$desc" "$UK_C_RESET"
 }
 
 uk_menu_nav() {
