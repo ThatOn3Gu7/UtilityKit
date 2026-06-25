@@ -16,57 +16,89 @@ uk_source_tool() {
   source "$path"
 }
 
-uk_source_tool "$UK_ROOT_DIR/_apply_changes/_apply_changes.sh"
-uk_source_tool "$UK_ROOT_DIR/_rename_batch/_rename_batch.sh"
-uk_source_tool "$UK_ROOT_DIR/_move_in_batch/_move_in_batch.sh"
-uk_source_tool "$UK_ROOT_DIR/_cache_clean/_cache_clean.sh"
-uk_source_tool "$UK_ROOT_DIR/_symlink_manager/_symlink_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_disk_analyzer/_disk_analyzer.sh"
-uk_source_tool "$UK_ROOT_DIR/_env_manager/_env_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_git_sweep/_git_sweep.sh"
-uk_source_tool "$UK_ROOT_DIR/_docker_janitor/_docker_janitor.sh"
-uk_source_tool "$UK_ROOT_DIR/_project_scaffold/_project_scaffold.sh"
-uk_source_tool "$UK_ROOT_DIR/_duplicate_finder/_duplicate_finder.sh"
-uk_source_tool "$UK_ROOT_DIR/_process_killer/_process_killer.sh"
-uk_source_tool "$UK_ROOT_DIR/_port_inspector/_port_inspector.sh"
-uk_source_tool "$UK_ROOT_DIR/_ssl_checker/_ssl_checker.sh"
-uk_source_tool "$UK_ROOT_DIR/_api_tester/_api_tester.sh"
-uk_source_tool "$UK_ROOT_DIR/_password_gen/_password_gen.sh"
-uk_source_tool "$UK_ROOT_DIR/_ssh_assistant/_ssh_assistant.sh"
-uk_source_tool "$UK_ROOT_DIR/_shredder/_shredder.sh"
-uk_source_tool "$UK_ROOT_DIR/_media_convert/_media_convert.sh"
-uk_source_tool "$UK_ROOT_DIR/_markdown_toc/_markdown_toc.sh"
-uk_source_tool "$UK_ROOT_DIR/_pomodoro/_pomodoro.sh"
-uk_source_tool "$UK_ROOT_DIR/_cheat_sheet/_cheat_sheet.sh"
-uk_source_tool "$UK_ROOT_DIR/_network_probe/_network_probe.sh"
-uk_source_tool "$UK_ROOT_DIR/_cron_manager/_cron_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_dotenv_vault/_dotenv_vault.sh"
-uk_source_tool "$UK_ROOT_DIR/_disk_health/_disk_health.sh"
-uk_source_tool "$UK_ROOT_DIR/_service_watcher/_service_watcher.sh"
-uk_source_tool "$UK_ROOT_DIR/_git_stats/_git_stats.sh"
-uk_source_tool "$UK_ROOT_DIR/_backup_sync/_backup_sync.sh"
-uk_source_tool "$UK_ROOT_DIR/_clipboard_manager/_clipboard_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_log_rotator/_log_rotator.sh"
-uk_source_tool "$UK_ROOT_DIR/_weather/_weather.sh"
-uk_source_tool "$UK_ROOT_DIR/_json_explorer/_json_explorer.sh"
-uk_source_tool "$UK_ROOT_DIR/_tmux_session/_tmux_session.sh"
-uk_source_tool "$UK_ROOT_DIR/_font_inspector/_font_inspector.sh"
-uk_source_tool "$UK_ROOT_DIR/_toolbox_bootstrap/_toolbox_bootstrap.sh"
-uk_source_tool "$UK_ROOT_DIR/_project_search/_project_search.sh"
-uk_source_tool "$UK_ROOT_DIR/_github_helper/_github_helper.sh"
-uk_source_tool "$UK_ROOT_DIR/_link_checker/_link_checker.sh"
-uk_source_tool "$UK_ROOT_DIR/_log_inspector/_log_inspector.sh"
-uk_source_tool "$UK_ROOT_DIR/_csv_toolkit/_csv_toolkit.sh"
-uk_source_tool "$UK_ROOT_DIR/_hash_tools/_hash_tools.sh"
-uk_source_tool "$UK_ROOT_DIR/_archive_manager/_archive_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_system_snapshot/_system_snapshot.sh"
-uk_source_tool "$UK_ROOT_DIR/_open_files/_open_files.sh"
-uk_source_tool "$UK_ROOT_DIR/_battery_doctor/_battery_doctor.sh"
-uk_source_tool "$UK_ROOT_DIR/_release_helper/_release_helper.sh"
-uk_source_tool "$UK_ROOT_DIR/_license_helper/_license_helper.sh"
-uk_source_tool "$UK_ROOT_DIR/_regex_lab/_regex_lab.sh"
-uk_source_tool "$UK_ROOT_DIR/_todo_manager/_todo_manager.sh"
-uk_source_tool "$UK_ROOT_DIR/_zen_mode/_zen_mode.sh"
+# ---------------------------------------------------------------------------
+# Lazy-loader: sources a tool script the first time it is needed.
+# Subsequent calls for the same tool are no-ops (already-loaded guard).
+#
+# Usage:  uk_load <tool_key>
+#
+# The associative array UK_TOOL_PATHS maps every recognised tool key to its
+# script path.  uk_load looks up the path, sources it once, then marks it
+# loaded in UK_TOOL_LOADED so the source never runs twice.
+# ---------------------------------------------------------------------------
+declare -A UK_TOOL_PATHS=(
+  [apply_changes]="$UK_ROOT_DIR/_apply_changes/_apply_changes.sh"
+  [rename_batch]="$UK_ROOT_DIR/_rename_batch/_rename_batch.sh"
+  [move_in_batch]="$UK_ROOT_DIR/_move_in_batch/_move_in_batch.sh"
+  [cache_clean]="$UK_ROOT_DIR/_cache_clean/_cache_clean.sh"
+  [symlink_manager]="$UK_ROOT_DIR/_symlink_manager/_symlink_manager.sh"
+  [disk_analyzer]="$UK_ROOT_DIR/_disk_analyzer/_disk_analyzer.sh"
+  [env_manager]="$UK_ROOT_DIR/_env_manager/_env_manager.sh"
+  [git_sweep]="$UK_ROOT_DIR/_git_sweep/_git_sweep.sh"
+  [docker_janitor]="$UK_ROOT_DIR/_docker_janitor/_docker_janitor.sh"
+  [project_scaffold]="$UK_ROOT_DIR/_project_scaffold/_project_scaffold.sh"
+  [duplicate_finder]="$UK_ROOT_DIR/_duplicate_finder/_duplicate_finder.sh"
+  [process_killer]="$UK_ROOT_DIR/_process_killer/_process_killer.sh"
+  [port_inspector]="$UK_ROOT_DIR/_port_inspector/_port_inspector.sh"
+  [ssl_checker]="$UK_ROOT_DIR/_ssl_checker/_ssl_checker.sh"
+  [api_tester]="$UK_ROOT_DIR/_api_tester/_api_tester.sh"
+  [password_gen]="$UK_ROOT_DIR/_password_gen/_password_gen.sh"
+  [ssh_assistant]="$UK_ROOT_DIR/_ssh_assistant/_ssh_assistant.sh"
+  [shredder]="$UK_ROOT_DIR/_shredder/_shredder.sh"
+  [media_convert]="$UK_ROOT_DIR/_media_convert/_media_convert.sh"
+  [markdown_toc]="$UK_ROOT_DIR/_markdown_toc/_markdown_toc.sh"
+  [pomodoro]="$UK_ROOT_DIR/_pomodoro/_pomodoro.sh"
+  [cheat_sheet]="$UK_ROOT_DIR/_cheat_sheet/_cheat_sheet.sh"
+  [network_probe]="$UK_ROOT_DIR/_network_probe/_network_probe.sh"
+  [cron_manager]="$UK_ROOT_DIR/_cron_manager/_cron_manager.sh"
+  [dotenv_vault]="$UK_ROOT_DIR/_dotenv_vault/_dotenv_vault.sh"
+  [disk_health]="$UK_ROOT_DIR/_disk_health/_disk_health.sh"
+  [service_watcher]="$UK_ROOT_DIR/_service_watcher/_service_watcher.sh"
+  [git_stats]="$UK_ROOT_DIR/_git_stats/_git_stats.sh"
+  [backup_sync]="$UK_ROOT_DIR/_backup_sync/_backup_sync.sh"
+  [clipboard_manager]="$UK_ROOT_DIR/_clipboard_manager/_clipboard_manager.sh"
+  [weather]="$UK_ROOT_DIR/_weather/_weather.sh"
+  [json_explorer]="$UK_ROOT_DIR/_json_explorer/_json_explorer.sh"
+  [tmux_session]="$UK_ROOT_DIR/_tmux_session/_tmux_session.sh"
+  [font_inspector]="$UK_ROOT_DIR/_font_inspector/_font_inspector.sh"
+  [toolbox_bootstrap]="$UK_ROOT_DIR/_toolbox_bootstrap/_toolbox_bootstrap.sh"
+  [project_search]="$UK_ROOT_DIR/_project_search/_project_search.sh"
+  [github_helper]="$UK_ROOT_DIR/_github_helper/_github_helper.sh"
+  [link_checker]="$UK_ROOT_DIR/_link_checker/_link_checker.sh"
+  [log_inspector]="$UK_ROOT_DIR/_log_inspector/_log_inspector.sh"
+  [csv_toolkit]="$UK_ROOT_DIR/_csv_toolkit/_csv_toolkit.sh"
+  [hash_tools]="$UK_ROOT_DIR/_hash_tools/_hash_tools.sh"
+  [archive_manager]="$UK_ROOT_DIR/_archive_manager/_archive_manager.sh"
+  [system_snapshot]="$UK_ROOT_DIR/_system_snapshot/_system_snapshot.sh"
+  [open_files]="$UK_ROOT_DIR/_open_files/_open_files.sh"
+  [battery_doctor]="$UK_ROOT_DIR/_battery_doctor/_battery_doctor.sh"
+  [release_helper]="$UK_ROOT_DIR/_release_helper/_release_helper.sh"
+  [license_helper]="$UK_ROOT_DIR/_license_helper/_license_helper.sh"
+  [regex_lab]="$UK_ROOT_DIR/_regex_lab/_regex_lab.sh"
+  [todo_manager]="$UK_ROOT_DIR/_todo_manager/_todo_manager.sh"
+  [zen_mode]="$UK_ROOT_DIR/_zen_mode/_zen_mode.sh"
+)
+
+declare -A UK_TOOL_LOADED=()
+
+uk_load() {
+  local key="$1"
+  # Already sourced — do nothing.
+  [[ -n "${UK_TOOL_LOADED[$key]:-}" ]] && return 0
+  local path="${UK_TOOL_PATHS[$key]:-}"
+  if [[ -z "$path" ]]; then
+    uk_warn "uk_load: unknown tool key '$key'"
+    return 1
+  fi
+  if [[ ! -f "$path" ]]; then
+    uk_warn "uk_load: missing script: $path"
+    return 1
+  fi
+  # shellcheck disable=SC1090
+  source "$path"
+  UK_TOOL_LOADED[$key]=1
+}
+
 
 uk_expand_path() {
   local input="$1"
@@ -859,65 +891,159 @@ run_tool() {
   local cmd="$1"
   shift || true
   case "$cmd" in
-  apply | apply-changes) ([[ $# -gt 0 ]] && ac_main "$@" || run_apply_wizard) ;;
-  rename | rename-batch) ([[ $# -gt 0 ]] && rb_main "$@" || run_rename_wizard) ;;
-  move | move-in-batch | move-batch) ([[ $# -gt 0 ]] && mib_main "$@" || run_move_wizard) ;;
-  cacheclean | cache-clean) ([[ $# -gt 0 ]] && cc_main "$@" || cc_main) ;;
-  symlink | symlink-manager) ([[ $# -gt 0 ]] && sm_main "$@" || run_symlink_wizard) ;;
-  disk | disk-analyzer) ([[ $# -gt 0 ]] && da_main "$@" || run_disk_wizard) ;;
-  env | env-manager) ([[ $# -gt 0 ]] && em_main "$@" || run_env_wizard) ;;
-  git | git-sweep) ([[ $# -gt 0 ]] && gs_main "$@" || run_git_wizard) ;;
+  apply | apply-changes)
+    uk_load apply_changes
+    ([[ $# -gt 0 ]] && ac_main "$@" || run_apply_wizard) ;;
+  rename | rename-batch)
+    uk_load rename_batch
+    ([[ $# -gt 0 ]] && rb_main "$@" || run_rename_wizard) ;;
+  move | move-in-batch | move-batch)
+    uk_load move_in_batch
+    ([[ $# -gt 0 ]] && mib_main "$@" || run_move_wizard) ;;
+  cacheclean | cache-clean)
+    uk_load cache_clean
+    ([[ $# -gt 0 ]] && cc_main "$@" || cc_main) ;;
+  symlink | symlink-manager)
+    uk_load symlink_manager
+    ([[ $# -gt 0 ]] && sm_main "$@" || run_symlink_wizard) ;;
+  disk | disk-analyzer)
+    uk_load disk_analyzer
+    ([[ $# -gt 0 ]] && da_main "$@" || run_disk_wizard) ;;
+  env | env-manager)
+    uk_load env_manager
+    ([[ $# -gt 0 ]] && em_main "$@" || run_env_wizard) ;;
+  git | git-sweep)
+    uk_load git_sweep
+    ([[ $# -gt 0 ]] && gs_main "$@" || run_git_wizard) ;;
   docker | docker-janitor)
+    uk_load docker_janitor
     if [[ "$(uk_platform)" == 'termux' && $# -eq 0 ]]; then
       uk_warn 'Docker Janitor is not useful in Termux because Docker is usually unavailable there.'
       return 0
     fi
-    (dj_main "$@")
-    ;;
-  scaffold | project-scaffold) ([[ $# -gt 0 ]] && ps_main "$@" || run_scaffold_wizard) ;;
-  dup | duplicate-finder) ([[ $# -gt 0 ]] && df_main "$@" || run_duplicate_wizard) ;;
-  proc | process-killer) ([[ $# -gt 0 ]] && pk_main "$@" || run_process_wizard) ;;
-  port | port-inspector) ([[ $# -gt 0 ]] && pi_main "$@" || run_port_wizard) ;;
-  ssl | ssl-checker) ([[ $# -gt 0 ]] && sc_main "$@" || run_ssl_wizard) ;;
-  api | api-tester) ([[ $# -gt 0 ]] && at_main "$@" || run_api_wizard) ;;
-  pass | password | password-gen) ([[ $# -gt 0 ]] && pg_main "$@" || run_password_wizard) ;;
-  ssh | ssh-assistant) ([[ $# -gt 0 ]] && sa_main "$@" || run_ssh_wizard) ;;
-  shred | shredder) ([[ $# -gt 0 ]] && sd_main "$@" || run_shred_wizard) ;;
-  media | media-convert) ([[ $# -gt 0 ]] && mc_main "$@" || run_media_wizard) ;;
-  toc | markdown-toc) ([[ $# -gt 0 ]] && mt_main "$@" || run_toc_wizard) ;;
-  pomodoro | pomo) ([[ $# -gt 0 ]] && po_main "$@" || run_pomodoro_wizard) ;;
-  cheat | cheat-sheet) ([[ $# -gt 0 ]] && cs_main "$@" || run_cheat_wizard) ;;
-  net | network | network-probe) ([[ $# -gt 0 ]] && np_main "$@" || run_new_utility_wizard network) ;;
-  cron | cron-manager) ([[ $# -gt 0 ]] && cm_main "$@" || run_new_utility_wizard cron) ;;
-  dotenv | dotenv-vault) ([[ $# -gt 0 ]] && dv_main "$@" || run_new_utility_wizard dotenv) ;;
-  disk-health | smart) ([[ $# -gt 0 ]] && dh_main "$@" || run_new_utility_wizard disk-health) ;;
-  watch | service | service-watcher) ([[ $# -gt 0 ]] && sw_main "$@" || run_new_utility_wizard service) ;;
-  git-stats | gstats) ([[ $# -gt 0 ]] && gst_main "$@" || run_new_utility_wizard git-stats) ;;
-  backup | backup-sync) ([[ $# -gt 0 ]] && bs_main "$@" || run_new_utility_wizard backup) ;;
-  clipboard | clipboard-manager) ([[ $# -gt 0 ]] && cb_main "$@" || cb_main --help) ;;
-  logs | log-rotator) ([[ $# -gt 0 ]] && lr_main "$@" || lr_main --help) ;;
-  weather) ([[ $# -gt 0 ]] && wt_main "$@" || run_new_utility_wizard weather) ;;
-  json | json-explorer) ([[ $# -gt 0 ]] && jx_main "$@" || run_new_utility_wizard json) ;;
-  tmux | tmux-session) ([[ $# -gt 0 ]] && tms_main "$@" || run_new_utility_wizard tmux) ;;
-  font | font-inspector) ([[ $# -gt 0 ]] && fi_main "$@" || run_new_utility_wizard font) ;;
-  toolbox | toolbox-bootstrap) ([[ $# -gt 0 ]] && tb_main "$@" || run_new_utility_wizard toolbox) ;;
-  search | project-search) ([[ $# -gt 0 ]] && psrch_main "$@" || run_new_utility_wizard search) ;;
-  github | github-helper) ([[ $# -gt 0 ]] && ghh_main "$@" || run_new_utility_wizard github) ;;
-  links | link-checker) ([[ $# -gt 0 ]] && lc_main "$@" || run_new_utility_wizard links) ;;
-  log-inspect | log-inspector) ([[ $# -gt 0 ]] && li_main "$@" || run_new_utility_wizard log-inspect) ;;
-  csv | csv-toolkit) ([[ $# -gt 0 ]] && csvt_main "$@" || run_new_utility_wizard csv) ;;
-  hash | hash-tools) ([[ $# -gt 0 ]] && ht_main "$@" || run_new_utility_wizard hash) ;;
-  archive | archive-manager) ([[ $# -gt 0 ]] && am_main "$@" || run_new_utility_wizard archive) ;;
-  snapshot | system-snapshot) ([[ $# -gt 0 ]] && ssn_main "$@" || run_new_utility_wizard snapshot) ;;
-  open-files | lsof) ([[ $# -gt 0 ]] && of_main "$@" || run_new_utility_wizard open-files) ;;
-  battery | battery-doctor) ([[ $# -gt 0 ]] && bd_main "$@" || run_new_utility_wizard battery) ;;
-  release | release-helper) ([[ $# -gt 0 ]] && rel_main "$@" || run_new_utility_wizard release) ;;
-  license | license-helper) ([[ $# -gt 0 ]] && lic_main "$@" || run_new_utility_wizard license) ;;
-  regex | regex-lab) ([[ $# -gt 0 ]] && rx_main "$@" || run_new_utility_wizard regex) ;;
-  todo | todo-manager) ([[ $# -gt 0 ]] && td_main "$@" || run_new_utility_wizard todo) ;;
+    (dj_main "$@") ;;
+  scaffold | project-scaffold)
+    uk_load project_scaffold
+    ([[ $# -gt 0 ]] && ps_main "$@" || run_scaffold_wizard) ;;
+  dup | duplicate-finder)
+    uk_load duplicate_finder
+    ([[ $# -gt 0 ]] && df_main "$@" || run_duplicate_wizard) ;;
+  proc | process-killer)
+    uk_load process_killer
+    ([[ $# -gt 0 ]] && pk_main "$@" || run_process_wizard) ;;
+  port | port-inspector)
+    uk_load port_inspector
+    ([[ $# -gt 0 ]] && pi_main "$@" || run_port_wizard) ;;
+  ssl | ssl-checker)
+    uk_load ssl_checker
+    ([[ $# -gt 0 ]] && sc_main "$@" || run_ssl_wizard) ;;
+  api | api-tester)
+    uk_load api_tester
+    ([[ $# -gt 0 ]] && at_main "$@" || run_api_wizard) ;;
+  pass | password | password-gen)
+    uk_load password_gen
+    ([[ $# -gt 0 ]] && pg_main "$@" || run_password_wizard) ;;
+  ssh | ssh-assistant)
+    uk_load ssh_assistant
+    ([[ $# -gt 0 ]] && sa_main "$@" || run_ssh_wizard) ;;
+  shred | shredder)
+    uk_load shredder
+    ([[ $# -gt 0 ]] && sd_main "$@" || run_shred_wizard) ;;
+  media | media-convert)
+    uk_load media_convert
+    ([[ $# -gt 0 ]] && mc_main "$@" || run_media_wizard) ;;
+  toc | markdown-toc)
+    uk_load markdown_toc
+    ([[ $# -gt 0 ]] && mt_main "$@" || run_toc_wizard) ;;
+  pomodoro | pomo)
+    uk_load pomodoro
+    ([[ $# -gt 0 ]] && po_main "$@" || run_pomodoro_wizard) ;;
+  cheat | cheat-sheet)
+    uk_load cheat_sheet
+    ([[ $# -gt 0 ]] && cs_main "$@" || run_cheat_wizard) ;;
+  net | network | network-probe)
+    uk_load network_probe
+    ([[ $# -gt 0 ]] && np_main "$@" || run_new_utility_wizard network) ;;
+  cron | cron-manager)
+    uk_load cron_manager
+    ([[ $# -gt 0 ]] && cm_main "$@" || run_new_utility_wizard cron) ;;
+  dotenv | dotenv-vault)
+    uk_load dotenv_vault
+    ([[ $# -gt 0 ]] && dv_main "$@" || run_new_utility_wizard dotenv) ;;
+  disk-health | smart)
+    uk_load disk_health
+    ([[ $# -gt 0 ]] && dh_main "$@" || run_new_utility_wizard disk-health) ;;
+  watch | service | service-watcher)
+    uk_load service_watcher
+    ([[ $# -gt 0 ]] && sw_main "$@" || run_new_utility_wizard service) ;;
+  git-stats | gstats)
+    uk_load git_stats
+    ([[ $# -gt 0 ]] && gst_main "$@" || run_new_utility_wizard git-stats) ;;
+  backup | backup-sync)
+    uk_load backup_sync
+    ([[ $# -gt 0 ]] && bs_main "$@" || run_new_utility_wizard backup) ;;
+  weather)
+    uk_load weather
+    ([[ $# -gt 0 ]] && wt_main "$@" || run_new_utility_wizard weather) ;;
+  json | json-explorer)
+    uk_load json_explorer
+    ([[ $# -gt 0 ]] && jx_main "$@" || run_new_utility_wizard json) ;;
+  tmux | tmux-session)
+    uk_load tmux_session
+    ([[ $# -gt 0 ]] && tms_main "$@" || run_new_utility_wizard tmux) ;;
+  font | font-inspector)
+    uk_load font_inspector
+    ([[ $# -gt 0 ]] && fi_main "$@" || run_new_utility_wizard font) ;;
+  toolbox | toolbox-bootstrap)
+    uk_load toolbox_bootstrap
+    ([[ $# -gt 0 ]] && tb_main "$@" || run_new_utility_wizard toolbox) ;;
+  search | project-search)
+    uk_load project_search
+    ([[ $# -gt 0 ]] && psrch_main "$@" || run_new_utility_wizard search) ;;
+  github | github-helper)
+    uk_load github_helper
+    ([[ $# -gt 0 ]] && ghh_main "$@" || run_new_utility_wizard github) ;;
+  links | link-checker)
+    uk_load link_checker
+    ([[ $# -gt 0 ]] && lc_main "$@" || run_new_utility_wizard links) ;;
+  log-inspect | log-inspector)
+    uk_load log_inspector
+    ([[ $# -gt 0 ]] && li_main "$@" || run_new_utility_wizard log-inspect) ;;
+  csv | csv-toolkit)
+    uk_load csv_toolkit
+    ([[ $# -gt 0 ]] && csvt_main "$@" || run_new_utility_wizard csv) ;;
+  hash | hash-tools)
+    uk_load hash_tools
+    ([[ $# -gt 0 ]] && ht_main "$@" || run_new_utility_wizard hash) ;;
+  archive | archive-manager)
+    uk_load archive_manager
+    ([[ $# -gt 0 ]] && am_main "$@" || run_new_utility_wizard archive) ;;
+  snapshot | system-snapshot)
+    uk_load system_snapshot
+    ([[ $# -gt 0 ]] && ssn_main "$@" || run_new_utility_wizard snapshot) ;;
+  open-files | lsof)
+    uk_load open_files
+    ([[ $# -gt 0 ]] && of_main "$@" || run_new_utility_wizard open-files) ;;
+  battery | battery-doctor)
+    uk_load battery_doctor
+    ([[ $# -gt 0 ]] && bd_main "$@" || run_new_utility_wizard battery) ;;
+  release | release-helper)
+    uk_load release_helper
+    ([[ $# -gt 0 ]] && rel_main "$@" || run_new_utility_wizard release) ;;
+  license | license-helper)
+    uk_load license_helper
+    ([[ $# -gt 0 ]] && lic_main "$@" || run_new_utility_wizard license) ;;
+  regex | regex-lab)
+    uk_load regex_lab
+    ([[ $# -gt 0 ]] && rx_main "$@" || run_new_utility_wizard regex) ;;
+  todo | todo-manager)
+    uk_load todo_manager
+    ([[ $# -gt 0 ]] && td_main "$@" || run_new_utility_wizard todo) ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
   help | --help | -h) uk_main_show_help ;;
-  zen | zen-mode) (zm_main "$@") ;;
+  zen | zen-mode)
+    uk_load zen_mode
+    (zm_main "$@") ;;
   *)
     uk_error "Unknown command: $cmd"
     uk_main_show_help
@@ -925,6 +1051,7 @@ run_tool() {
     ;;
   esac
 }
+
 
 uk_main_show_help() {
   uk_main_banner
