@@ -13,17 +13,25 @@ Options:
   -h, --help   Show this help
 USAGE
 }
-
 csvt_main() {
   local file='' cols=0 headn=10
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --columns) cols=1 ;;
-      --head) shift; headn="${1:-10}" ;;
-      -h|--help) csvt_usage; return 0 ;;
-      --*) uk_error "Unknown option: $1"; return 1 ;;
-      *) file="$1" ;;
+    --columns) cols=1 ;;
+    --head)
+      shift
+      headn="${1:-10}"
+      ;;
+    -h | --help)
+      csvt_usage
+      return 0
+      ;;
+    --*)
+      uk_error "Unknown option: $1"
+      return 1
+      ;;
+    *) file="$1" ;;
     esac
     shift
   done
@@ -107,12 +115,8 @@ if __name__ == '__main__':
     main()
 PYTHON
 }
-
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" csv
-  else
-    csvt_main "$@"
-  fi
+  csvt_main "$@"
 fi
+

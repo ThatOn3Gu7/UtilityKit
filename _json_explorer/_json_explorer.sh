@@ -25,7 +25,6 @@ Options:
   -h, --help    Show this help
 USAGE
 }
-
 jx_main() {
   local file='-'
   local path=''
@@ -121,12 +120,7 @@ else:
     print(json.dumps(obj, indent=2))
 PY
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" json
-  else
-    jx_main "$@"
-  fi
+  jx_main "$@"
 fi

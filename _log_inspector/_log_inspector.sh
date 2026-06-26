@@ -10,7 +10,6 @@ fi
 
 # --- Fallback Functions ---
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*" >&2; }; fi
-# --------------------------
 
 li_usage() {
   cat <<USAGE
@@ -22,7 +21,6 @@ Options:
   -h, --help       Show this help.
 USAGE
 }
-
 li_main() {
   local file='' pattern='error|warn|fail|exception'
 
@@ -75,12 +73,7 @@ li_main() {
     sort "$file" | uniq -c | sort -rn | head -n 10 || true
   fi
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" log-inspect
-  else
-    li_main "$@"
-  fi
+  li_main "$@"
 fi

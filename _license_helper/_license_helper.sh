@@ -21,7 +21,6 @@ Usage:
 Types: mit, apache
 USAGE
 }
-
 lic_main() {
   local gen='' name=''
 
@@ -81,12 +80,7 @@ lic_main() {
   esac
   printf '\n'
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" license
-  else
-    lic_main "$@"
-  fi
+  lic_main "$@"
 fi

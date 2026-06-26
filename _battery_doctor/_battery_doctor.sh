@@ -2,7 +2,6 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
-
 # Usage
 bd_usage() {
   cat <<'USAGE'
@@ -19,7 +18,6 @@ Backends tried (in order):
   - acpi -V                (Linux with ACPI)
 USAGE
 }
-
 # Show battery information using the first available backend
 bd_show_battery() {
   if uk_has_cmd termux-battery-status; then
@@ -36,7 +34,6 @@ bd_show_battery() {
     return 1
   fi
 }
-
 # Show top CPU/memory processes (with a fallback if ps fails)
 bd_show_top_processes() {
   local ps_cmd
@@ -54,7 +51,6 @@ bd_show_top_processes() {
   printf '%s\n' "----------------------------------------"
   $ps_cmd 2>/dev/null | sort -k3 -rn | head -10 || true
 }
-
 # Main
 bd_main() {
   # Handle help
@@ -70,24 +66,18 @@ bd_main() {
     printf '\n%sBattery Doctor%s\n' "${UK_C_BOLD:-}" "${UK_C_RESET:-}"
     printf '%s\n' "======================="
   fi
-
   # Battery info
   if ! bd_show_battery; then
     uk_warn 'Battery status unavailable; continuing with process summary.'
   fi
-
   # Top processes (always show)
   bd_show_top_processes
 
   return 0
 }
-
 # Entry point
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" battery
-  else
-    bd_main "$@"
-  fi
+  bd_main "$@"
 fi
+

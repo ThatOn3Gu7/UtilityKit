@@ -18,7 +18,6 @@ Options:
 Without options, shows health and attributes for the first detected disk.
 USAGE
 }
-
 dh_require_smartctl() {
   if ! uk_has_cmd smartctl; then
     uk_error 'smartctl is not installed. Please install smartmontools (pkg install smartmontools on Termux, but may not work).'
@@ -31,18 +30,29 @@ dh_require_smartctl() {
   fi
   return 0
 }
-
 dh_main() {
   local dev='' action='show' test_short=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --list)      action='list'; dev='LIST' ;;
-      --device)    shift; dev="${1:-}" ;;
-      --test-short) test_short=1 ;;
-      -h|--help)   dh_usage; return 0 ;;
-      --*)         uk_error "Unknown option: $1"; return 1 ;;
-      *)           dev="$1" ;;
+    --list)
+      action='list'
+      dev='LIST'
+      ;;
+    --device)
+      shift
+      dev="${1:-}"
+      ;;
+    --test-short) test_short=1 ;;
+    -h | --help)
+      dh_usage
+      return 0
+      ;;
+    --*)
+      uk_error "Unknown option: $1"
+      return 1
+      ;;
+    *) dev="$1" ;;
     esac
     shift
   done
@@ -82,7 +92,7 @@ dh_main() {
   fi
 
   # Run short test if requested
-  if (( test_short == 1 )); then
+  if ((test_short == 1)); then
     uk_note "Starting short self‑test on $dev (may take several minutes)..."
     if smartctl -t short "$dev" >/dev/null 2>&1; then
       uk_success "Test started. Check results later with: smartctl -l selftest $dev"
@@ -106,12 +116,8 @@ dh_main() {
     uk_warn "Could not get attributes."
   fi
 }
-
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" disk-health
-  else
-    dh_main "$@"
-  fi
+  dh_main "$@"
 fi
+

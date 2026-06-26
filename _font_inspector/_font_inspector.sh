@@ -7,25 +7,20 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
   # shellcheck source=../lib/uk_common.sh
   source "$SCRIPT_DIR/../lib/uk_common.sh"
 fi
-
 # --- Fallback Functions if not defined in uk_common.sh ---
 if ! declare -f uk_has_cmd >/dev/null 2>&1; then
   uk_has_cmd() {
     command -v "${1:-}" >/dev/null 2>&1
   }
 fi
-
 if ! declare -f uk_warn >/dev/null 2>&1; then
   uk_warn() {
     printf "Warning: %s\n" "$*" >&2
   }
 fi
-# --------------------------------------------------------
-
 fi_usage() {
   echo 'Usage: _font_inspector.sh [--list] [--filter NAME] [--glyphs]'
 }
-
 fi_main() {
   local list=0
   local filter=''
@@ -69,7 +64,6 @@ fi_main() {
     printf 'Box ┌─┐ │ ╰─╯\n'
     printf 'Powerline    \n'
   fi
-
   if ((list == 1)); then
     if uk_has_cmd fc-list; then
       # Under pipefail, we guard the pipeline with "|| true" to ensure it never crashes if grep finds zero matches
@@ -81,12 +75,7 @@ fi_main() {
 
   return 0
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" font
-  else
-    fi_main "$@"
-  fi
+  fi_main "$@"
 fi

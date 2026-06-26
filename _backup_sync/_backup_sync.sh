@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
-
 # Usage
 bs_usage() {
   cat <<'USAGE'
@@ -19,7 +16,6 @@ Options:
   -h, --help            Show this help
 USAGE
 }
-
 # Main
 bs_main() {
   local src='' dst='' apply=0 delete=0
@@ -28,13 +24,28 @@ bs_main() {
   # Parse arguments
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --source|-s) shift; src="${1:-}" ;;
-      --dest|-d)   shift; dst="${1:-}" ;;
-      --apply)     apply=1 ;;
-      --delete)    delete=1 ;;
-      --exclude)   shift; excludes+=("${1:-}") ;;
-      -h|--help)   bs_usage; return 0 ;;
-      *)           uk_error "Unknown option: $1"; return 1 ;;
+    --source | -s)
+      shift
+      src="${1:-}"
+      ;;
+    --dest | -d)
+      shift
+      dst="${1:-}"
+      ;;
+    --apply) apply=1 ;;
+    --delete) delete=1 ;;
+    --exclude)
+      shift
+      excludes+=("${1:-}")
+      ;;
+    -h | --help)
+      bs_usage
+      return 0
+      ;;
+    *)
+      uk_error "Unknown option: $1"
+      return 1
+      ;;
     esac
     shift
   done
@@ -60,21 +71,20 @@ bs_main() {
   # If rsync is available, use it (supports --delete and efficient sync)
   if uk_has_cmd rsync; then
     local args=(-a --itemize-changes --human-readable)
-    (( delete == 1 )) && args+=(--delete)
-    (( apply == 0 )) && args+=(--dry-run)
+    ((delete == 1)) && args+=(--delete)
+    ((apply == 0)) && args+=(--dry-run)
 
     for pattern in "${all_excludes[@]}"; do
       args+=(--exclude "$pattern")
     done
 
     rsync "${args[@]}" "$src"/ "$dst"/
-    (( apply == 0 )) && uk_note 'Dry-run only. Re-run with --apply to perform the sync.'
+    ((apply == 0)) && uk_note 'Dry-run only. Re-run with --apply to perform the sync.'
     return 0
   fi
 
-  
   # Fallback: cp + find (no --delete support)
-  if (( delete == 1 )); then
+  if ((delete == 1)); then
     uk_warn 'rsync is not available; --delete will be ignored.'
   fi
 
@@ -85,13 +95,9 @@ bs_main() {
     find_prune+=(-name "$pattern" -prune -o)
   done
 
-  if (( apply == 1 )); then
+  if ((apply == 1)); then
     uk_note 'Copying files using cp (rsync not available)...'
-    # Copy all files and directories, preserving attributes, excluding patterns
-    # Use find to locate everything under src, then cp -a --parents
-    # But cp --parents may not be available on all systems; simpler: use tar pipe?
-    # Safer: use find to copy with cp -a and create destination directories.
-    # We'll use find to copy each item individually.
+
     while IFS= read -r -d '' item; do
       local rel="${item#"$src"/}"
       local target="$dst/$rel"
@@ -112,14 +118,8 @@ bs_main() {
     uk_note 'Dry-run only. Re-run with --apply to perform the copy (rsync not available).'
   fi
 }
-
-
 # Entry point
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" backup
-  else
-    bs_main "$@"
-  fi
+  bs_main "$@"
 fi

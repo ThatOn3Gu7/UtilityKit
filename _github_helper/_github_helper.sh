@@ -25,7 +25,6 @@ Actions:
   -h, --help  Show this help.
 USAGE
 }
-
 ghh_main() {
   local action='status'
 
@@ -70,10 +69,5 @@ ghh_main() {
 
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  # Integration with main entry point if it exists
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" github
-  else
-    ghh_main "$@"
-  fi
+  ghh_main "$@"
 fi

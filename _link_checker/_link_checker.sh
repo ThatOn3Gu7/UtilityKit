@@ -11,7 +11,6 @@ fi
 # --- Fallback Functions ---
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*" >&2; }; fi
 if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
-# --------------------------
 
 lc_usage() {
   cat <<USAGE
@@ -24,7 +23,6 @@ Options:
   -h, --help       Show this help.
 USAGE
 }
-
 lc_main() {
   local http=0 timeout=8 files=()
 
@@ -96,9 +94,5 @@ PY
 
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" link
-  else
-    lc_main "$@"
-  fi
+  lc_main "$@"
 fi

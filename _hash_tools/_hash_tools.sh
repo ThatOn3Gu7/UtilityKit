@@ -26,11 +26,9 @@ ht_run_hash() {
     shasum -a 256 "$@"
   fi
 }
-
 ht_usage() {
   echo 'Usage: _hash_tools.sh FILE|DIR...'
 }
-
 ht_main() {
   if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
     ht_usage
@@ -57,12 +55,7 @@ ht_main() {
     fi
   done
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
-  if [[ $# -eq 0 && -t 0 && -t 1 && -f "$SCRIPT_DIR/../main.sh" ]]; then
-    bash "$SCRIPT_DIR/../main.sh" hash
-  else
-    ht_main "$@"
-  fi
+  ht_main "$@"
 fi
