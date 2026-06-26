@@ -4,16 +4,13 @@
 conan_plugin_info() {
   printf 'conan|conan|🐕\n'
 }
-
 conan_detect() {
   command -v conan >/dev/null 2>&1
 }
-
 conan_get_cache_dirs() {
   printf '%s\n' "$HOME/.conan/data"
   printf '%s\n' "$HOME/.conan2/p"
 }
-
 conan_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -38,7 +35,6 @@ conan_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(conan_get_cache_dirs)
 }
-
 conan_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

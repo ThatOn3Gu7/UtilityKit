@@ -54,15 +54,11 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
     esac
   }
 fi
-# --------------------------------------
-
 _gs_repo_check() {
   git -C "$GS_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
     uk_error "Not a git repository: $GS_REPO"
     return 1
   }
-}
-
 _gs_default_branch() {
   local head
   head=$(git -C "$GS_REPO" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
@@ -79,18 +75,15 @@ _gs_default_branch() {
   done
   git -C "$GS_REPO" rev-parse --abbrev-ref HEAD
 }
-
 _gs_local_merged() {
   local base="${1:-}" current
   current=$(git -C "$GS_REPO" rev-parse --abbrev-ref HEAD)
   git -C "$GS_REPO" branch --merged "$base" | sed 's/^..//' | grep -Ev "^(${base}|${current}|main|master|trunk)$" || true
 }
-
 _gs_remote_merged() {
   local base="${1:-}"
   git -C "$GS_REPO" branch -r --merged "$base" | sed 's/^..//' | grep -v 'HEAD' | sed 's#^origin/##' | grep -Ev "^(${base}|main|master|trunk)$" | sort -u || true
 }
-
 gs_usage() {
   cat <<USAGE
 Usage:
@@ -107,7 +100,6 @@ Options:
   -h, --help              Show this help.
 USAGE
 }
-
 gs_print_lines_or_none() {
   local heading="${1:-}"
   shift || true
@@ -122,7 +114,6 @@ gs_print_lines_or_none() {
     [[ -n "$item" ]] && printf '  %s%s%s %s\n' "$UK_C_CYAN" "$UK_I_DOT" "$UK_C_RESET" "$item"
   done
 }
-
 gs_preview() {
   local base="${1:-}"
   local -a local_branches remote_branches stashes clean_preview
@@ -139,7 +130,6 @@ gs_preview() {
   gs_print_lines_or_none 'Git stashes:' "${stashes[@]}"
   gs_print_lines_or_none 'Untracked build artifacts preview:' "${clean_preview[@]}"
 }
-
 gs_run() {
   local base="${1:-}" branch
 
@@ -194,7 +184,6 @@ gs_run() {
     fi
   fi
 }
-
 gs_interactive() {
   local base="${1:-}"
   gs_preview "$base"
@@ -230,7 +219,6 @@ gs_interactive() {
 
   gs_run "$base"
 }
-
 gs_main() {
   GS_APPLY=0
   GS_LOCAL=0
@@ -270,7 +258,6 @@ gs_main() {
     esac
     shift
   done
-
   _gs_repo_check
   base=$(_gs_default_branch)
 
@@ -281,7 +268,6 @@ gs_main() {
     gs_run "$base"
   fi
 }
-
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
   gs_main "$@"

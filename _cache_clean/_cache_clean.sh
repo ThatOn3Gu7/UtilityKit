@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
-#
-# _cache_clean.sh — Intelligent, safe, cross-platform cache cleaner
-#
-# Visuals heavily upgraded (Gogh colors + figures symbols).
-# Termux-first design.
-#
-# Fixes applied:
-# - Visual bars use ONLY safe ASCII (# and -) → no more weird ???? symbols
-# - Always a space after every symbol/emoji before text
 
-
-VERSION="1.0.1"
+VERSION="2.0.2"
 
 # ---------------------------------------------------------------------------
 CC_OLDER_THAN=60
@@ -34,8 +24,7 @@ CC_TOTAL_CACHE_KB=0
 CC_TOTAL_ORPHAN_BYTES=0
 CC_TOTAL_ORPHAN_COUNT=0
 CC_ERRORS=()
-
-# ---------------------------------------------------------------------------
+# Usage function
 cc_usage() {
   cat <<EOF
 Usage: cacheclean [OPTIONS]
@@ -51,7 +40,6 @@ Options:
       --debug
 EOF
 }
-
 cc_parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -112,10 +100,7 @@ cc_parse_args() {
     esac
   done
 }
-
-# ---------------------------------------------------------------------------
 # COLORS (Gogh-inspired)
-# ---------------------------------------------------------------------------
 cc_setup_colors() {
   if [ "$CC_NO_COLOR" -eq 1 ] || [ ! -t 1 ]; then
     C_RESET='' C_BOLD='' C_DIM='' C_WHITE='' C_CYAN='' C_YELLOW='' C_RED=''
@@ -148,11 +133,8 @@ cc_setup_colors() {
   C_COUNT=$'\033[38;5;221m'
   C_BG_ACCENT=$'\033[48;5;24m'
 }
-
-# ---------------------------------------------------------------------------
 # SYMBOLS (figures style) + Termux-safe
 # Always space after symbol
-# ---------------------------------------------------------------------------
 cc_setup_box_chars() {
   local cols
   cols=$(cc_term_cols)
@@ -192,7 +174,6 @@ cc_setup_box_chars() {
     I_STOP='[ℹ]' I_CHART='[#]' I_ARROW='>' I_INFO='i' I_MINUS='-' I_DOT='o'
   fi
 }
-
 cc_term_cols() {
   if [ -n "${COLUMNS:-}" ]; then
     printf '%s\n' "$COLUMNS"
@@ -217,19 +198,16 @@ cc_term_cols() {
   printf '80\n'
   return 0
 }
-
 cc_locale_is_utf8() {
   local loc="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
   case "$loc" in *UTF-8* | *utf-8* | *UTF8* | *utf8*) return 0 ;; esac
   return 1
 }
 
-# ---------------------------------------------------------------------------
 cc_hbar() {
   local width=$1 char=${2:-$B_H}
   printf '%*s' "$width" '' | tr ' ' "$char"
 }
-
 # SAFE VISUAL BAR — ONLY # and - (this fixes the garbage symbols)
 cc_progress_bar() {
   local current=$1 max=$2 width=${3:-28}
@@ -242,14 +220,12 @@ cc_progress_bar() {
   local empty=$((width - filled))
   printf '%s%s%s%s%s' "$C_LGREEN" "$(printf '%*s' "$filled" '' | tr ' ' '#')" "$C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$C_RESET"
 }
-
 # Helper: return visible length of a string (ANSI codes removed)
 _cc_visible_len() {
   local s
   s=$(printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
   printf '%s' "${#s}"
 }
-
 cc_print_banner() {
   local c1="${I_BROOM} cacheclean ${C_BOLD}${VERSION}${C_RESET}"
   local c2="intelligent cache cleaner for devs"
@@ -276,21 +252,16 @@ cc_print_banner() {
   printf '%s%s%s%s%s\n' "$C_ACCENT" "$B_BL" "$line" "$B_BR" "$C_RESET"
   printf '\n'
 }
-
 cc_section_title() {
   local title=$1 width=${2:-52}
   local line=$(cc_hbar "$width" "$B_H")
   printf '\n%s%s %s %s %s%s\n' "$C_BG_ACCENT" "$C_WHITE$C_BOLD" "$I_BROOM" "$title" "$C_RESET" "$C_ACCENT"
   printf '%s%s%s\n' "$C_ACCENT" "$line" "$C_RESET"
 }
-
 cc_print_divider() {
   printf '  %s%s%s\n' "$C_DIM" "$(cc_hbar "${1:-44}" "$B_VD")" "$C_RESET"
 }
-
-# ---------------------------------------------------------------------------
 # Core logic (unchanged)
-# ---------------------------------------------------------------------------
 cc_detect_os() {
   if [ -n "${TERMUX_VERSION:-}" ] || [ -n "${TERMUX_API_VERSION:-}" ] || [ -n "${PREFIX:-}" ]; then
     CC_OS="termux"
@@ -300,7 +271,6 @@ cc_detect_os() {
     CC_OS="linux"
   fi
 }
-
 cc_root_check() {
   if [ "$(id -u 2>/dev/null || echo 65534)" -eq 0 ] && [ "$CC_FORCE_ROOT" -eq 0 ]; then
     cc_log_error "Running as root is not allowed."
@@ -308,7 +278,6 @@ cc_root_check() {
   fi
   return 0
 }
-
 cc_require_basic_tools() {
   for cmd in id du find wc awk rm mkdir basename dirname cut sleep date uname; do
     command -v "$cmd" >/dev/null 2>&1 || {
@@ -317,16 +286,13 @@ cc_require_basic_tools() {
     }
   done
 }
-
 cc_get_script_dir() { (cd "$(dirname "${BASH_SOURCE[0]}")" && pwd); }
-
 cc_manager_for_binary() {
   case "$1" in
   npm | yarn | pnpm | bun | pip* | cargo | go | gem | composer | dotnet | conan | vcpkg | apt* | pacman | dnf | yum | brew | apk) printf '%s' "$1" | sed 's/3$//;s/-get$//' ;;
   *) printf '' ;;
   esac
 }
-
 cc_setup_tmp() {
   CC_TMPDIR="${TMPDIR:-$HOME/.cache/cacheclean}"
   mkdir -p "$CC_TMPDIR" 2>/dev/null || true
@@ -336,7 +302,6 @@ cc_setup_tmp() {
     exit 1
   }
 }
-
 cc_cleanup_tmp() {
   if [ -n "${CC_STATE_DIR:-}" ] && [ -d "$CC_STATE_DIR" ]; then
     rm -rf "$CC_STATE_DIR" 2>/dev/null || true
@@ -344,7 +309,6 @@ cc_cleanup_tmp() {
   return 0
 }
 # (Trap registered in cc_main)
-
 cc_format_bytes() {
   awk -v b="$1" 'BEGIN{
     split("B KB MB GB TB",u);
@@ -353,7 +317,6 @@ cc_format_bytes() {
     printf "%.2f %s",n,u[i]
   }' 2>/dev/null || echo "$1 B"
 }
-
 cc_file_size() {
   if command -v stat >/dev/null 2>&1; then
     stat -c%s -- "$1" 2>/dev/null && return
@@ -361,15 +324,11 @@ cc_file_size() {
   fi
   wc -c <"$1" 2>/dev/null || echo 0
 }
-
 cc_du_kb() { du -sk -- "$1" 2>/dev/null | awk '{print $1}' || echo 0; }
-
 cc_find_old() { find "$1" -type f -mtime +"$2" 2>/dev/null; }
-
 cc_emit_tot() { printf 'TOT|%s|%s\n' "$1" "$2"; }
 cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")" "$3"; }
 cc_emit_err() { printf 'ERR|%s|%s\n' "$1" "$2"; }
-
 cc_clean_orphans_from_file() {
   local file=$1 deleted=0 failed=0 reclaimed=0
   local -a seen=()
@@ -390,7 +349,6 @@ cc_clean_orphans_from_file() {
   done <"$file"
   printf '%d|%d|%d\n' "$deleted" "$failed" "$reclaimed"
 }
-
 cc_spinner() {
   local pid=$1 msg=$2
   local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
@@ -402,7 +360,6 @@ cc_spinner() {
   wait "$pid" 2>/dev/null
   printf '\r\033[K'
 }
-
 cc_discover_plugins() {
   CC_PLUGINS_DIR="$(cc_get_script_dir)/plugins"
   [ -d "$CC_PLUGINS_DIR" ] || return
@@ -426,7 +383,6 @@ cc_discover_plugins() {
     fi
   done
 }
-
 cc_print_env_summary() {
   local known='npm yarn pnpm bun pip pip3 cargo go gem composer dotnet conan vcpkg apt apt-get pacman dnf yum brew apk'
   cc_section_title "Environment scan"
@@ -448,7 +404,6 @@ cc_print_env_summary() {
   printf '\n  %sFound: %s %s%d%s    %sActive: %s %s%d%s\n' "$C_BOLD" "$C_RESET" "$C_LGREEN" "$found" "$C_RESET" "$C_BOLD" "$C_RESET" "$C_LCYAN" "$active" "$C_RESET"
   cc_print_divider 44
 }
-
 cc_scan_plugin() {
   local prefix=$1 name=$2 icon=$3
   local sf="$CC_STATE_DIR/${prefix}.scan" ef="$CC_STATE_DIR/${prefix}.err"
@@ -457,7 +412,6 @@ cc_scan_plugin() {
   [ "$CC_QUIET" -eq 0 ] && cc_spinner "$pid" "  ${icon} ${name} scanning..." || wait "$pid"
   printf '%s' "$sf"
 }
-
 cc_run_scans() {
   local i
   for i in "${!CC_ACTIVE_PLUGINS[@]}"; do
@@ -467,8 +421,6 @@ cc_run_scans() {
     cc_scan_plugin "$p" "$n" "$ic" >/dev/null
   done
 }
-
-# ---------------------------------------------------------------------------
 cc_print_report() {
   CC_TOTAL_CACHE_KB=0
   CC_TOTAL_ORPHAN_BYTES=0
@@ -559,8 +511,6 @@ cc_print_report() {
     fi
   fi
 }
-
-# ---------------------------------------------------------------------------
 cc_prompt_confirm() {
   [ "$CC_YES" -eq 1 ] && return 0
   [ ! -t 0 ] && return 1
@@ -571,7 +521,6 @@ cc_prompt_confirm() {
     case "$ans" in [Yy] | [Yy][Ee][Ss]) return 0 ;; [Nn] | [Nn][Oo] | '') return 1 ;; *) echo "yes or no" ;; esac
   done
 }
-
 cc_list_orphans_to_delete() {
   cc_section_title "Files that will be deleted" 52
   local -a seen=()
@@ -606,7 +555,6 @@ cc_list_orphans_to_delete() {
   printf '  %s%s%s  %sTotal:%s %s%d file(s)%s, %s%s%s reclaimable\n' "$C_LYELLOW" "$I_PKG" "$C_RESET" "$C_BOLD" "$C_RESET" "$C_COUNT" "$CC_TOTAL_ORPHAN_COUNT" "$C_RESET" "$C_LGREEN" "$(cc_format_bytes "$CC_TOTAL_ORPHAN_BYTES")" "$C_RESET"
   printf '  %s%s%s\n' "$C_ACCENT" "$(cc_hbar "$w" "$B_H")" "$C_RESET"
 }
-
 cc_prompt_final_confirm() {
   [ "$CC_YES" -eq 1 ] && return 0
   [ ! -t 0 ] && return 1
@@ -617,7 +565,6 @@ cc_prompt_final_confirm() {
     case "$ans" in [Yy] | [Yy][Ee][Ss]) return 0 ;; [Nn] | [Nn][Oo] | '') return 1 ;; *) echo "yes or no" ;; esac
   done
 }
-
 cc_perform_deletion() {
   local total_deleted=0 total_failed=0 total_reclaimed=0
   local i prefix scan_file result d f r
@@ -633,7 +580,6 @@ cc_perform_deletion() {
   done
   printf '%d|%d|%d\n' "$total_deleted" "$total_failed" "$total_reclaimed"
 }
-
 cc_print_final_summary() {
   local result=$1
   local deleted failed reclaimed
@@ -659,12 +605,9 @@ cc_print_final_summary() {
     printf '\n'
   fi
 }
-
 cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$C_RESET" "$1" >&2; }
 cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "$1" "$C_RESET" >&2; }
 cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "$1" "$C_RESET" >&2; }
-
-# ---------------------------------------------------------------------------
 cc_main() {
   trap cc_cleanup_tmp EXIT
   cc_parse_args "$@"
@@ -692,16 +635,13 @@ cc_main() {
     cc_print_banner
     cc_print_env_summary
   }
-
   cc_run_scans
   cc_print_report
-
   if [ "$CC_TOTAL_ORPHAN_COUNT" -eq 0 ]; then
     [ "$CC_QUIET" -eq 0 ] && printf '\n%s%s%s %sNo orphaned cache files found. Nothing to clean.%s\n  %sThe cache is within your --older-than threshold.%s\n' \
       "$C_LGREEN" "$I_MAGIC" "$C_RESET" "$C_BOLD$C_LGREEN" "$C_RESET" "$C_DIM" "$C_RESET"
     exit 0
   fi
-
   if cc_prompt_confirm; then
     [ "$CC_QUIET" -eq 0 ] && cc_list_orphans_to_delete
     if cc_prompt_final_confirm; then
@@ -716,7 +656,6 @@ cc_main() {
     exit 0
   fi
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   cc_main "$@"

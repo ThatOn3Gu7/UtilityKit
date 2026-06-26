@@ -11,7 +11,6 @@ Usage:
   _process_killer.sh [--pid PID] [--signal TERM|KILL]
 USAGE
 }
-
 pk_memory_summary() {
   printf '\n  %s%sMemory overview%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
@@ -32,23 +31,21 @@ pk_memory_summary() {
       "$UK_C_DIM" "$UK_C_RESET"
   fi
 }
-
 pk_top() {
   printf '\n  %s%sTop processes by memory%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 | \
+  ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 |
     awk 'NR==1 {
       printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", $1, $2, $3, $4, $5
       next
     }
-    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }' || \
+    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }' ||
     ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 | sed 's/^/  /'
 }
 
 pk_describe_pid() {
   ps -p "$PK_PID" -o pid=,user=,%cpu=,%mem=,comm= 2>/dev/null || true
 }
-
 pk_kill() {
   local before
   before="$(pk_describe_pid)"
@@ -65,14 +62,25 @@ pk_kill() {
     uk_success "Sent SIG$PK_SIGNAL to PID $PK_PID and the process exited."
   fi
 }
-
 pk_main() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --pid) shift; PK_PID="${1:-}" ;;
-      --signal) shift; PK_SIGNAL="${1:-TERM}" ;;
-      -h|--help) pk_usage; return 0 ;;
-      *) uk_error "Unknown option: $1"; return 1 ;;
+    --pid)
+      shift
+      PK_PID="${1:-}"
+      ;;
+    --signal)
+      shift
+      PK_SIGNAL="${1:-TERM}"
+      ;;
+    -h | --help)
+      pk_usage
+      return 0
+      ;;
+    *)
+      uk_error "Unknown option: $1"
+      return 1
+      ;;
     esac
     shift
   done
@@ -104,7 +112,6 @@ pk_main() {
     fi
   fi
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   pk_main "$@"

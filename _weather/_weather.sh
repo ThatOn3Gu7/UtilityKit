@@ -58,7 +58,6 @@ ask_user() {
     eval "$result_var=\"\$user_input\""
   fi
 }
-
 # CORE WEATHER ENGINE
 wt_fetch() {
   local loc="$1"
@@ -136,7 +135,6 @@ wt_fetch() {
     echo ""
   fi
 }
-
 # INTERACTIVE WIZARD
 wt_wizard() {
   echo -e "\n${C_CYAN}${C_BOLD}✦ Weather Station${C_RESET}"
@@ -156,10 +154,7 @@ wt_wizard() {
   echo ""
   wt_fetch "$loc" "$units" "$style"
 }
-
-# ------------------------------------------------------------------------------
 # ROUTING & CLI LOGIC
-# ------------------------------------------------------------------------------
 wt_usage() {
   cat <<EOF
 ${C_BOLD}${C_CYAN}Weather Station CLI${C_RESET}
@@ -177,7 +172,6 @@ Examples:
   $(basename "$0") Tokyo --full     # Full 3-day forecast for Tokyo
 EOF
 }
-
 wt_main() {
   local loc=""
   local units="metric"
@@ -225,11 +219,8 @@ wt_main() {
     wt_fetch "$loc" "$units" "$style"
   fi
 }
-
 # ENTRY POINT (Standalone Safe)
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-
-  # Removed the 'main.sh' wrapper redirection so direct executions work perfectly!
   wt_main "$@"
 fi

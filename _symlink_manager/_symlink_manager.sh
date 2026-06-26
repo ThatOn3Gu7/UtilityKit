@@ -3,7 +3,6 @@
 # _symlink_manager.sh — Cross-platform intelligent dotfile/directory symlink manager
 # Features automatic backup of existing files/directories, dry-run mode, and status reporting.
 
-
 SM_VERSION="1.0.0"
 SM_MODE="dry-run"
 SM_BACKUP_DIR=""
@@ -44,7 +43,6 @@ sm_setup_colors() {
     I_BACKUP="B"
   fi
 }
-
 sm_usage() {
   cat <<EOF
 ${C_BOLD}Usage:${C_RESET}
@@ -69,7 +67,6 @@ ${C_BOLD}Examples:${C_RESET}
   bash _symlink_manager.sh --apply ~/.dotfiles/.nvim ~/.config/nvim
 EOF
 }
-
 sm_main() {
   sm_setup_colors
   SM_MODE="dry-run"
@@ -79,18 +76,34 @@ sm_main() {
   local positional=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --apply) SM_MODE="apply" ;;
-      --backup-dir)
+    --apply) SM_MODE="apply" ;;
+    --backup-dir)
+      shift
+      [[ $# -gt 0 ]] || {
+        printf "%s%s --backup-dir requires a directory argument.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+        return 1
+      }
+      SM_BACKUP_DIR="$1"
+      ;;
+    --backup-dir=*) SM_BACKUP_DIR="${1#--backup-dir=}" ;;
+    -y | --yes) SM_YES=1 ;;
+    -h | --help)
+      sm_usage
+      return 0
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        positional+=("$1")
         shift
-        [[ $# -gt 0 ]] || { printf "%s%s --backup-dir requires a directory argument.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2; return 1; }
-        SM_BACKUP_DIR="$1"
-        ;;
-      --backup-dir=*) SM_BACKUP_DIR="${1#--backup-dir=}" ;;
-      -y|--yes) SM_YES=1 ;;
-      -h|--help) sm_usage; return 0 ;;
-      --) shift; while [[ $# -gt 0 ]]; do positional+=("$1"); shift; done; break ;;
-      --*) printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2; return 1 ;;
-      *) positional+=("$1") ;;
+      done
+      break
+      ;;
+    --*)
+      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2
+      return 1
+      ;;
+    *) positional+=("$1") ;;
     esac
     shift
   done
@@ -204,7 +217,6 @@ sm_main() {
 
   printf "\n  %s Symbolic link successfully created!\n\n" "${C_GREEN}${C_BOLD}${I_SUCCESS}${C_RESET}"
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   sm_main "$@"

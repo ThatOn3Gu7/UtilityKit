@@ -4,11 +4,9 @@
 yarn_plugin_info() {
   printf 'yarn|yarn|🧶\n'
 }
-
 yarn_detect() {
   command -v yarn >/dev/null 2>&1
 }
-
 yarn_get_cache_dirs() {
   local cache_dir
   if [ -n "${YARN_CACHE_FOLDER:-}" ]; then
@@ -18,7 +16,6 @@ yarn_get_cache_dirs() {
   fi
   printf '%s\n' "$cache_dir"
 }
-
 yarn_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -43,7 +40,6 @@ yarn_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(yarn_get_cache_dirs)
 }
-
 yarn_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

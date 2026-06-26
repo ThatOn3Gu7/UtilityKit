@@ -4,15 +4,12 @@
 bun_plugin_info() {
   printf 'bun|bun|🥯\n'
 }
-
 bun_detect() {
   command -v bun >/dev/null 2>&1
 }
-
 bun_get_cache_dirs() {
   printf '%s\n' "$HOME/.bun/install/cache"
 }
-
 bun_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -37,7 +34,6 @@ bun_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(bun_get_cache_dirs)
 }
-
 bun_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

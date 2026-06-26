@@ -17,7 +17,6 @@ Usage:
   bash setup.sh [--no-menu] [--launcher-name NAME] [--install-dir DIR] [--bin-dir DIR] [--no-path]
 USAGE
 }
-
 setup_expand_path() {
   local input="$1"
   if [[ "$input" == ~* ]]; then
@@ -26,16 +25,30 @@ setup_expand_path() {
     printf '%s\n' "$input"
   fi
 }
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --no-menu) INTERACTIVE=0 ;;
-    --launcher-name) shift; LAUNCHER_NAME="${1:-utility}" ;;
-    --install-dir) shift; INSTALL_DIR="${1:-$INSTALL_DIR}" ;;
-    --bin-dir) shift; BIN_DIR="${1:-$BIN_DIR}" ;;
-    --no-path) ADD_TO_PATH=0 ;;
-    -h|--help) usage; exit 0 ;;
-    *) printf '%sUnknown option: %s%s\n' "$UK_C_RED" "$1" "$UK_C_RESET" >&2; exit 1 ;;
+  --no-menu) INTERACTIVE=0 ;;
+  --launcher-name)
+    shift
+    LAUNCHER_NAME="${1:-utility}"
+    ;;
+  --install-dir)
+    shift
+    INSTALL_DIR="${1:-$INSTALL_DIR}"
+    ;;
+  --bin-dir)
+    shift
+    BIN_DIR="${1:-$BIN_DIR}"
+    ;;
+  --no-path) ADD_TO_PATH=0 ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    printf '%sUnknown option: %s%s\n' "$UK_C_RED" "$1" "$UK_C_RESET" >&2
+    exit 1
+    ;;
   esac
   shift
 done
@@ -43,7 +56,7 @@ done
 INSTALL_DIR="${INSTALL_DIR/#\~/$HOME}"
 BIN_DIR="${BIN_DIR/#\~/$HOME}"
 
-if (( INTERACTIVE == 1 )); then
+if ((INTERACTIVE == 1)); then
   uk_header 'UtilityKit Setup' 'Install the suite and generate a launcher command'
   LAUNCHER_NAME="$(uk_prompt 'Enter the launcher command name' "$LAUNCHER_NAME" 'utility' 'This is the command you will type later to launch UtilityKit.')"
   INSTALL_DIR="$(setup_expand_path "$(uk_prompt 'Enter installation directory for scripts and docs' "$INSTALL_DIR" '~/.local/share/utility' 'All UtilityKit modules will be copied here.')")"
@@ -79,16 +92,16 @@ for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LIC
 done
 find "$INSTALL_DIR" -type f -name '*.sh' -exec chmod +x {} \;
 
-cat > "$BIN_DIR/$LAUNCHER_NAME" <<EOF
+cat >"$BIN_DIR/$LAUNCHER_NAME" <<EOF
 #!/usr/bin/env bash
 exec "$INSTALL_DIR/main.sh" "\$@"
 EOF
 chmod +x "$BIN_DIR/$LAUNCHER_NAME"
 
-if (( ADD_TO_PATH == 1 )); then
+if ((ADD_TO_PATH == 1)); then
   for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
     if [[ -f "$rc" ]] && ! grep -Fq "$BIN_DIR" "$rc"; then
-      printf '\n# Added by UtilityKit\nexport PATH="%s:$PATH"\n' "$BIN_DIR" >> "$rc"
+      printf '\n# Added by UtilityKit\nexport PATH="%s:$PATH"\n' "$BIN_DIR" >>"$rc"
     fi
   done
 fi

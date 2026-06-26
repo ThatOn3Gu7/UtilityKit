@@ -13,16 +13,14 @@ Usage:
   _ssl_checker.sh HOST [--port 443] [--no-dns] [--no-tls]
 USAGE
 }
-
 sc_days_left() {
-  python3 - <<'PY2' "$1"
+  python3 - "$1" <<'PY2'
 import sys,datetime,email.utils
 expiry = email.utils.parsedate_to_datetime(sys.argv[1])
 now = datetime.datetime.now(expiry.tzinfo)
 print((expiry-now).days)
 PY2
 }
-
 sc_dns() {
   printf '\n  %s%sDNS records for %s%s\n' \
     "$UK_C_BOLD" "$UK_C_CYAN" "$SC_HOST" "$UK_C_RESET"
@@ -43,7 +41,6 @@ sc_dns() {
     printf '  %s(dig and nslookup unavailable — skipping DNS checks)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
 }
-
 sc_tls_checks() {
   uk_note 'Legacy TLS support probe:'
   if openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" -tls1 </dev/null >/dev/null 2>&1; then
@@ -57,15 +54,20 @@ sc_tls_checks() {
     uk_success 'TLS 1.1 rejected.'
   fi
 }
-
 sc_main() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --port) shift; SC_PORT="${1:-443}" ;;
-      --no-dns) SC_DNS=0 ;;
-      --no-tls) SC_TLS=0 ;;
-      -h|--help) sc_usage; return 0 ;;
-      *) SC_HOST="$1" ;;
+    --port)
+      shift
+      SC_PORT="${1:-443}"
+      ;;
+    --no-dns) SC_DNS=0 ;;
+    --no-tls) SC_TLS=0 ;;
+    -h | --help)
+      sc_usage
+      return 0
+      ;;
+    *) SC_HOST="$1" ;;
     esac
     shift
   done
@@ -82,13 +84,19 @@ sc_main() {
         '443' \
         '443  →  standard HTTPS  |  8443  →  alternate HTTPS  |  465  →  SMTPS' \
         'Most HTTPS services use 443. Leave blank to use the default.')"
-      [[ -n "$SC_HOST" ]] || { uk_warn 'No host entered. Exiting.'; return 0; }
+      [[ -n "$SC_HOST" ]] || {
+        uk_warn 'No host entered. Exiting.'
+        return 0
+      }
     else
       sc_usage
       return 1
     fi
   fi
-  uk_has_cmd openssl || { uk_error 'openssl is required.'; return 1; }
+  uk_has_cmd openssl || {
+    uk_error 'openssl is required.'
+    return 1
+  }
   uk_header 'UtilityKit SSL Checker' "$SC_HOST:$SC_PORT"
   local cert_info expiry issuer subject days
   cert_info=$(openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" </dev/null 2>/dev/null | openssl x509 -noout -dates -issuer -subject 2>/dev/null) || {
@@ -101,11 +109,16 @@ sc_main() {
   issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {$1=""; sub(/^ /,""); print}')
   days=$(sc_days_left "$expiry")
   printf '\nSubject: %s\nIssuer : %s\nDays left: %s\n' "$subject" "$issuer" "$days"
-  (( days < 0 )) && uk_error 'Certificate is expired.' || (( days < 30 )) && uk_warn 'Certificate expires in less than 30 days.' || uk_success 'Certificate lifetime looks healthy.'
-  (( SC_DNS == 1 )) && { printf '\n'; sc_dns; }
-  (( SC_TLS == 1 )) && { printf '\n'; sc_tls_checks; }
+  ((days < 0)) && uk_error 'Certificate is expired.' || ((days < 30)) && uk_warn 'Certificate expires in less than 30 days.' || uk_success 'Certificate lifetime looks healthy.'
+  ((SC_DNS == 1)) && {
+    printf '\n'
+    sc_dns
+  }
+  ((SC_TLS == 1)) && {
+    printf '\n'
+    sc_tls_checks
+  }
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   sc_main "$@"

@@ -4,18 +4,15 @@
 pacman_plugin_info() {
   printf 'pacman|pacman|🐧\n'
 }
-
 pacman_detect() {
   command -v pacman >/dev/null 2>&1
 }
-
 pacman_get_cache_dirs() {
   if [ "$CC_OS" = "termux" ] && [ -n "${PREFIX:-}" ]; then
     printf '%s\n' "$PREFIX/var/cache/pacman/pkg"
   fi
   printf '%s\n' "/var/cache/pacman/pkg"
 }
-
 pacman_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -40,7 +37,6 @@ pacman_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(pacman_get_cache_dirs)
 }
-
 pacman_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

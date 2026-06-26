@@ -16,37 +16,40 @@ Usage:
   _media_convert.sh --kind image|video --to webp|jpg|png|mp4 [--quality 82] [--strip-exif] [--output DIR] [--apply] PATH...
 USAGE
 }
-
 mc_collect() {
   local p
   for p in "${MC_PATHS[@]}"; do
     if [[ -d "$p" ]]; then
       case "$MC_KIND" in
-        image) find "$p" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) ;;
-        video) find "$p" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' \) ;;
+      image) find "$p" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) ;;
+      video) find "$p" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' \) ;;
       esac
     elif [[ -f "$p" ]]; then
       printf '%s\n' "$p"
     fi
   done
 }
-
 mc_require_tool() {
   case "$MC_KIND" in
-    image)
-      uk_has_cmd magick || uk_has_cmd ffmpeg || { uk_error 'Need ImageMagick (magick) or ffmpeg for image conversion.'; return 1; }
-      ;;
-    video)
-      uk_has_cmd ffmpeg || { uk_error 'ffmpeg is required for video conversion.'; return 1; }
-      ;;
+  image)
+    uk_has_cmd magick || uk_has_cmd ffmpeg || {
+      uk_error 'Need ImageMagick (magick) or ffmpeg for image conversion.'
+      return 1
+    }
+    ;;
+  video)
+    uk_has_cmd ffmpeg || {
+      uk_error 'ffmpeg is required for video conversion.'
+      return 1
+    }
+    ;;
   esac
 }
-
 mc_convert_one() {
   local src="$1" base out
   base="$(basename "${src%.*}")"
   out="$MC_OUTPUT/${base}.${MC_TO}"
-  if (( MC_APPLY == 0 )); then
+  if ((MC_APPLY == 0)); then
     printf '  %s%s→%s %s%s%s  %s->%s  %s%s%s\n' \
       "$UK_C_DIM" "" "$UK_C_RESET" \
       "$UK_C_CYAN" "$src" "$UK_C_RESET" \
@@ -60,8 +63,8 @@ mc_convert_one() {
   if [[ "$MC_KIND" == 'image' ]]; then
     local method='ffmpeg'
     if uk_has_cmd magick; then
-      method="magick (quality: $MC_QUALITY$(( MC_STRIP_EXIF == 1 )) && printf ', EXIF stripped' || true)"
-      if (( MC_STRIP_EXIF == 1 )); then
+      method="magick (quality: $MC_QUALITY$((MC_STRIP_EXIF == 1)) && printf ', EXIF stripped' || true)"
+      if ((MC_STRIP_EXIF == 1)); then
         magick "$src" -strip -quality "$MC_QUALITY" "$out"
       else
         magick "$src" -quality "$MC_QUALITY" "$out"
@@ -76,21 +79,42 @@ mc_convert_one() {
   uk_success "Created: $out"
 }
 mc_main() {
-  MC_KIND='image'; MC_TO='webp'; MC_QUALITY=82; MC_APPLY=0; MC_STRIP_EXIF=0; MC_OUTPUT=''; MC_PATHS=()
+  MC_KIND='image'
+  MC_TO='webp'
+  MC_QUALITY=82
+  MC_APPLY=0
+  MC_STRIP_EXIF=0
+  MC_OUTPUT=''
+  MC_PATHS=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --kind) shift; MC_KIND="${1:-image}" ;;
-      --to) shift; MC_TO="${1:-webp}" ;;
-      --quality) shift; MC_QUALITY="${1:-82}" ;;
-      --strip-exif) MC_STRIP_EXIF=1 ;;
-      --output) shift; MC_OUTPUT="${1:-}" ;;
-      --apply) MC_APPLY=1 ;;
-      -h|--help) mc_usage; return 0 ;;
-      *) MC_PATHS+=("$1") ;;
+    --kind)
+      shift
+      MC_KIND="${1:-image}"
+      ;;
+    --to)
+      shift
+      MC_TO="${1:-webp}"
+      ;;
+    --quality)
+      shift
+      MC_QUALITY="${1:-82}"
+      ;;
+    --strip-exif) MC_STRIP_EXIF=1 ;;
+    --output)
+      shift
+      MC_OUTPUT="${1:-}"
+      ;;
+    --apply) MC_APPLY=1 ;;
+    -h | --help)
+      mc_usage
+      return 0
+      ;;
+    *) MC_PATHS+=("$1") ;;
     esac
     shift
   done
-  if (( ${#MC_PATHS[@]} == 0 )) && [[ -t 0 && -t 1 ]]; then
+  if ((${#MC_PATHS[@]} == 0)) && [[ -t 0 && -t 1 ]]; then
     uk_header 'UtilityKit Media Convert' 'Batch image and video conversion'
 
     MC_KIND="$(uk_prompt \
@@ -105,7 +129,10 @@ mc_main() {
       '' \
       '~/Pictures  |  ./assets/images  |  ./recording.mov' \
       'A directory will be scanned recursively for matching files.')"
-    [[ -n "$input_path" ]] || { uk_warn 'No path entered. Exiting.'; return 0; }
+    [[ -n "$input_path" ]] || {
+      uk_warn 'No path entered. Exiting.'
+      return 0
+    }
     MC_PATHS+=("$input_path")
 
     if [[ "$MC_KIND" == 'video' ]]; then
@@ -141,7 +168,7 @@ mc_main() {
     if uk_confirm 'Apply conversion now? (dry-run preview if you say no)' 'N'; then
       MC_APPLY=1
     fi
-  elif (( ${#MC_PATHS[@]} == 0 )); then
+  elif ((${#MC_PATHS[@]} == 0)); then
     mc_usage
     return 1
   fi
@@ -154,7 +181,6 @@ mc_main() {
     mc_convert_one "$file"
   done < <(mc_collect)
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   mc_main "$@"

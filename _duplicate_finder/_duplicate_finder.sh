@@ -21,29 +21,26 @@ if ! declare -f uk_abs_path >/dev/null 2>&1; then
     fi
   }
 fi
-
 if ! declare -f uk_confirm >/dev/null 2>&1; then
   uk_confirm() {
     local prompt="$1" default="$2"
     local answer
     printf '%s [%s/%s]: ' "$prompt" \
-      "$( [[ "$default" == "Y" ]] && echo "Y" || echo "y" )" \
-      "$( [[ "$default" == "N" ]] && echo "N" || echo "n" )" >&2
+      "$([[ "$default" == "Y" ]] && echo "Y" || echo "y")" \
+      "$([[ "$default" == "N" ]] && echo "N" || echo "n")" >&2
     read -r answer
     case "$answer" in
-      Y|y) return 0 ;;
-      N|n) return 1 ;;
-      *) [[ "$default" == "Y" || "$default" == "y" ]] && return 0 || return 1 ;;
+    Y | y) return 0 ;;
+    N | n) return 1 ;;
+    *) [[ "$default" == "Y" || "$default" == "y" ]] && return 0 || return 1 ;;
     esac
   }
 fi
-
 # Fallback for logging if not defined
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*"; }; fi
 if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "Note: %s\n" "$*"; }; fi
 if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success: %s\n" "$*"; }; fi
 if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
-
 _df_hash() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | awk '{print $1}'
@@ -58,7 +55,6 @@ _df_hash() {
     return 1
   fi
 }
-
 df_usage() {
   cat <<'USAGE'
 Usage:
@@ -71,7 +67,6 @@ Options:
   -h, --help    Show this help.
 USAGE
 }
-
 df_scan() {
   if ! command -v find >/dev/null; then
     uk_error "find command is required."
@@ -80,11 +75,11 @@ df_scan() {
 
   # Removed sizes_file and duplicates_file from 'local' so they stay in scope for the EXIT trap
   local current_size='' file size
-  
+
   sizes_file=$(mktemp)
   duplicates_file=$(mktemp)
-  
-  # Use double quotes so the exact temp file paths are evaluated immediately, 
+
+  # Use double quotes so the exact temp file paths are evaluated immediately,
   # bypassing any strict unbound variable/scope issues during EXIT
   trap "rm -f '$sizes_file' '$duplicates_file'" EXIT
 
@@ -92,25 +87,25 @@ df_scan() {
   uk_note 'Scanning files by size first, then hashing exact-size matches...'
 
   while IFS= read -r -d '' file; do
-    size=$(wc -c < "$file" 2>/dev/null || echo "0")
-    printf '%s\t%s\n' "$size" "$file" >> "$sizes_file"
+    size=$(wc -c <"$file" 2>/dev/null || echo "0")
+    printf '%s\t%s\n' "$size" "$file" >>"$sizes_file"
   done < <(find "$DF_DIR" \( -path '*/.git/*' -o -path '*/.git' -o -path '*/.hg/*' -o -path '*/.hg' -o -path '*/.svn/*' -o -path '*/.svn' \) -prune -o -type f -print0)
 
   sort -n "$sizes_file" -o "$sizes_file"
 
   local -a group=()
   current_size=''
-  
+
   while IFS=$'\t' read -r size file; do
     if [[ "$size" != "$current_size" && ${#group[@]} -gt 0 ]]; then
-      if (( ${#group[@]} > 1 )); then
+      if ((${#group[@]} > 1)); then
         local candidate hash
         unset -v first_for_hash 2>/dev/null || true
         declare -A first_for_hash
         for candidate in "${group[@]}"; do
           hash=$(_df_hash "$candidate") || continue
           if [[ -n "${first_for_hash[$hash]:-}" ]]; then
-            printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >> "$duplicates_file"
+            printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >>"$duplicates_file"
           else
             first_for_hash[$hash]="$candidate"
           fi
@@ -120,29 +115,27 @@ df_scan() {
     fi
     current_size="$size"
     group+=("$file")
-  done < "$sizes_file"
+  done <"$sizes_file"
 
   # Process last group
-  if (( ${#group[@]} > 1 )); then
+  if ((${#group[@]} > 1)); then
     local candidate hash
     unset -v first_for_hash 2>/dev/null || true
     declare -A first_for_hash
     for candidate in "${group[@]}"; do
       hash=$(_df_hash "$candidate") || continue
       if [[ -n "${first_for_hash[$hash]:-}" ]]; then
-        printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >> "$duplicates_file"
+        printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >>"$duplicates_file"
       else
         first_for_hash[$hash]="$candidate"
       fi
     done
   fi
-
   if [[ ! -s "$duplicates_file" ]]; then
     uk_success 'No exact duplicates found.'
     return 0
   fi
-
-  local UK_C_BOLD=${UK_C_BOLD:-} UK_C_CYAN=${UK_C_CYAN:-} UK_C_RESET=${UK_C_RESET:-} 
+  local UK_C_BOLD=${UK_C_BOLD:-} UK_C_CYAN=${UK_C_CYAN:-} UK_C_RESET=${UK_C_RESET:-}
   local UK_C_GREEN=${UK_C_GREEN:-} UK_C_DIM=${UK_C_DIM:-} UK_I_ARROW=${UK_I_ARROW:-'>'}
 
   printf '\n  %s%sDuplicate groups found%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
@@ -153,7 +146,7 @@ df_scan() {
     printf '  %sDupe:%s   %s%s%s  %s(will be %s if applied)%s\n' \
       "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$dup" "$UK_C_RESET" \
       "$UK_C_DIM" "${DF_ACTION:-removed}" "$UK_C_RESET"
-  done < "$duplicates_file"
+  done <"$duplicates_file"
   printf '\n'
 
   if [[ "$DF_ACTION" == 'report' ]]; then
@@ -163,46 +156,49 @@ df_scan() {
 
   local changed=0
   while IFS=$'\t' read -r canonical duplicate; do
-    if (( DF_APPLY == 1 )); then
+    if ((DF_APPLY == 1)); then
       case "$DF_ACTION" in
-        delete)
-          rm -f "$duplicate"
-          ;;
-        hardlink)
-          rm -f "$duplicate"
-          if ! ln "$canonical" "$duplicate"; then
-            uk_error "Failed to create hardlink from $canonical to $duplicate (different filesystems?)"
-            continue
-          fi
-          ;;
+      delete)
+        rm -f "$duplicate"
+        ;;
+      hardlink)
+        rm -f "$duplicate"
+        if ! ln "$canonical" "$duplicate"; then
+          uk_error "Failed to create hardlink from $canonical to $duplicate (different filesystems?)"
+          continue
+        fi
+        ;;
       esac
       changed=$((changed + 1))
     else
       uk_note "Would ${DF_ACTION} duplicate: $duplicate"
     fi
-  done < "$duplicates_file"
+  done <"$duplicates_file"
 
-  (( DF_APPLY == 1 )) && uk_success "Processed $changed duplicate file(s)."
+  ((DF_APPLY == 1)) && uk_success "Processed $changed duplicate file(s)."
 }
-
 df_main() {
-  DF_DIR='.'; DF_ACTION='report'; DF_APPLY=0
+  DF_DIR='.'
+  DF_ACTION='report'
+  DF_APPLY=0
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1
     case "$1" in
-      --delete) DF_ACTION='delete' ;;
-      --hardlink) DF_ACTION='hardlink' ;;
-      --apply) DF_APPLY=1 ;;
-      -h|--help) df_usage; return 0 ;;
-      *) DF_DIR="$1" ;;
+    --delete) DF_ACTION='delete' ;;
+    --hardlink) DF_ACTION='hardlink' ;;
+    --apply) DF_APPLY=1 ;;
+    -h | --help)
+      df_usage
+      return 0
+      ;;
+    *) DF_DIR="$1" ;;
     esac
     shift
   done
-
-  if (( seen_args == 0 )) && [[ -t 0 && -t 1 ]]; then
+  if ((seen_args == 0)) && [[ -t 0 && -t 1 ]]; then
     uk_header 'UtilityKit Duplicate Finder' 'Size-first, hash-second duplicate detection'
-    
+
     if declare -f uk_prompt >/dev/null 2>&1; then
       DF_DIR="$(uk_prompt 'Enter directory to scan for duplicates' '.' '~/Downloads | ~/Pictures | ./assets' 'Matches sizes first, then hashes.')"
     else
@@ -219,27 +215,26 @@ df_main() {
     read -r mode </dev/tty
 
     case "$mode" in
-      2)
-        DF_ACTION='delete'
-        if uk_confirm 'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
-          DF_APPLY=1
-        fi
-        ;;
-      3)
-        DF_ACTION='hardlink'
-        if uk_confirm 'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
-          DF_APPLY=1
-        fi
-        ;;
-      *)
-        DF_ACTION='report'
-        ;;
+    2)
+      DF_ACTION='delete'
+      if uk_confirm 'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
+        DF_APPLY=1
+      fi
+      ;;
+    3)
+      DF_ACTION='hardlink'
+      if uk_confirm 'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
+        DF_APPLY=1
+      fi
+      ;;
+    *)
+      DF_ACTION='report'
+      ;;
     esac
   fi
 
   df_scan
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   df_main "$@"

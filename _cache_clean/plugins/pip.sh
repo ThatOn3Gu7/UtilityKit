@@ -4,11 +4,9 @@
 pip_plugin_info() {
   printf 'pip|pip|🐍\n'
 }
-
 pip_detect() {
   command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1
 }
-
 pip_get_cache_dirs() {
   local dirs=""
   if [ -n "${XDG_CACHE_HOME:-}" ]; then
@@ -22,7 +20,6 @@ pip_get_cache_dirs() {
   fi
   printf '%s\n' "$dirs"
 }
-
 pip_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -60,7 +57,6 @@ pip_scan_cache() {
 
   done < <(pip_get_cache_dirs)
 }
-
 pip_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

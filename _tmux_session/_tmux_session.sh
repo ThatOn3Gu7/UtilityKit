@@ -36,7 +36,6 @@ sanitize_session_name() {
   name="${name%-}"
   echo "$name"
 }
-
 # Format helper for Unix Timestamps
 format_timestamp() {
   local ts="$1"
@@ -50,7 +49,6 @@ format_timestamp() {
     echo "Unknown"
   fi
 }
-
 # Helper to dynamically grab all running sessions in a clean array
 get_live_sessions() {
   local sess=()
@@ -61,12 +59,10 @@ get_live_sessions() {
   done < <(tmux list-sessions -F '#{session_name}' 2>/dev/null || true)
   echo "${sess[@]}"
 }
-
 # Helper to grab the absolute latest active session name
 get_latest_active_session() {
   tmux list-sessions -F '#{session_activity} #{session_name}' 2>/dev/null | sort -nr | head -n1 | cut -d' ' -f2-
 }
-
 # INTERACTIVE PROMPT ENGINE
 ask_user() {
   local prompt="$1"
@@ -92,7 +88,6 @@ ask_user() {
     eval "$result_var=\"\$user_input\""
   fi
 }
-
 # CORE FUNCTIONS
 tms_list_pretty() {
   local raw_list
@@ -135,7 +130,6 @@ tms_list_pretty() {
 
   echo -e "  ${C_BOLD}${C_WHITE}└──────────────────────────────────────────────────────────┘${C_RESET}\n"
 }
-
 tms_new() {
   local name
   name=$(sanitize_session_name "$1")
@@ -149,7 +143,6 @@ tms_new() {
   tmux new-session -d -s "$name"
   echo -e "${C_GREEN}✔ Created detached session '${name}' successfully!${C_RESET}"
 }
-
 tms_attach() {
   local name="$1"
 
@@ -166,7 +159,6 @@ tms_attach() {
     exec tmux attach -t "$name"
   fi
 }
-
 tms_kill() {
   local name="$1"
 
@@ -178,7 +170,6 @@ tms_kill() {
   tmux kill-session -t "$name"
   echo -e "${C_GREEN}✔ Session '${name}' has been terminated.${C_RESET}"
 }
-
 # STEP-BY-STEP WIZARD (100% Real-Time Live Data)
 tms_wizard() {
   echo -e "\n${C_CYAN}${C_BOLD}Tmux Session${C_RESET}"
@@ -254,7 +245,6 @@ tms_wizard() {
     ;;
   esac
 }
-
 # ROUTING LOGIC
 tms_usage() {
   echo -e "Usage: $(basename "$0") [--list | --new NAME | --attach NAME | --kill NAME]"
@@ -298,7 +288,6 @@ tms_main() {
     echo -e "${C_RED}✖ Error: tmux is not installed.${C_RESET}" >&2
     return 1
   }
-
   case "$action" in
   wizard) tms_wizard ;;
   list) tms_list_pretty ;;
@@ -307,7 +296,6 @@ tms_main() {
   kill) tms_kill "$name" ;;
   esac
 }
-
 # Entry point execution guard
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail

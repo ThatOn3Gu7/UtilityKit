@@ -15,7 +15,6 @@ at_profiles_dir() {
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-
 at_usage() {
   cat <<'USAGE'
 Usage:
@@ -24,7 +23,6 @@ Usage:
   _api_tester.sh --run NAME | --show NAME | --list
 USAGE
 }
-
 at_save_profile() {
   local file="$(at_profiles_dir)/$AT_NAME.conf" hdr
   {
@@ -37,13 +35,15 @@ at_save_profile() {
       printf '  %q\n' "$hdr"
     done
     printf ')\n'
-  } > "$file"
+  } >"$file"
   uk_success "Saved API profile: $file"
 }
-
 at_load_profile() {
   local file="$(at_profiles_dir)/$AT_NAME.conf"
-  [[ -f "$file" ]] || { uk_error "Profile not found: $AT_NAME"; return 1; }
+  [[ -f "$file" ]] || {
+    uk_error "Profile not found: $AT_NAME"
+    return 1
+  }
   # shellcheck disable=SC1090
   source "$file"
   AT_METHOD="$API_METHOD"
@@ -52,19 +52,22 @@ at_load_profile() {
   AT_BODY_FILE="$API_BODY_FILE"
   AT_HEADERS=("${API_HEADERS[@]:-}")
 }
-
 at_list_profiles() {
   find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.conf' -exec basename {} .conf \; | sort
 }
-
 at_show_profile() {
   local file="$(at_profiles_dir)/$AT_NAME.conf"
-  [[ -f "$file" ]] || { uk_error "Profile not found: $AT_NAME"; return 1; }
+  [[ -f "$file" ]] || {
+    uk_error "Profile not found: $AT_NAME"
+    return 1
+  }
   cat "$file"
 }
-
 at_run_request() {
-  uk_has_cmd curl || { uk_error 'curl is required.'; return 1; }
+  uk_has_cmd curl || {
+    uk_error 'curl is required.'
+    return 1
+  }
   local tmp_body tmp_meta tmp_timing curl_args=() hdr
   tmp_body=$(mktemp)
   tmp_meta=$(mktemp)
@@ -83,7 +86,7 @@ at_run_request() {
     curl_args+=(--data "$AT_BODY")
   fi
 
-  curl "${curl_args[@]}" 2>"$tmp_meta" > "$tmp_timing" || true
+  curl "${curl_args[@]}" 2>"$tmp_meta" >"$tmp_timing" || true
 
   printf '\n  %s%sRequest%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
@@ -126,69 +129,115 @@ at_run_request() {
     cat "$tmp_meta" | sed 's/^/  /'
   fi
 }
-
 at_main() {
-  AT_ACTION='run'; AT_NAME=''; AT_METHOD='GET'; AT_URL=''; AT_BODY=''; AT_BODY_FILE=''; AT_HEADERS=()
+  AT_ACTION='run'
+  AT_NAME=''
+  AT_METHOD='GET'
+  AT_URL=''
+  AT_BODY=''
+  AT_BODY_FILE=''
+  AT_HEADERS=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --save) shift; AT_ACTION='save'; AT_NAME="${1:-}" ;;
-      --run) shift; AT_ACTION='run-profile'; AT_NAME="${1:-}" ;;
-      --show) shift; AT_ACTION='show'; AT_NAME="${1:-}" ;;
-      --list) AT_ACTION='list' ;;
-      --method) shift; AT_METHOD="${1:-GET}" ;;
-      --url) shift; AT_URL="${1:-}" ;;
-      --header) shift; AT_HEADERS+=("${1:-}") ;;
-      --body) shift; AT_BODY="${1:-}" ;;
-      --body-file) shift; AT_BODY_FILE="${1:-}" ;;
-      -h|--help) at_usage; return 0 ;;
-      *) uk_error "Unknown option: $1"; return 1 ;;
+    --save)
+      shift
+      AT_ACTION='save'
+      AT_NAME="${1:-}"
+      ;;
+    --run)
+      shift
+      AT_ACTION='run-profile'
+      AT_NAME="${1:-}"
+      ;;
+    --show)
+      shift
+      AT_ACTION='show'
+      AT_NAME="${1:-}"
+      ;;
+    --list) AT_ACTION='list' ;;
+    --method)
+      shift
+      AT_METHOD="${1:-GET}"
+      ;;
+    --url)
+      shift
+      AT_URL="${1:-}"
+      ;;
+    --header)
+      shift
+      AT_HEADERS+=("${1:-}")
+      ;;
+    --body)
+      shift
+      AT_BODY="${1:-}"
+      ;;
+    --body-file)
+      shift
+      AT_BODY_FILE="${1:-}"
+      ;;
+    -h | --help)
+      at_usage
+      return 0
+      ;;
+    *)
+      uk_error "Unknown option: $1"
+      return 1
+      ;;
     esac
     shift
   done
   case "$AT_ACTION" in
-    list) at_list_profiles ;;
-    show) at_show_profile ;;
-    save)
-      [[ -n "$AT_NAME" && -n "$AT_URL" ]] || { at_usage; return 1; }
-      at_save_profile
-      ;;
-    run-profile)
-      [[ -n "$AT_NAME" ]] || { at_usage; return 1; }
-      at_load_profile
-      at_run_request
-      ;;
-    run)
-      if [[ -z "$AT_URL" && -t 0 && -t 1 ]]; then
-        uk_header 'UtilityKit API Tester' 'One-off HTTP request'
-        AT_METHOD="$(uk_prompt \
-          'Enter HTTP method' \
-          'GET' \
-          'GET  |  POST  |  PUT  |  PATCH  |  DELETE' \
-          'GET fetches data, POST creates, PUT replaces, PATCH updates, DELETE removes.')"
-        AT_URL="$(uk_prompt \
-          'Enter request URL' \
-          '' \
-          'https://api.example.com/items  |  http://127.0.0.1:8000/health' \
-          'Must include the protocol. Use http:// for local servers.')"
-        local hdr
-        hdr="$(uk_prompt \
-          'Optional header in Key: Value format (leave blank to skip)' \
-          '' \
-          'Authorization: Bearer TOKEN  |  Content-Type: application/json' \
-          'Only one header can be added here. Use --header for multiple.')"
-        [[ -n "$hdr" ]] && AT_HEADERS+=("$hdr")
-        AT_BODY="$(uk_prompt \
-          'Optional request body (leave blank to skip)' \
-          '' \
-          '{"name":"demo"}  |  id=1&active=true' \
-          'For JSON bodies also add a Content-Type: application/json header above.')"
-      fi
-      [[ -n "$AT_URL" ]] || { at_usage; return 1; }
-      at_run_request
-      ;;
+  list) at_list_profiles ;;
+  show) at_show_profile ;;
+  save)
+    [[ -n "$AT_NAME" && -n "$AT_URL" ]] || {
+      at_usage
+      return 1
+    }
+    at_save_profile
+    ;;
+  run-profile)
+    [[ -n "$AT_NAME" ]] || {
+      at_usage
+      return 1
+    }
+    at_load_profile
+    at_run_request
+    ;;
+  run)
+    if [[ -z "$AT_URL" && -t 0 && -t 1 ]]; then
+      uk_header 'UtilityKit API Tester' 'One-off HTTP request'
+      AT_METHOD="$(uk_prompt \
+        'Enter HTTP method' \
+        'GET' \
+        'GET  |  POST  |  PUT  |  PATCH  |  DELETE' \
+        'GET fetches data, POST creates, PUT replaces, PATCH updates, DELETE removes.')"
+      AT_URL="$(uk_prompt \
+        'Enter request URL' \
+        '' \
+        'https://api.example.com/items  |  http://127.0.0.1:8000/health' \
+        'Must include the protocol. Use http:// for local servers.')"
+      local hdr
+      hdr="$(uk_prompt \
+        'Optional header in Key: Value format (leave blank to skip)' \
+        '' \
+        'Authorization: Bearer TOKEN  |  Content-Type: application/json' \
+        'Only one header can be added here. Use --header for multiple.')"
+      [[ -n "$hdr" ]] && AT_HEADERS+=("$hdr")
+      AT_BODY="$(uk_prompt \
+        'Optional request body (leave blank to skip)' \
+        '' \
+        '{"name":"demo"}  |  id=1&active=true' \
+        'For JSON bodies also add a Content-Type: application/json header above.')"
+    fi
+    [[ -n "$AT_URL" ]] || {
+      at_usage
+      return 1
+    }
+    at_run_request
+    ;;
   esac
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   at_main "$@"

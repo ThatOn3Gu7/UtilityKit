@@ -4,11 +4,9 @@
 pnpm_plugin_info() {
   printf 'pnpm|pnpm|🅿️\n'
 }
-
 pnpm_detect() {
   command -v pnpm >/dev/null 2>&1
 }
-
 pnpm_get_cache_dirs() {
   printf '%s\n' "$HOME/.pnpm-store"
   if [ -n "${XDG_CACHE_HOME:-}" ]; then
@@ -17,7 +15,6 @@ pnpm_get_cache_dirs() {
     printf '%s\n' "$HOME/.cache/pnpm"
   fi
 }
-
 pnpm_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -42,7 +39,6 @@ pnpm_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(pnpm_get_cache_dirs)
 }
-
 pnpm_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

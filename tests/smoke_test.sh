@@ -11,21 +11,19 @@ run_test() {
   shift
   printf '== %s ==\n' "$name"
   if "$@"; then
-    PASS=$((PASS+1))
+    PASS=$((PASS + 1))
   else
-    FAIL=$((FAIL+1))
+    FAIL=$((FAIL + 1))
     printf 'FAILED: %s\n' "$name" >&2
   fi
   printf '\n'
 }
-
 syntax_check() {
   local f
   while IFS= read -r -d '' f; do
     bash -n "$f"
   done < <(find "$ROOT" -type f -name '*.sh' -print0)
 }
-
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
@@ -35,47 +33,44 @@ help_check() {
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1
   done
 }
-
 core_smoke() {
   mkdir -p "$TMP/src/sub" "$TMP/dst/sub"
-  printf 'new\n' > "$TMP/src/a.txt"
-  printf 'nested\n' > "$TMP/src/sub/b.txt"
-  printf 'old\n' > "$TMP/dst/a.txt"
-  printf 'old file\n' > "$TMP/dst/obsolete.txt"
+  printf 'new\n' >"$TMP/src/a.txt"
+  printf 'nested\n' >"$TMP/src/sub/b.txt"
+  printf 'old\n' >"$TMP/dst/a.txt"
+  printf 'old file\n' >"$TMP/dst/obsolete.txt"
   NO_COLOR=1 bash "$ROOT/_apply_changes/_apply_changes.sh" --apply --yes --mirror "$TMP/src" "$TMP/dst" >/dev/null
   [[ -f "$TMP/dst/sub/b.txt" && ! -f "$TMP/dst/obsolete.txt" ]]
 
-
   mkdir -p "$TMP/move_src/sub" "$TMP/move_out"
-  printf 'alpha' > "$TMP/move_src/a.txt"
-  printf 'skip' > "$TMP/move_src/sub/skip.md"
+  printf 'alpha' >"$TMP/move_src/a.txt"
+  printf 'skip' >"$TMP/move_src/sub/skip.md"
   NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_move_in_batch/_move_in_batch.sh" --target "$TMP/move_src" --output "$TMP/move_out" --exclude .md >/dev/null
   [[ -f "$TMP/move_out/a.txt" && ! -f "$TMP/move_out/sub/skip.md" ]]
 
   mkdir -p "$TMP/rename_src"
-  printf '1' > "$TMP/rename_src/file.js"
-  printf '#keep' > "$TMP/rename_src/README.md"
+  printf '1' >"$TMP/rename_src/file.js"
+  printf '#keep' >"$TMP/rename_src/README.md"
   mkdir -p "$TMP/rename_out"
   NO_COLOR=1 bash "$ROOT/_rename_batch/_rename_batch.sh" "$TMP/rename_src" txt "$TMP/rename_out" >/dev/null
   [[ -f "$TMP/rename_out/file.txt" && ! -f "$TMP/rename_out/README.txt" ]]
 
   mkdir -p "$TMP/links"
-  printf 'config' > "$TMP/original.conf"
-  printf 'old' > "$TMP/links/app.conf"
+  printf 'config' >"$TMP/original.conf"
+  printf 'old' >"$TMP/links/app.conf"
   NO_COLOR=1 bash "$ROOT/_symlink_manager/_symlink_manager.sh" --apply -y "$TMP/original.conf" "$TMP/links/app.conf" >/dev/null
   [[ -L "$TMP/links/app.conf" ]]
 
   printf '0\n' | NO_COLOR=1 bash "$ROOT/_disk_analyzer/_disk_analyzer.sh" --count 2 "$TMP" >/dev/null
   NO_COLOR=1 bash "$ROOT/_cache_clean/_cache_clean.sh" --help >/dev/null
 }
-
 roadmap_smoke() {
   mkdir -p "$TMP/envproj"
-  cat > "$TMP/envproj/.env.example" <<EOF
+  cat >"$TMP/envproj/.env.example" <<EOF
 API_URL=
 TOKEN=
 EOF
-  cat > "$TMP/envproj/.env.local" <<EOF
+  cat >"$TMP/envproj/.env.local" <<EOF
 API_URL=http://localhost
 TOKEN=abc
 EOF
@@ -87,12 +82,12 @@ EOF
   git -C "$TMP/gitrepo" init -q
   git -C "$TMP/gitrepo" config user.email test@example.com
   git -C "$TMP/gitrepo" config user.name tester
-  printf 'root\n' > "$TMP/gitrepo/file.txt"
+  printf 'root\n' >"$TMP/gitrepo/file.txt"
   git -C "$TMP/gitrepo" add . && git -C "$TMP/gitrepo" commit -qm init
   local base_branch
   base_branch=$(git -C "$TMP/gitrepo" rev-parse --abbrev-ref HEAD)
   git -C "$TMP/gitrepo" checkout -qb feat
-  printf 'branch\n' >> "$TMP/gitrepo/file.txt"
+  printf 'branch\n' >>"$TMP/gitrepo/file.txt"
   git -C "$TMP/gitrepo" commit -am 'feat' -q
   git -C "$TMP/gitrepo" checkout -q "$base_branch"
   git -C "$TMP/gitrepo" merge --no-ff -m 'merge feat' -q feat
@@ -102,13 +97,13 @@ EOF
   [[ -f "$TMP/demo/main.sh" ]]
 
   mkdir -p "$TMP/dupes"
-  printf 'same' > "$TMP/dupes/a.txt"
+  printf 'same' >"$TMP/dupes/a.txt"
   cp "$TMP/dupes/a.txt" "$TMP/dupes/b.txt"
   bash "$ROOT/_duplicate_finder/_duplicate_finder.sh" "$TMP/dupes" --delete --apply >/dev/null
   [[ -f "$TMP/dupes/a.txt" && ! -f "$TMP/dupes/b.txt" ]]
 
   mkdir -p "$TMP/logs"
-  printf 'old log' > "$TMP/logs/app.log"
+  printf 'old log' >"$TMP/logs/app.log"
   touch -d '10 days ago' "$TMP/logs/app.log"
   bash "$ROOT/_log_rotator/_log_rotator.sh" --path "$TMP/logs" --older-than 1 --archive-dir "$TMP/archives" --apply >/dev/null
   find "$TMP/archives" -type f -name '*.tar.gz' | grep -q .
@@ -135,21 +130,21 @@ EOF
   bash "$ROOT/_password_gen/_password_gen.sh" --mode passphrase >/dev/null
 
   mkdir -p "$TMP/home/.ssh"
-  cat > "$TMP/home/.ssh/config" <<EOF
+  cat >"$TMP/home/.ssh/config" <<EOF
 Host demo-host
   HostName example.com
 EOF
   HOME="$TMP/home" bash "$ROOT/_ssh_assistant/_ssh_assistant.sh" >/dev/null
 
-  printf 'secret' > "$TMP/secret.txt"
+  printf 'secret' >"$TMP/secret.txt"
   bash "$ROOT/_shredder/_shredder.sh" --apply "$TMP/secret.txt" >/dev/null
   [[ ! -f "$TMP/secret.txt" ]]
 
   bash "$ROOT/_media_convert/_media_convert.sh" --help >/dev/null
 
   mkdir -p "$TMP/md"
-  printf '# Title\n\n## Section\n\n|a|bb|\n|-|-|\n|1|22|\n\n[doc](ref.txt)\n' > "$TMP/md/doc.md"
-  printf 'ref' > "$TMP/md/ref.txt"
+  printf '# Title\n\n## Section\n\n|a|bb|\n|-|-|\n|1|22|\n\n[doc](ref.txt)\n' >"$TMP/md/doc.md"
+  printf 'ref' >"$TMP/md/ref.txt"
   bash "$ROOT/_markdown_toc/_markdown_toc.sh" "$TMP/md/doc.md" --apply --check-links --align-tables >/dev/null
   grep -q 'utilitykit:toc:start' "$TMP/md/doc.md"
 
@@ -160,32 +155,30 @@ EOF
 
   NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_zen_mode/_zen_mode.sh" --mode waves --duration 1 >/dev/null
 }
-
-
 new_tools_smoke() {
   printf '{"users":[{"name":"ada","id":1}],"ok":true}
-' > "$TMP/data.json"
+' >"$TMP/data.json"
   bash "$ROOT/_json_explorer/_json_explorer.sh" "$TMP/data.json" --path users.0.name | grep -q 'ada'
 
   printf '# Doc
 
 [local](ref.txt)
-' > "$TMP/doc.md"
-  printf 'ref' > "$TMP/ref.txt"
+' >"$TMP/doc.md"
+  printf 'ref' >"$TMP/ref.txt"
   bash "$ROOT/_link_checker/_link_checker.sh" "$TMP/doc.md" >/dev/null
 
   printf 'name,role
 ada,dev
-' > "$TMP/data.csv"
+' >"$TMP/data.csv"
   bash "$ROOT/_csv_toolkit/_csv_toolkit.sh" "$TMP/data.csv" --columns | grep -q name
 
-  printf 'hello' > "$TMP/hash.txt"
+  printf 'hello' >"$TMP/hash.txt"
   bash "$ROOT/_hash_tools/_hash_tools.sh" "$TMP/hash.txt" | grep -q hash.txt
 
   bash "$ROOT/_git_stats/_git_stats.sh" --repo "$ROOT" >/dev/null
 
   mkdir -p "$TMP/backup_src" "$TMP/backup_dst"
-  printf 'copy' > "$TMP/backup_src/file.txt"
+  printf 'copy' >"$TMP/backup_src/file.txt"
   bash "$ROOT/_backup_sync/_backup_sync.sh" --source "$TMP/backup_src" --dest "$TMP/backup_dst" >/dev/null
 
   bash "$ROOT/_project_search/_project_search.sh" --text 'UtilityKit' "$ROOT/README.md" >/dev/null || true
@@ -203,4 +196,4 @@ run_test 'Roadmap tool smoke tests' roadmap_smoke
 run_test 'New utility smoke tests' new_tools_smoke
 
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
-(( FAIL == 0 ))
+((FAIL == 0))

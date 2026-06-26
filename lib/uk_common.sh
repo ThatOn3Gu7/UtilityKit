@@ -71,14 +71,14 @@ uk_abs_path() {
   if uk_has_cmd realpath; then
     realpath "$1"
   elif uk_has_cmd python3; then
-    python3 - <<'PY' "$1"
+    python3 - "$1" <<'PY'
 import os,sys
 print(os.path.abspath(sys.argv[1]))
 PY
   else
     case "$1" in
-      /*) printf '%s\n' "$1" ;;
-      *) printf '%s/%s\n' "$PWD" "$1" ;;
+    /*) printf '%s\n' "$1" ;;
+    *) printf '%s/%s\n' "$PWD" "$1" ;;
     esac
   fi
 }
@@ -92,12 +92,15 @@ uk_state_dir() {
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-uk_note()    { printf '%s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-uk_info()    { printf '%s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_note() { printf '%s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_info() { printf '%s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
 uk_success() { printf '%s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
-uk_warn()    { printf '%s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
-uk_error()   { printf '%s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
-uk_die()     { uk_error "$*"; return 1; }
+uk_warn() { printf '%s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
+uk_error() { printf '%s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
+uk_die() {
+  uk_error "$*"
+  return 1
+}
 uk_confirm() {
   local prompt="$1" default="${2:-N}" reply=''
   if ! uk_is_interactive; then
@@ -116,7 +119,6 @@ uk_confirm() {
   [[ -z "$reply" ]] && reply="$default"
   [[ "$reply" =~ ^[Yy] ]]
 }
-
 uk_prompt() {
   local label="$1"
   local default="${2:-}"
@@ -137,12 +139,10 @@ uk_prompt() {
   fi
   printf '%s\n' "${reply:-$default}"
 }
-
 uk_section_title() {
   local title="$1"
   printf '\n%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$title" "$UK_C_RESET"
 }
-
 uk_print_list_or_none() {
   local label="$1"
   shift || true
@@ -166,10 +166,10 @@ uk_bar() {
   if [[ "$total" -le 0 ]]; then
     fill=0
   else
-    fill=$(( value * width / total ))
+    fill=$((value * width / total))
   fi
-  (( fill > width )) && fill=$width
-  empty=$(( width - fill ))
+  ((fill > width)) && fill=$width
+  empty=$((width - fill))
   printf '%s%s%s%s%s' "$UK_C_GREEN" "$(printf '%*s' "$fill" '' | tr ' ' '#')" "$UK_C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$UK_C_RESET"
 }
 uk_header() {
@@ -193,8 +193,8 @@ uk_copy_to_clipboard() {
   cmd="$(uk_pick_clipboard_cmd 2>/dev/null || true)"
   [[ -n "$cmd" ]] || return 1
   case "$cmd" in
-    xclip) printf '%s' "$text" | xclip -selection clipboard ;;
-    wl-copy|pbcopy|termux-clipboard-set|clip.exe) printf '%s' "$text" | "$cmd" ;;
+  xclip) printf '%s' "$text" | xclip -selection clipboard ;;
+  wl-copy | pbcopy | termux-clipboard-set | clip.exe) printf '%s' "$text" | "$cmd" ;;
   esac
 }
 uk_slugify() {

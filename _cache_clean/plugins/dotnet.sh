@@ -4,11 +4,9 @@
 dotnet_plugin_info() {
   printf 'dotnet|dotnet|🔷\n'
 }
-
 dotnet_detect() {
   command -v dotnet >/dev/null 2>&1
 }
-
 dotnet_get_cache_dirs() {
   printf '%s\n' "$HOME/.nuget/packages"
   printf '%s\n' "$HOME/.local/share/NuGet/http-cache"
@@ -18,7 +16,6 @@ dotnet_get_cache_dirs() {
     printf '%s\n' "$HOME/Library/Application Support/NuGet/http-cache"
   fi
 }
-
 dotnet_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -43,7 +40,6 @@ dotnet_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(dotnet_get_cache_dirs)
 }
-
 dotnet_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

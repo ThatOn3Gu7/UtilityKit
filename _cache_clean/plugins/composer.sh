@@ -4,11 +4,9 @@
 composer_plugin_info() {
   printf 'composer|composer|🎼\n'
 }
-
 composer_detect() {
   command -v composer >/dev/null 2>&1
 }
-
 composer_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then
     printf '%s\n' "$HOME/Library/Caches/composer"
@@ -20,7 +18,6 @@ composer_get_cache_dirs() {
     printf '%s\n' "$HOME/.cache/composer"
   fi
 }
-
 composer_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -45,7 +42,6 @@ composer_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(composer_get_cache_dirs)
 }
-
 composer_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

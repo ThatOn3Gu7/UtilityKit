@@ -2,7 +2,6 @@
 #
 # _disk_analyzer.sh — Disk Space & Directory Size Analyzer with Quick Archiving
 
-
 DA_VERSION="1.1.0"
 DA_COUNT=10
 
@@ -41,7 +40,6 @@ da_setup_colors() {
     I_DISK="O"
   fi
 }
-
 da_usage() {
   cat <<EOF
 ${C_BOLD}Usage:${C_RESET}
@@ -52,7 +50,6 @@ ${C_BOLD}Options:${C_RESET}
   ${C_CYAN}-h, --help${C_RESET}           Show this help message and exit.
 EOF
 }
-
 da_main() {
   da_setup_colors
   DA_COUNT=10
@@ -62,20 +59,39 @@ da_main() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -n|--count)
+    -n | --count)
+      shift
+      [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]] || {
+        printf "%s%s --count requires a positive number.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+        return 1
+      }
+      DA_COUNT="$1"
+      ;;
+    --count=*)
+      local val="${1#--count=}"
+      [[ "$val" =~ ^[0-9]+$ ]] || {
+        printf "%s%s --count requires a positive number.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+        return 1
+      }
+      DA_COUNT="$val"
+      ;;
+    -h | --help)
+      da_usage
+      return 0
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        positional+=("$1")
         shift
-        [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]] || { printf "%s%s --count requires a positive number.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2; return 1; }
-        DA_COUNT="$1"
-        ;;
-      --count=*)
-        local val="${1#--count=}"
-        [[ "$val" =~ ^[0-9]+$ ]] || { printf "%s%s --count requires a positive number.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2; return 1; }
-        DA_COUNT="$val"
-        ;;
-      -h|--help) da_usage; return 0 ;;
-      --) shift; while [[ $# -gt 0 ]]; do positional+=("$1"); shift; done; break ;;
-      --*) printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2; return 1 ;;
-      *) positional+=("$1") ;;
+      done
+      break
+      ;;
+    --*)
+      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2
+      return 1
+      ;;
+    *) positional+=("$1") ;;
     esac
     shift
   done
@@ -131,7 +147,7 @@ da_main() {
   local sel
   read -r sel
 
-  if [[ "$sel" =~ ^[0-9]+$ ]] && (( sel >= 1 && sel <= ${#item_paths[@]} )); then
+  if [[ "$sel" =~ ^[0-9]+$ ]] && ((sel >= 1 && sel <= ${#item_paths[@]})); then
     local chosen="${item_paths[$((sel - 1))]}"
     local arch_name
     arch_name="$(basename "$chosen")_$(date '+%Y%m%d_%H%M%S').tar.gz"
@@ -145,7 +161,6 @@ da_main() {
     printf "\n  %s Done.\n\n" "${C_GREEN}${I_SUCCESS}${C_RESET}"
   fi
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   da_main "$@"

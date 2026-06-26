@@ -4,16 +4,13 @@
 cargo_plugin_info() {
   printf 'cargo|cargo|🦀\n'
 }
-
 cargo_detect() {
   command -v cargo >/dev/null 2>&1
 }
-
 cargo_get_cache_dirs() {
   local cargo_home="${CARGO_HOME:-$HOME/.cargo}"
   printf '%s\n' "$cargo_home/registry/cache"
 }
-
 cargo_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -41,7 +38,6 @@ cargo_scan_cache() {
 
   done < <(cargo_get_cache_dirs)
 }
-
 cargo_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

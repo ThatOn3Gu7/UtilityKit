@@ -4,11 +4,9 @@
 gem_plugin_info() {
   printf 'gem|gem|💎\n'
 }
-
 gem_detect() {
   command -v gem >/dev/null 2>&1
 }
-
 gem_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then
     printf '%s\n' "$HOME/Library/Caches/gem"
@@ -20,7 +18,6 @@ gem_get_cache_dirs() {
     printf '%s\n' "$HOME/.cache/gem"
   fi
 }
-
 gem_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -45,7 +42,6 @@ gem_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(gem_get_cache_dirs)
 }
-
 gem_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

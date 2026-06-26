@@ -4,11 +4,9 @@
 go_plugin_info() {
   printf 'go|go|🐹\n'
 }
-
 go_detect() {
   command -v go >/dev/null 2>&1
 }
-
 go_get_cache_dirs() {
   local gopath
   gopath="${GOPATH:-$HOME/go}"
@@ -19,7 +17,6 @@ go_get_cache_dirs() {
     printf '%s\n' "$GOCACHE"
   fi
 }
-
 go_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -44,7 +41,6 @@ go_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(go_get_cache_dirs)
 }
-
 go_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

@@ -38,8 +38,6 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
     echo "${ans:-$2}"
   }
 fi
-# --------------------------------------
-
 em_usage() {
   cat <<USAGE
 Usage:
@@ -58,13 +56,11 @@ Options:
   -h, --help          Show this help.
 USAGE
 }
-
 em_keys() {
   local file="${1:-}"
   [[ -f "$file" ]] || return 0
   grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$file" | sed 's/=.*$//' | sort -u
 }
-
 em_validate_file() {
   local file="${1:-}" invalid=0 line_no=0 line
   [[ -f "$file" ]] || {
@@ -94,7 +90,6 @@ em_validate_file() {
     return 1
   fi
 }
-
 em_compare_files() {
   local active="${1:-}" example="${2:-}"
 
@@ -115,12 +110,10 @@ em_compare_files() {
   uk_note "Extra keys in active .env:"
   comm -23 "$tmp1" "$tmp2" | sed 's/^/  - /' || true
 }
-
 em_list_profiles() {
   local dir="${1:-}"
   find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; 2>/dev/null | sed 's/^\.env\.//' | sort
 }
-
 em_swap_profile() {
   local profile="${1:-}"
   local src="$EM_DIR/.env.$profile"
@@ -139,7 +132,6 @@ em_swap_profile() {
     uk_note "Dry-run only. Re-run with --apply to activate profile '$profile'."
   fi
 }
-
 em_encrypt_file() {
   local file="${1:-}"
   [[ -f "$file" ]] || {
@@ -158,14 +150,12 @@ em_encrypt_file() {
     return 1
   fi
 }
-
 em_decrypt_file() {
   local file="${1:-}"
   [[ -f "$file" ]] || {
     uk_error "Missing file: $file"
     return 1
   }
-
   case "$file" in
   *.gpg)
     command -v gpg >/dev/null 2>&1 || {
@@ -187,7 +177,6 @@ em_decrypt_file() {
     ;;
   esac
 }
-
 em_interactive() {
   local profiles profile
   uk_header "UtilityKit Env Manager" "Profile switching, validation, comparison and secret encryption"
@@ -248,7 +237,6 @@ em_interactive() {
   *) uk_warn 'No action selected.' ;;
   esac
 }
-
 em_main() {
   EM_DIR='.'
   EM_PROFILE=''
@@ -343,7 +331,6 @@ em_main() {
 
   em_interactive
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   em_main "$@"

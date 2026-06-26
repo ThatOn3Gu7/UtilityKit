@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# Safely and efficiently apply an updated source directory over a local target directory.
-#
-# Enterprise High-Performance & Ultra-Robust Edition (v3 / Termux & Android Ready)
-# Features adaptive temporary directory resolution ($TMPDIR/Termux fallback),
-# non-fatal graceful concurrency locking, highly robust chmod/sdcard handling,
-# pre-flight disk space and permission checks, dynamic filesystem traversal pruning,
-# automated emergency auto-rollback on execution failure, and runtime audit logging.
-
 
 MODE="dry-run"
 MIRROR=0
@@ -23,7 +15,6 @@ LOCK_ACQUIRED=0
 LOCK_DIR=""
 APPLY_IN_PROGRESS=0
 TRAP_RUN=0
-
 # Color + style setup — disabled when not a TTY or NO_COLOR is set
 _setup_colors() {
   if [[ -t 1 && -t 2 && -z "${NO_COLOR:-}" ]]; then
@@ -53,14 +44,12 @@ _setup_colors() {
     AC_FG_BRIGHT_MAGENTA='' AC_FG_BRIGHT_CYAN='' AC_FG_BRIGHT_WHITE=''
   fi
 }
-
 log_action() {
   local msg="$*"
   if [[ -n "${LOG_FILE:-}" ]]; then
     printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$msg" >>"$LOG_FILE"
   fi
 }
-
 info() {
   printf "${AC_BOLD}${AC_FG_CYAN}[INFO]${AC_R}  %s\n" "$*"
   log_action "[INFO]  $*"
@@ -74,7 +63,6 @@ fail() {
   log_action "[ERROR] $*"
   exit 1
 }
-
 # Adaptive Temporary Directory Resolution (Termux, Android, macOS, Linux)
 get_temp_dir() {
   if [[ -n "${TMPDIR:-}" && -d "$TMPDIR" && -w "$TMPDIR" ]]; then
@@ -90,7 +78,6 @@ get_temp_dir() {
     fi
   fi
 }
-
 # Signal Handling & Safe Interruption Cleanup
 cleanup_and_trap() {
   local exit_code=$?
@@ -116,9 +103,7 @@ cleanup_and_trap() {
 
   [[ "$sig" == "EXIT" ]] || exit "$exit_code"
 }
-
 # (Traps are registered inside ac_main to prevent overriding parent shell traps when sourced)
-
 usage() {
   local script_name
   script_name="$(basename "$0")"
@@ -167,7 +152,6 @@ ${AC_BOLD}Examples:${AC_R}
   bash $script_name --apply --mirror --log-file "sync.log" --exclude "node_modules" /src /dst
 EOF
 }
-
 # Colored + symbol-prefixed label for a change kind
 kind_label() {
   case "$1" in
@@ -181,7 +165,6 @@ kind_label() {
   *) printf "${AC_DIM}%-9s${AC_R}" "$1" ;;
   esac
 }
-
 abs_path() {
   if command -v realpath >/dev/null 2>&1; then
     realpath "$1"
@@ -189,7 +172,6 @@ abs_path() {
     (cd "$(dirname "$1")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$1")")
   fi
 }
-
 # Non-fatal Graceful Concurrency Locking
 acquire_lock() {
   [[ $NO_LOCK -eq 0 ]] || return 0
@@ -230,7 +212,6 @@ release_lock() {
     log_action "Concurrency lock released."
   fi
 }
-
 # Pre-flight Disk Space Safety Guard
 check_disk_space() {
   local dst="$1" backup_dir="$2" src="$3"
@@ -264,7 +245,6 @@ check_disk_space() {
 
   info "✔ Disk space verification passed successfully."
 }
-
 # Pre-flight Writable Permissions Safety Guard
 check_target_writable() {
   local dst="$1"
@@ -290,7 +270,6 @@ check_target_writable() {
     warn "The script will proactively attempt to update permissions or force overwrite during apply."
   fi
 }
-
 should_exclude_rel() {
   local rel="${1#./}"
   case "$rel" in
@@ -315,28 +294,23 @@ should_exclude_rel() {
 
   return 1
 }
-
 add_change() {
   local kind="$1" rel="$2"
   printf '%s\t%s\n' "$kind" "$rel" >>"$CHANGES_FILE"
   CHANGE_COUNT=$((CHANGE_COUNT + 1))
 }
-
 path_exists_or_link() {
   [[ -e "$1" || -L "$1" ]]
 }
-
 file_mode() {
   stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null || true
 }
-
 modes_differ() {
   local left_mode right_mode
   left_mode=$(file_mode "$1")
   right_mode=$(file_mode "$2")
   [[ -n "$left_mode" && -n "$right_mode" && "$left_mode" != "$right_mode" ]]
 }
-
 # Permissive chmod ensures silent fallback on Android /sdcard, FAT, or SMB shares
 chmod_like_source() {
   local source_path="$1" target_path="$2" mode
@@ -345,7 +319,6 @@ chmod_like_source() {
   [[ -n "$mode" ]] || return 0
   chmod "$mode" "$target_path" 2>/dev/null || true
 }
-
 collect_changes() {
   local src="$1" dst="$2" mirror="$3"
   : >"$CHANGES_FILE"
@@ -421,7 +394,6 @@ collect_changes() {
     done < <(find "$dst" -mindepth 1 -depth -print0)
   fi
 }
-
 print_change_summary() {
   if [[ $CHANGE_COUNT -eq 0 ]]; then
     info "No changes detected between source and target with the active exclusions."
@@ -443,7 +415,6 @@ print_change_summary() {
     warn "Preview truncated: $((total - MAX_PREVIEW)) additional change(s) not shown."
   fi
 }
-
 filtered_git_dirty() {
   local dst="$1"
   git -C "$dst" status --porcelain --untracked-files=normal 2>/dev/null | while IFS= read -r line; do
@@ -454,7 +425,6 @@ filtered_git_dirty() {
     printf '%s\n' "$line"
   done
 }
-
 check_git_safety() {
   local dst="$1"
   if git -C "$dst" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -466,7 +436,6 @@ check_git_safety() {
     fi
   fi
 }
-
 create_backup() {
   local dst="$1" timestamp parent base backup_dir backup_file temp_base
   timestamp=$(date '+%Y%m%d_%H%M%S')
@@ -493,7 +462,6 @@ create_backup() {
   cp "$CHANGES_FILE" "${backup_file}.changes.txt" 2>/dev/null || true
   printf '%s\n' "$backup_file"
 }
-
 copy_one() {
   local src="$1" dst="$2" rel="$3" source_path="$src/$rel" target_path="$dst/$rel" target_parent
   target_parent=$(dirname "$target_path")
@@ -521,7 +489,6 @@ copy_one() {
     cp -a "$source_path" "$target_path" 2>/dev/null || cp -p "$source_path" "$target_path" || return 1
   fi
 }
-
 handle_apply_failure() {
   local kind="$1" rel="$2"
   APPLY_IN_PROGRESS=0
@@ -548,7 +515,6 @@ handle_apply_failure() {
     fail "No backup file found. Please inspect and recover the target directory manually."
   fi
 }
-
 execute_rollback() {
   local parent base
   parent=$(dirname "$TARGET_DIR")
@@ -564,7 +530,6 @@ execute_rollback() {
     fail "Fatal: Failed to fully extract backup archive during emergency auto-rollback! Please inspect '$parent' and '$BACKUP_FILE'."
   fi
 }
-
 apply_changes() {
   local src="$1" dst="$2" line kind rel target_path applied=0
 
@@ -601,8 +566,7 @@ apply_changes() {
   info "Applied ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$applied${AC_R} change(s)."
   log_action "Successfully applied all $applied changes."
 }
-
-# Argument parsing & execution entry point -----------------------------------
+# Argument parsing & execution entry point -
 ac_main() {
   _setup_colors
   trap 'cleanup_and_trap EXIT' EXIT
@@ -775,7 +739,6 @@ ac_main() {
 
   release_lock
 }
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   ac_main "$@"

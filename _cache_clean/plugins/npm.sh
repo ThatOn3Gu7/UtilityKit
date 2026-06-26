@@ -4,11 +4,9 @@
 npm_plugin_info() {
   printf 'npm|npm|🟩\n'
 }
-
 npm_detect() {
   command -v npm >/dev/null 2>&1
 }
-
 npm_get_cache_dirs() {
   local cache_dir
   if [ -n "${npm_config_cache:-}" ]; then
@@ -18,7 +16,6 @@ npm_get_cache_dirs() {
   fi
   printf '%s\n' "$cache_dir"
 }
-
 npm_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -56,7 +53,6 @@ npm_scan_cache() {
 
   done < <(npm_get_cache_dirs)
 }
-
 npm_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

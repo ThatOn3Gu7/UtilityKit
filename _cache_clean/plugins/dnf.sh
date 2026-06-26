@@ -4,11 +4,9 @@
 dnf_plugin_info() {
   printf 'dnf|dnf|🎩\n'
 }
-
 dnf_detect() {
   command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1
 }
-
 dnf_get_cache_dirs() {
   printf '%s\n' "/var/cache/dnf"
   printf '%s\n' "/var/cache/yum"
@@ -17,7 +15,6 @@ dnf_get_cache_dirs() {
     printf '%s\n' "$PREFIX/var/cache/yum"
   fi
 }
-
 dnf_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -42,7 +39,6 @@ dnf_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(dnf_get_cache_dirs)
 }
-
 dnf_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

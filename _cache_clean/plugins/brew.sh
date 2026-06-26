@@ -4,11 +4,9 @@
 brew_plugin_info() {
   printf 'brew|brew|🍺\n'
 }
-
 brew_detect() {
   command -v brew >/dev/null 2>&1
 }
-
 brew_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then
     printf '%s\n' "$HOME/Library/Caches/Homebrew"
@@ -18,7 +16,6 @@ brew_get_cache_dirs() {
     printf '%s\n' "/home/linuxbrew/.cache/Homebrew"
   fi
 }
-
 brew_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -43,7 +40,6 @@ brew_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(brew_get_cache_dirs)
 }
-
 brew_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }

@@ -4,15 +4,12 @@
 apk_plugin_info() {
   printf 'apk|apk|🏔️\n'
 }
-
 apk_detect() {
   command -v apk >/dev/null 2>&1
 }
-
 apk_get_cache_dirs() {
   printf '%s\n' "/var/cache/apk"
 }
-
 apk_scan_cache() {
   local dir
   while IFS= read -r dir; do
@@ -37,7 +34,6 @@ apk_scan_cache() {
     done < <(cc_find_partial "$dir")
   done < <(apk_get_cache_dirs)
 }
-
 apk_clean_orphans() {
   cc_clean_orphans_from_file "$1"
 }
