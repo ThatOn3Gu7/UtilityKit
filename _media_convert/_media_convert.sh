@@ -16,6 +16,7 @@ Usage:
   _media_convert.sh --kind image|video --to webp|jpg|png|mp4 [--quality 82] [--strip-exif] [--output DIR] [--apply] PATH...
 USAGE
 }
+
 mc_collect() {
   local p
   for p in "${MC_PATHS[@]}"; do
@@ -29,6 +30,7 @@ mc_collect() {
     fi
   done
 }
+
 mc_require_tool() {
   case "$MC_KIND" in
   image)
@@ -45,38 +47,116 @@ mc_require_tool() {
     ;;
   esac
 }
+mc_fake_progress() {
+  local pid="$1" width=28 pct=0 fill empty
+  local ch_fill ch_empty
+  if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
+    ch_fill='█'
+    ch_empty='░'
+  else
+    ch_fill='#'
+    ch_empty='-'
+  fi
+
+  local c_bar c_done
+  if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    c_bar="$UK_C_CYAN"
+    c_done="$UK_C_GREEN"
+  else
+    c_bar=''
+    c_done=''
+  fi
+
+  printf '\n' # optional: start with a blank line
+
+  while kill -0 "$pid" 2>/dev/null; do
+    # Acceleration logic (your original, slightly modified)
+    if ((pct < 50)); then
+      pct=$((pct + 4))
+      sleep 0.06
+    elif ((pct < 85)); then
+      pct=$((pct + 1))
+      sleep 0.25
+    elif ((pct < 99)); then
+      pct=$((pct + 1))
+      sleep 0.80
+    fi
+    ((pct > 99)) && pct=99
+
+    fill=$((pct * width / 100))
+    empty=$((width - fill))
+
+    # Build the fill/empty strings using bash substitution – NO tr!
+    local bar_fill bar_empty
+    printf -v bar_fill '%*s' "$fill" ''
+    printf -v bar_empty '%*s' "$empty" ''
+    bar_fill="${bar_fill// /$ch_fill}"
+    bar_empty="${bar_empty// /$ch_empty}"
+
+    printf '\r  %s⚙%s [%s%s%s%s%s] %s%3d%%%s  converting...' \
+      "$UK_C_CYAN" "$UK_C_RESET" \
+      "$c_bar" "$bar_fill" \
+      "$UK_C_DIM" "$bar_empty" "$UK_C_RESET" \
+      "$UK_C_BOLD" "$pct" "$UK_C_RESET"
+  done
+
+  wait "$pid" 2>/dev/null || true
+
+  # Final 100% bar
+  fill=$width
+  printf -v bar_fill '%*s' "$fill" ''
+  bar_fill="${bar_fill// /$ch_fill}"
+
+  printf '\r  %s✔%s [%s%s%s] %s100%%%s  done.%*s\n' \
+    "$UK_C_GREEN" "$UK_C_RESET" \
+    "$c_done" "$bar_fill" "$UK_C_RESET" \
+    "$UK_C_BOLD" "$UK_C_RESET" 12 ''
+}
 mc_convert_one() {
   local src="$1" base out
   base="$(basename "${src%.*}")"
   out="$MC_OUTPUT/${base}.${MC_TO}"
+
   if ((MC_APPLY == 0)); then
-    printf '  %s%s→%s %s%s%s  %s->%s  %s%s%s\n' \
-      "$UK_C_DIM" "" "$UK_C_RESET" \
+    printf '  %s→%s %s%s%s  %s->%s  %s%s%s\n' \
+      "$UK_C_DIM" "$UK_C_RESET" \
       "$UK_C_CYAN" "$src" "$UK_C_RESET" \
       "$UK_C_DIM" "$UK_C_RESET" \
       "$UK_C_GREEN" "$out" "$UK_C_RESET"
     return 0
   fi
+
   mkdir -p "$MC_OUTPUT"
   printf '  %sConverting:%s %s%s%s\n' \
     "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$src" "$UK_C_RESET"
+
   if [[ "$MC_KIND" == 'image' ]]; then
-    local method='ffmpeg'
     if uk_has_cmd magick; then
-      method="magick (quality: $MC_QUALITY$((MC_STRIP_EXIF == 1)) && printf ', EXIF stripped' || true)"
       if ((MC_STRIP_EXIF == 1)); then
-        magick "$src" -strip -quality "$MC_QUALITY" "$out"
+        magick "$src" -strip -quality "$MC_QUALITY" "$out" >/dev/null 2>&1 &
       else
-        magick "$src" -quality "$MC_QUALITY" "$out"
+        magick "$src" -quality "$MC_QUALITY" "$out" >/dev/null 2>&1 &
       fi
     else
-      ffmpeg -y -i "$src" -qscale:v 3 "$out" >/dev/null 2>&1
+      ffmpeg -y -i "$src" -qscale:v 3 "$out" >/dev/null 2>&1 &
     fi
   else
     printf '  %s(using ffmpeg libx264 crf=26)%s\n' "$UK_C_DIM" "$UK_C_RESET"
-    ffmpeg -y -i "$src" -vcodec libx264 -crf 26 -preset medium -movflags +faststart "$out" >/dev/null 2>&1
+    ffmpeg -y -i "$src" -vcodec libx264 -crf 26 -preset medium -movflags +faststart "$out" >/dev/null 2>&1 &
   fi
-  uk_success "Created: $out"
+
+  local _mc_bg=$!
+  if [[ -t 1 ]]; then
+    mc_fake_progress "$_mc_bg"
+  else
+    wait "$_mc_bg"
+  fi
+
+  if [[ -f "$out" ]]; then
+    uk_success "Created: $out"
+  else
+    uk_error "Conversion failed: $out"
+  fi
 }
 mc_main() {
   MC_KIND='image'
@@ -114,6 +194,8 @@ mc_main() {
     esac
     shift
   done
+
+  # Interactive mode
   if ((${#MC_PATHS[@]} == 0)) && [[ -t 0 && -t 1 ]]; then
     uk_header 'UtilityKit Media Convert' 'Batch image and video conversion'
 
@@ -173,14 +255,39 @@ mc_main() {
     return 1
   fi
 
+  # Set default output directory if still empty
   MC_OUTPUT=${MC_OUTPUT:-"$(pwd)/converted_${MC_KIND}"}
-  mc_require_tool
-  uk_header 'UtilityKit Media Convert' "$MC_KIND -> $MC_TO | output: $MC_OUTPUT"
-  while IFS= read -r file; do
-    [[ -n "$file" ]] || continue
+
+  # Validate that the input path exists
+  local path_exists=0
+  for p in "${MC_PATHS[@]}"; do
+    if [[ -e "$p" ]]; then
+      path_exists=1
+      break
+    fi
+  done
+  if ((path_exists == 0)); then
+    uk_error "None of the given paths exist: ${MC_PATHS[*]}"
+    return 1
+  fi
+
+  # Collect files into an array
+  mapfile -t files < <(mc_collect)
+  if ((${#files[@]} == 0)); then
+    uk_error "No matching files found in the provided paths. Check extensions and that the path contains supported files."
+    return 1
+  fi
+
+  # Check required tools before proceeding
+  mc_require_tool || exit 1
+
+  uk_header 'UtilityKit Media Convert' "$MC_KIND -> $MC_TO | output: $MC_OUTPUT | ${#files[@]} file(s) found"
+
+  for file in "${files[@]}"; do
     mc_convert_one "$file"
-  done < <(mc_collect)
+  done
 }
+
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   mc_main "$@"
