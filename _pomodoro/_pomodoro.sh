@@ -56,7 +56,6 @@ po_timer() {
   if uk_has_cmd termux-vibrate; then termux-vibrate -d 200 >/dev/null 2>&1 || true; fi
 }
 po_interactive() {
-  uk_header 'UtilityKit Pomodoro' 'Configure your deep-work session before starting'
 
   PO_WORK="$(uk_prompt \
     'Work duration per cycle' \
@@ -94,6 +93,7 @@ po_interactive() {
 
 }
 po_main() {
+  uk_banner "pomodoro" "Work/break cycle timer with progress bar and session log" "" "$@"
   PO_WORK=25
   PO_BREAK=5
   PO_CYCLES=4
@@ -141,7 +141,7 @@ po_main() {
   PO_CYCLES=${PO_CYCLES:-4}
   PO_UNIT=${PO_UNIT:-minutes}
 
-  uk_header 'UtilityKit Pomodoro' "$PO_CYCLES cycle(s) | $PO_WORK work | $PO_BREAK break | unit=$PO_UNIT"
+  uk_section_title "$PO_CYCLES cycle(s) | $PO_WORK work | $PO_BREAK break | unit=$PO_UNIT"
   local cycle work_s break_s logf
   work_s=$(po_seconds "$PO_WORK")
   break_s=$(po_seconds "$PO_BREAK")

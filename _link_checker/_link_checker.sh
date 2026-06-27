@@ -24,6 +24,7 @@ Options:
 USAGE
 }
 lc_main() {
+  uk_banner "link-checker" "Markdown link validator with optional HTTP/HTTPS checks" "" "$@"
   local http=0 timeout=8 files=()
 
   while [[ $# -gt 0 ]]; do

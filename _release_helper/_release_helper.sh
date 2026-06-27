@@ -3,6 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 rel_usage() { echo 'Usage: _release_helper.sh [--repo DIR] [--tag vX.Y.Z] [--apply]'; }
 rel_main() {
+  uk_banner "release-helper" "Git status, recent log, optional tag creation" "" "$@"
   local repo='.' tag='' apply=0
   while [[ $# -gt 0 ]]; do
     case "$1" in --repo)

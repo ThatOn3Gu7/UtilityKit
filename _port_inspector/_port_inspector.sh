@@ -45,6 +45,7 @@ pi_extract_pid() {
   fi
 }
 pi_main() {
+  uk_banner "port-inspector" "Find which process owns a local TCP port" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --kill) PI_KILL=1 ;;
@@ -69,7 +70,7 @@ pi_main() {
     return 1
   }
 
-  uk_header 'UtilityKit Port Inspector' "Port: $PI_PORT"
+  uk_section_title "Port: $PI_PORT"
   pi_network_summary
   printf '\nListening process details:\n'
   if ! pi_inspect; then

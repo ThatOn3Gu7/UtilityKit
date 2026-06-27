@@ -67,7 +67,7 @@ em_validate_file() {
     uk_error "Missing file: $file"
     return 1
   }
-  uk_header "Env syntax validation" "$file"
+  uk_section_title "Env syntax validation: $file"
 
   while IFS= read -r line || [[ -n "$line" ]]; do
     line_no=$((line_no + 1))
@@ -103,7 +103,7 @@ em_compare_files() {
   em_keys "$active" >"$tmp1"
   em_keys "$example" >"$tmp2"
 
-  uk_header "Environment key comparison" "Active: $active  |  Example: $example"
+  uk_section_title "Key comparison: active=$active example=$example"
   uk_note "Missing from active .env:"
   comm -13 "$tmp1" "$tmp2" | sed 's/^/  - /' || true
 
@@ -123,7 +123,7 @@ em_swap_profile() {
     uk_error "Profile not found: $src"
     return 1
   }
-  uk_header "Env profile switch" "$src -> $dst"
+  uk_section_title "Profile switch: $src -> $dst"
 
   if ((EM_APPLY == 1)); then
     cp "$src" "$dst"
@@ -179,7 +179,6 @@ em_decrypt_file() {
 }
 em_interactive() {
   local profiles profile
-  uk_header "UtilityKit Env Manager" "Profile switching, validation, comparison and secret encryption"
 
   profiles="$(em_list_profiles "$EM_DIR" || true)"
   uk_note "Scanning profiles in: $EM_DIR"
@@ -238,6 +237,7 @@ em_interactive() {
   esac
 }
 em_main() {
+  uk_banner "env-manager" ".env profile switching, validation, and encryption" "" "$@"
   EM_DIR='.'
   EM_PROFILE=''
   EM_APPLY=0

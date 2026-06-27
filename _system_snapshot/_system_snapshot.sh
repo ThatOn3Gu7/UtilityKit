@@ -3,6 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 ssn_usage() { echo 'Usage: _system_snapshot.sh [--output FILE]'; }
 ssn_main() {
+  uk_banner "system-snapshot" "Compact diagnostic summary of OS, platform, disk" "" "$@"
   local out=''
   while [[ $# -gt 0 ]]; do
     case "$1" in --output)

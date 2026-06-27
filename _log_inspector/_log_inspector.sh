@@ -22,6 +22,7 @@ Options:
 USAGE
 }
 li_main() {
+  uk_banner "log-inspector" "Grep error/warn/fail patterns and surface frequent lines" "" "$@"
   local file='' pattern='error|warn|fail|exception'
 
   while [[ $# -gt 0 ]]; do

@@ -63,6 +63,7 @@ pk_kill() {
   fi
 }
 pk_main() {
+  uk_banner "process-killer" "RAM/swap overview, top consumers, optional signal send" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --pid)
@@ -85,7 +86,6 @@ pk_main() {
     shift
   done
 
-  uk_header 'UtilityKit Process Killer' 'RAM/swap overview and top memory consumers'
   pk_memory_summary
   printf '\nTop processes:\n'
   pk_top

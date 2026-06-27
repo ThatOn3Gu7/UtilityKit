@@ -26,6 +26,7 @@ Actions:
 USAGE
 }
 ghh_main() {
+  uk_banner "github-helper" "Thin wrapper around gh for auth, PRs, issues, runs" "" "$@"
   local action='status'
 
   # Argument Parsing

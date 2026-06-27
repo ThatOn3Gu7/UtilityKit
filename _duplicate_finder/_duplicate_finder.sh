@@ -83,7 +83,7 @@ df_scan() {
   # bypassing any strict unbound variable/scope issues during EXIT
   trap "rm -f '$sizes_file' '$duplicates_file'" EXIT
 
-  uk_header 'UtilityKit Duplicate Finder' "Directory: $(uk_abs_path "$DF_DIR")"
+  uk_section_title "Directory: $(uk_abs_path "$DF_DIR")"
   uk_note 'Scanning files by size first, then hashing exact-size matches...'
 
   while IFS= read -r -d '' file; do
@@ -178,6 +178,7 @@ df_scan() {
   ((DF_APPLY == 1)) && uk_success "Processed $changed duplicate file(s)."
 }
 df_main() {
+  uk_banner "duplicate-finder" "Size-first, hash-second duplicate detection" "" "$@"
   DF_DIR='.'
   DF_ACTION='report'
   DF_APPLY=0
@@ -197,7 +198,6 @@ df_main() {
     shift
   done
   if ((seen_args == 0)) && [[ -t 0 && -t 1 ]]; then
-    uk_header 'UtilityKit Duplicate Finder' 'Size-first, hash-second duplicate detection'
 
     if declare -f uk_prompt >/dev/null 2>&1; then
       DF_DIR="$(uk_prompt 'Enter directory to scan for duplicates' '.' '~/Downloads | ~/Pictures | ./assets' 'Matches sizes first, then hashes.')"

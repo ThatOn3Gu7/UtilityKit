@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+CC_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$CC_SCRIPT_DIR/../lib/uk_common.sh"
 
 VERSION="2.0.2"
 
@@ -219,38 +221,6 @@ cc_progress_bar() {
   [ "$filled" -gt "$width" ] && filled=$width
   local empty=$((width - filled))
   printf '%s%s%s%s%s' "$C_LGREEN" "$(printf '%*s' "$filled" '' | tr ' ' '#')" "$C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$C_RESET"
-}
-# Helper: return visible length of a string (ANSI codes removed)
-_cc_visible_len() {
-  local s
-  s=$(printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
-  printf '%s' "${#s}"
-}
-cc_print_banner() {
-  local c1="${I_BROOM} cacheclean ${C_BOLD}${VERSION}${C_RESET}"
-  local c2="intelligent cache cleaner for devs"
-  local c3="Termux • Linux • macOS • Windows"
-
-  local n1 n2 n3
-  n1=$(_cc_visible_len "$c1")
-  n2=$(_cc_visible_len "$c2")
-  n3=$(_cc_visible_len "$c3")
-
-  local inner=48
-  [ "$n1" -gt "$inner" ] && inner=$n1
-  [ "$n2" -gt "$inner" ] && inner=$n2
-  [ "$n3" -gt "$inner" ] && inner=$n3
-
-  local line
-  line="$(cc_hbar "$((inner + 4))" "$B_H")"
-
-  printf '\n'
-  printf '%s%s%s%s%s\n' "$C_ACCENT" "$B_TL" "$line" "$B_TR" "$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_LCYAN$C_BOLD" "$c1" "$((inner - n1 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_WHITE$C_DIM" "$c2" "$((inner - n2 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
-  printf '%s%s  %s%s%*s%s%s\n' "$C_ACCENT" "$B_V" "$C_DIM" "$c3" "$((inner - n3 + 2))" '' "$C_ACCENT" "$B_V$C_RESET"
-  printf '%s%s%s%s%s\n' "$C_ACCENT" "$B_BL" "$line" "$B_BR" "$C_RESET"
-  printf '\n'
 }
 cc_section_title() {
   local title=$1 width=${2:-52}
@@ -609,6 +579,7 @@ cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$
 cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "$1" "$C_RESET" >&2; }
 cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "$1" "$C_RESET" >&2; }
 cc_main() {
+  uk_banner "cacheclean" "intelligent cache cleaner for devs" "" "$@"
   trap cc_cleanup_tmp EXIT
   cc_parse_args "$@"
   cc_setup_colors
@@ -623,18 +594,12 @@ cc_main() {
   cc_discover_plugins
 
   if [ ${#CC_ACTIVE_PLUGINS[@]} -eq 0 ]; then
-    [ "$CC_QUIET" -eq 0 ] && {
-      cc_print_banner
-      cc_print_env_summary
-    }
+    [ "$CC_QUIET" -eq 0 ] && cc_print_env_summary
     cc_log_warn "No supported package managers detected."
     exit 0
   fi
 
-  [ "$CC_QUIET" -eq 0 ] && {
-    cc_print_banner
-    cc_print_env_summary
-  }
+  [ "$CC_QUIET" -eq 0 ] && cc_print_env_summary
   cc_run_scans
   cc_print_report
   if [ "$CC_TOTAL_ORPHAN_COUNT" -eq 0 ]; then

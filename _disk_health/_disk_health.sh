@@ -31,6 +31,7 @@ dh_require_smartctl() {
   return 0
 }
 dh_main() {
+  uk_banner "disk-health" "SMART health and attribute report via smartctl" "" "$@"
   local dev='' action='show' test_short=0
 
   while [[ $# -gt 0 ]]; do
@@ -76,7 +77,7 @@ dh_main() {
 
   # Action: list
   if [[ "$action" == 'list' ]]; then
-    uk_header 'Disk Health' 'Available devices'
+    uk_section_title 'Available devices'
     smartctl --scan 2>/dev/null || true
     return 0
   fi

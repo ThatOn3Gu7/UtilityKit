@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#
-# _disk_analyzer.sh — Disk Space & Directory Size Analyzer with Quick Archiving
+DA_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$DA_SCRIPT_DIR/../lib/uk_common.sh"
 
 DA_VERSION="1.1.0"
 DA_COUNT=10
@@ -132,6 +132,7 @@ ${C_BOLD}Options:${C_RESET}
 EOF
 }
 da_main() {
+  uk_banner "disk-analyzer" "Largest-items disk usage explorer with optional archiving" "" "$@"
   da_setup_colors
   DA_COUNT=10
 

@@ -116,6 +116,7 @@ sa_add_host() {
 
 # ----- Main ---------------------------------------------------------
 sa_main() {
+  uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --connect)
@@ -159,14 +160,14 @@ sa_main() {
     ssh-copy-id "$SA_COPY_ID"
     return 0
   fi
-  if [[ -n "$SA_ADD_HOST" ]] || [[ "$SA_ADD_HOST" == "" && "$1" == "--add" ]]; then
+  if [[ -n "$SA_ADD_HOST" ]] || [[ "$SA_ADD_HOST" == "" && "${1:-}" == "--add" ]]; then
     # --add was given with optional hostname
     sa_add_host "$SA_ADD_HOST"
     return 0
   fi
 
   # Interactive mode
-  uk_header 'UtilityKit SSH Assistant' "Config: $SA_CONFIG"
+  uk_section_title "Config: $SA_CONFIG"
 
   mapfile -t hosts < <(sa_hosts)
 
@@ -270,6 +271,7 @@ sa_run_ssh() {
   return 0
 }
 sa_main() {
+  uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --connect)
@@ -309,7 +311,7 @@ sa_main() {
     return 0
   fi
 
-  uk_header 'UtilityKit SSH Assistant' "Config: $SA_CONFIG"
+  uk_section_title "Config: $SA_CONFIG"
 
   mapfile -t hosts < <(sa_hosts)
 

@@ -18,6 +18,7 @@ USAGE
 }
 # Main
 bs_main() {
+  uk_banner "backup-sync" "Dry-run-first backup wrapper around rsync" "" "$@"
   local src='' dst='' apply=0 delete=0
   local excludes=()
 
@@ -62,7 +63,7 @@ bs_main() {
 
   mkdir -p "$dst"
 
-  uk_header 'UtilityKit Backup Sync' "$src → $dst"
+  uk_section_title "$src → $dst"
 
   # Build exclusion patterns (always ignore .git and node_modules)
   local default_excludes=(".git" "node_modules")

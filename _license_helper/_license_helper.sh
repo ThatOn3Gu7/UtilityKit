@@ -22,6 +22,7 @@ Types: mit, apache
 USAGE
 }
 lic_main() {
+  uk_banner "license-helper" "Detect existing license and generate MIT or Apache 2.0" "" "$@"
   local gen='' name=''
 
   while [[ $# -gt 0 ]]; do

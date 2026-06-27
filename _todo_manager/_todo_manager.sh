@@ -4,6 +4,7 @@ source "$SCRIPT_DIR/../lib/uk_common.sh"
 td_usage() { echo 'Usage: _todo_manager.sh --add TEXT [--tag TAG] | --list | --done ID | --search TERM'; }
 td_file() { printf '%s/todos.tsv\n' "$(uk_data_dir)"; }
 td_main() {
+  uk_banner "todo-manager" "Plain-text TSV task tracker with tags and search" "" "$@"
   local action=list text='' tag='' term='' id=''
   while [[ $# -gt 0 ]]; do
     case "$1" in --add)

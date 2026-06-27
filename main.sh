@@ -4,8 +4,6 @@ set -euo pipefail
 readonly UK_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$UK_ROOT_DIR/lib/uk_common.sh"
 
-readonly UK_VERSION='4.1.2'
-
 uk_source_tool() {
   local path="$1"
   [[ -f "$path" ]] || {
@@ -209,7 +207,7 @@ uk_more_menu_page_5() {
     "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_RED" "$UK_C_RESET"
 }
 run_apply_wizard() {
-  uk_section_title 'Directory Synchronization (Apply Changes)'
+  uk_banner "apply-changes" "Directory sync with dry-run preview, backup, and rollback" ""
   local src dst apply mirror force include_runtime custom
   src="$(uk_prompt 'Enter updated source directory to sync from' '.' '~/path/to/source' 'Use a directory that contains the newest version of your files.')"
   dst="$(uk_prompt 'Enter local target directory to update' '.' '~/path/to/target' 'The target directory will be compared against the source.')"
@@ -234,7 +232,7 @@ run_apply_wizard() {
   (ac_main "${args[@]}" "$(uk_expand_path "$src")" "$(uk_expand_path "$dst")")
 }
 run_rename_wizard() {
-  uk_section_title 'Batch File Renamer'
+  uk_banner "rename-batch" "Recursively rename or copy files to a new extension" ""
   local src ext out force
   src="$(uk_prompt 'Enter target directory to process' '.' '~/path/to/your/directory' 'Every non-hidden file in this folder tree will be considered.')"
   ext="$(uk_prompt 'Enter target new extension format (e.g. sh, py, txt)' '' '.md' 'Do not worry about the leading dot; both md and .md work.')"
@@ -256,7 +254,7 @@ run_rename_wizard() {
   fi
 }
 run_symlink_wizard() {
-  uk_section_title 'Symlink Manager'
+  uk_banner "symlink-manager" "Transactional symlink creator with backup of existing targets" ""
   local src dst apply
   src="$(uk_prompt 'Enter source file or directory to link from' '' '~/.dotfiles/.bashrc' 'This is the real file or folder that should back the symlink.')"
   dst="$(uk_prompt 'Enter target link path to create or replace' '' '~/.bashrc' 'If the target already exists, the tool can back it up first.')"
@@ -269,14 +267,14 @@ run_symlink_wizard() {
   fi
 }
 run_disk_wizard() {
-  uk_section_title 'Disk Space Analyzer'
+  uk_banner "disk-analyzer" "Largest-items disk usage explorer with optional archiving" ""
   local dir count
   dir="$(uk_prompt 'Enter target directory to scan' '.' '~/projects' 'For large folders, the scan can take a little while.')"
   count="$(uk_prompt 'Enter how many top items to display' '10' '15' 'Smaller numbers render faster and are easier to read on mobile screens.')"
   (da_main --count "$count" "$(uk_expand_path "$dir")")
 }
 run_env_wizard() {
-  uk_section_title 'Environment Profile Manager'
+  uk_banner "env-manager" ".env profile switching, validation, and encryption" ""
   printf '  1) Compare .env with .env.example\n'
   printf '  2) Validate an env file\n'
   printf '  3) Activate a profile such as .env.local or .env.production\n'
@@ -309,13 +307,13 @@ run_env_wizard() {
   esac
 }
 run_git_wizard() {
-  uk_section_title 'Git Sweep'
+  uk_banner "git-sweep" "Merged-branch cleanup, stash purge, repo garbage collection" ""
   local repo
   repo="$(uk_prompt 'Enter the Git repository directory to inspect' '.' '~/project' 'The tool looks for merged branches, stashes, artifacts, and git gc opportunities.')"
   (gs_main --repo "$(uk_expand_path "$repo")")
 }
 run_scaffold_wizard() {
-  uk_section_title 'Project Scaffold'
+  uk_banner "project-scaffold" "Starter project generator for Bash, Python, Node, Go" ""
   local type name dest
   type="$(uk_prompt 'Enter scaffold type (bash, python-flask, node-cli, go-service)' 'bash' 'python-flask' 'A new project folder will be generated for the selected stack.')"
   name="$(uk_prompt 'Enter the new project folder name' '' 'demo-app' 'This becomes the generated project directory name.')"
@@ -323,7 +321,7 @@ run_scaffold_wizard() {
   (ps_main --type "$type" --name "$name" --dest "$(uk_expand_path "$dest")")
 }
 run_duplicate_wizard() {
-  uk_section_title 'Duplicate Finder'
+  uk_banner "duplicate-finder" "Size-first, hash-second duplicate detection" ""
   local dir mode apply_args=()
   dir="$(uk_prompt 'Enter directory to scan for duplicate files' '.' '~/Downloads' 'The tool matches file sizes first, then hashes exact candidates.')"
   printf '  1) Report only\n  2) Delete duplicates and keep the first copy\n  3) Replace duplicates with hardlinks\n'
@@ -337,7 +335,7 @@ run_duplicate_wizard() {
   esac
 }
 run_process_wizard() {
-  uk_section_title 'Process Killer'
+  uk_banner "process-killer" "RAM/swap overview, top consumers, optional signal send" ""
   local pid sig
   printf '  The tool will show memory pressure and the top memory consumers first.\n'
   pid="$(uk_prompt 'Enter a PID to terminate (leave blank to only inspect processes)' '' '12345' 'If you leave this blank, no signal will be sent.')"
@@ -349,7 +347,7 @@ run_process_wizard() {
   fi
 }
 run_port_wizard() {
-  uk_section_title 'Port Inspector'
+  uk_banner "port-inspector" "Find which process owns a local TCP port" ""
   local port kill_flag
   port="$(uk_prompt 'Enter the local TCP port to inspect' '' '3000' 'The tool will search for whichever process is listening on this port.')"
   printf ' %s Terminate the process if one is found? [y/N]: ' "$UK_I_ARROW" >&2
@@ -361,14 +359,14 @@ run_port_wizard() {
   fi
 }
 run_ssl_wizard() {
-  uk_section_title 'SSL Checker'
+  uk_banner "ssl-checker" "Certificate expiry, DNS records, legacy TLS probe" ""
   local host port
   host="$(uk_prompt 'Enter host or domain name to inspect' '' 'example.com' 'The tool will fetch certificate metadata and DNS information.')"
   port="$(uk_prompt 'Enter port number to check' '443' '443' 'Most HTTPS services use port 443.')"
   (sc_main "$host" --port "$port")
 }
 run_api_wizard() {
-  uk_section_title 'API Tester'
+  uk_banner "api-tester" "One-off HTTP requests or saved/replayable profiles" ""
   printf '  1) Run a one-off request\n'
   printf '  2) Save a reusable request profile\n'
   printf '  3) Run a saved profile\n'
@@ -422,7 +420,7 @@ run_api_wizard() {
   esac
 }
 run_password_wizard() {
-  uk_section_title 'Password Generator'
+  uk_banner "password-gen" "XKCD-style passphrases or random strings with entropy" ""
   local mode copy words length
   mode="$(uk_prompt 'Choose generator mode (passphrase|string)' 'passphrase' 'string' 'Passphrases are easier to remember; random strings are denser.')"
   if [[ "$mode" == 'string' ]]; then
@@ -446,7 +444,7 @@ run_password_wizard() {
   fi
 }
 run_ssh_wizard() {
-  uk_section_title 'SSH Assistant'
+  uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" ""
   printf '  1) Show named hosts from ~/.ssh/config\n'
   printf '  2) Connect to a host from ~/.ssh/config\n'
   printf '  3) Run ssh-copy-id for a host\n'
@@ -467,7 +465,7 @@ run_ssh_wizard() {
   esac
 }
 run_shred_wizard() {
-  uk_section_title 'Shredder'
+  uk_banner "shredder" "Multi-pass overwrite using shred or /dev/urandom fallback" ""
   local file passes apply
   file="$(uk_prompt 'Enter file path to securely erase' '' '~/secret.txt' 'Shredding overwrites file contents before unlinking the file.')"
   passes="$(uk_prompt 'How many overwrite passes should be used?' '3' '7' 'Higher values are slower but overwrite the file more times.')"
@@ -480,7 +478,7 @@ run_shred_wizard() {
   fi
 }
 run_media_wizard() {
-  uk_section_title 'Media Convert'
+  uk_banner "media-convert" "Batch image and video conversion via ImageMagick or ffmpeg" ""
   local kind path to output strip apply
   kind="$(uk_prompt 'Choose conversion kind (image|video)' 'image' 'image' 'Images use web-oriented conversion; videos use ffmpeg compression.')"
   path="$(uk_prompt 'Enter source file or directory to convert' '' '~/Pictures' 'The output will be written into a separate output directory.')"
@@ -503,7 +501,7 @@ run_media_wizard() {
   (mc_main --kind "$kind" --to "$to" --output "$(uk_expand_path "$output")" "${args[@]}" "$(uk_expand_path "$path")")
 }
 run_toc_wizard() {
-  uk_section_title 'Markdown TOC'
+  uk_banner "markdown-toc" "Insert or refresh markdown TOC with link validation" ""
   local file apply check align show_diff before after
   file="$(uk_prompt 'Enter markdown file to update' '' 'README.md' 'A table of contents will be inserted or refreshed based on headings in this file.')"
   printf ' %s Apply changes now? [Y/n]: ' "$UK_I_ARROW" >&2
@@ -531,7 +529,7 @@ run_toc_wizard() {
   rm -f "$before" "$after"
 }
 run_move_wizard() {
-  uk_section_title 'Move in Batch'
+  uk_banner "move-in-batch" "Bulk copy or move files with exclusions and collision-safe renaming" ""
   local target output method flatten excludes exclude_args=()
   target="$(uk_prompt 'Enter source directory to copy/move from' '.' '~/Downloads' 'Files under this directory will be transferred recursively.')"
   output="$(uk_prompt 'Enter output directory' './moved-files' '~/Organized' 'The destination must not be inside the source directory.')"
@@ -599,7 +597,7 @@ run_new_utility_wizard() {
   local tool="$1"
   case "$tool" in
   network)
-    uk_section_title 'Network Probe'
+    uk_banner "network-probe" "Ping, DNS lookup, public IP, and route tracing" ""
     local host count dns public trace args=()
     host="$(uk_prompt 'Host to test with ping and route tracing' 'example.com' 'github.com | 1.1.1.1' 'Use a domain or IP address. Missing ping/traceroute tools will be skipped safely.')"
     count="$(uk_prompt 'How many ping packets should be sent?' '4' '4' 'Small numbers are better on mobile networks.')"
@@ -612,7 +610,7 @@ run_new_utility_wizard() {
     (np_main "${args[@]}")
     ;;
   service)
-    uk_section_title 'Service Watcher'
+    uk_banner "service-watcher" "HTTP endpoint status and response-time checks" ""
     local urls expect interval
     urls="$(uk_prompt 'Enter one or more URLs separated by spaces' 'https://example.com' 'https://example.com http://127.0.0.1:3000' 'The tool checks HTTP status and response time for each URL.')"
     expect="$(uk_prompt 'Expected status codes/ranges' '2xx,3xx' '200,204,2xx' 'Anything outside this list is marked down.')"
@@ -622,14 +620,14 @@ run_new_utility_wizard() {
     (sw_main "${arr[@]}" --expect "$expect" --interval "$interval")
     ;;
   git-stats)
-    uk_section_title 'Git Stats'
+    uk_banner "git-stats" "Commit counts, most-changed files, branch activity" ""
     local repo since
     repo="$(uk_prompt 'Git repository directory to analyze' '.' '~/project' 'Must be inside a Git work tree.')"
     since="$(uk_prompt 'Since date/filter' '30 days ago' '30 days ago | 2026-01-01' 'Default shows recent activity; use direct CLI without --since for all history.')"
     if [[ -n "$since" ]]; then (gst_main --repo "$(uk_expand_path "$repo")" --since "$since"); else (gst_main --repo "$(uk_expand_path "$repo")"); fi
     ;;
   json)
-    uk_section_title 'JSON Explorer'
+    uk_banner "json-explorer" "JSON pretty-print, dot-path extraction, key listing" ""
     local file mode path
     file="$(uk_prompt 'JSON file path' "$(uk_demo_file json)" './package.json' 'A demo JSON file is used if you just press Enter.')"
     mode="$(uk_prompt 'Mode: pretty, summary, keys, or path' 'summary' 'path' 'summary shows structure; path extracts a dot path like users.0.name.')"
@@ -644,7 +642,7 @@ run_new_utility_wizard() {
     esac
     ;;
   links)
-    uk_section_title 'Link Checker'
+    uk_banner "link-checker" "Markdown link validator with optional HTTP/HTTPS checks" ""
     local files http args=()
     files="$(uk_prompt 'Markdown files to check, separated by spaces' 'README.md' 'README.md docs/*.md' 'Local relative links are checked by default.')"
     http="$(uk_prompt 'Also check HTTP/HTTPS links? (y/N)' 'N' 'y' 'HTTP checks require network access and can be slower.')"
@@ -654,7 +652,7 @@ run_new_utility_wizard() {
     (lc_main "${args[@]}")
     ;;
   backup)
-    uk_section_title 'Backup Sync'
+    uk_banner "backup-sync" "Dry-run-first backup wrapper around rsync" ""
     local src dst apply delete
     src="$(uk_prompt 'Source directory to back up' '.' '~/project' 'The contents of this directory are copied into the destination.')"
     dst="$(uk_prompt 'Destination directory' "$(uk_state_dir)/backup-demo" '~/backup/project' 'Created if missing. Dry-run is default.')"
@@ -666,7 +664,7 @@ run_new_utility_wizard() {
     (bs_main "${args[@]}")
     ;;
   search)
-    uk_section_title 'Project Search'
+    uk_banner "project-search" "Text or filename search with rg → grep → find fallback" ""
     local dir mode term
     dir="$(uk_prompt 'Directory to search' '.' '~/project' 'Search respects available rg/grep/find behavior.')"
     mode="$(uk_prompt 'Search by text or filename? (text/name)' 'text' 'name' 'Text searches file contents; name searches paths.')"
@@ -674,21 +672,21 @@ run_new_utility_wizard() {
     if [[ "$mode" == name ]]; then (psrch_main --name "$term" "$(uk_expand_path "$dir")"); else (psrch_main --text "$term" "$(uk_expand_path "$dir")"); fi
     ;;
   log-inspect)
-    uk_section_title 'Log Inspector'
+    uk_banner "log-inspector" "Grep error/warn/fail patterns and surface frequent lines" ""
     local file pattern
     file="$(uk_prompt 'Log file to inspect' "$(uk_demo_file log)" './app.log' 'A demo log is used if you just press Enter.')"
     pattern="$(uk_prompt 'Error/warning regex pattern' 'error|warn|fail|exception' 'ERROR|WARN|panic' 'Case-insensitive grep pattern.')"
     (li_main "$(uk_expand_path "$file")" --pattern "$pattern")
     ;;
   csv)
-    uk_section_title 'CSV Toolkit'
+    uk_banner "csv-toolkit" "CSV column header print and row preview" ""
     local file mode
     file="$(uk_prompt 'CSV file to inspect' "$(uk_demo_file csv)" './data.csv' 'A demo CSV is used if you just press Enter.')"
     mode="$(uk_prompt 'Show columns or preview rows? (columns/preview)' 'preview' 'columns' 'Columns prints headers; preview prints first rows.')"
     if [[ "$mode" == columns ]]; then (csvt_main "$(uk_expand_path "$file")" --columns); else (csvt_main "$(uk_expand_path "$file")"); fi
     ;;
   cron)
-    uk_section_title 'Cron Manager'
+    uk_banner "cron-manager" "List, add, and remove crontab entries with format validation" ""
     local mode line num apply
     mode="$(uk_prompt 'Action: list, add, or remove' 'list' 'add' 'Requires crontab; Termux may need cronie installed.')"
     case "$mode" in
@@ -706,7 +704,7 @@ run_new_utility_wizard() {
     esac
     ;;
   dotenv)
-    uk_section_title 'Dotenv Vault'
+    uk_banner "dotenv-vault" "Encrypt .env values to ENC:: tokens with gpg" ""
     local file key action apply
     file="$(uk_prompt 'Dotenv file path' "$(uk_demo_file env)" './.env.local' 'A demo dotenv file is used if you just press Enter; encryption still requires gpg.')"
     action="$(uk_prompt 'Action: encrypt or decrypt' 'encrypt' 'decrypt' 'Encrypt modifies selected key only when applied; decrypt prints or writes decrypted output.')"
@@ -717,7 +715,7 @@ run_new_utility_wizard() {
     fi
     ;;
   disk-health)
-    uk_section_title 'Disk Health'
+    uk_banner "disk-health" "SMART health and attribute report via smartctl" ""
     local mode dev
     mode="$(uk_prompt 'Action: list or device' 'list' 'device' 'Requires smartctl and device permissions; often unavailable in Termux.')"
     if [[ "$mode" == device ]]; then
@@ -726,14 +724,14 @@ run_new_utility_wizard() {
     else (dh_main --list); fi
     ;;
   weather)
-    uk_section_title 'Weather'
+    uk_banner "weather" "Current weather from wttr.in with offline cache fallback" ""
     local loc units
     loc="$(uk_prompt 'Location' 'Kathmandu' 'Kathmandu | London | 27.7,85.3' 'Uses wttr.in through curl; cached result is shown if lookup fails.')"
     units="$(uk_prompt 'Units: metric or imperial' 'metric' 'imperial' 'Metric uses Celsius; imperial uses Fahrenheit.')"
     (wt_main "$loc" --units "$units")
     ;;
   tmux)
-    uk_section_title 'Tmux Session'
+    uk_banner "tmux-session" "Friendly wrapper for tmux list / new / attach / kill" ""
     local mode name
     mode="$(uk_prompt 'Action: list, new, attach, or kill' 'list' 'new' 'Requires tmux; Termux users can install with pkg install tmux.')"
     case "$mode" in new)

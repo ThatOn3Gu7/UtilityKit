@@ -22,6 +22,7 @@ fi_usage() {
   echo 'Usage: _font_inspector.sh [--list] [--filter NAME] [--glyphs]'
 }
 fi_main() {
+  uk_banner "font-inspector" "Terminal glyph samples and optional font enumeration" "" "$@"
   local list=0
   local filter=''
   local glyphs=0

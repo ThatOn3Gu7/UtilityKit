@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+MIB_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$MIB_SCRIPT_DIR/../lib/uk_common.sh"
 
 IFS=$'\n\t'
 
@@ -224,45 +226,6 @@ msg_warning() { printf "  %s  %s\n" "$(colorize "$MIB_C_YELLOW" "$MIB_I_WARNING"
 msg_working() { printf "  %s %s\n" "$(colorize "$MIB_C_CYAN" "$MIB_I_WORKING")" "$*"; }
 msg_arrow() { printf "  %s   %s\n" "$(colorize "$MIB_C_BLUE_BRIGHT" "$MIB_I_ARROW")" "$*"; }
 
-print_banner() {
-  local title="$1"
-  local subtitle="${2:-}"
-  local maxlen=${#title}
-  [[ ${#subtitle} -gt $maxlen ]] && maxlen=${#subtitle}
-  local inner_width=$((maxlen + 4))
-
-  local hrule=""
-  local i
-  for ((i = 0; i < inner_width; i++)); do hrule+="$MIB_I_BOX_H"; done
-
-  printf "\n"
-  printf "  %s%s%s\n" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_TL")" \
-    "$(colorize "$MIB_C_CYAN" "$hrule")" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_TR")"
-
-  local title_pad=$((inner_width - 2 - ${#title}))
-  printf "  %s  %s%*s%s\n" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_V")" \
-    "$(colorize "${MIB_C_BOLD}${MIB_C_CYAN}" "$title")" \
-    "$title_pad" "" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_V")"
-
-  if [[ -n "$subtitle" ]]; then
-    local sub_pad=$((inner_width - 2 - ${#subtitle}))
-    printf "  %s  %s%*s%s\n" \
-      "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_V")" \
-      "$(colorize "$MIB_C_DIM" "$subtitle")" \
-      "$sub_pad" "" \
-      "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_V")"
-  fi
-
-  printf "  %s%s%s\n" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_BL")" \
-    "$(colorize "$MIB_C_CYAN" "$hrule")" \
-    "$(colorize "$MIB_C_CYAN" "$MIB_I_BOX_BR")"
-  printf "\n"
-}
 format_size() {
   local size="$1"
   if ((size >= 1073741824)); then
@@ -356,7 +319,6 @@ _expand_tilde() {
 }
 #  7.  HELP & VERSION
 show_help() {
-  print_banner "$MIB_SCRIPT_NAME" "v${MIB_SCRIPT_VERSION}"
 
   printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "USAGE")"
   printf "\n"
@@ -570,7 +532,7 @@ move_in_batch() {
 
   if ((total_files == 0)); then
     msg_warning "No files found in $(colorize "$MIB_C_BOLD" "$target")"
-    print_banner "Operation Summary" "Nothing to process"
+    uk_section_title "Operation Summary — Nothing to process"
     printf "  %s  0 files processed\n" "$(colorize "$MIB_C_GREEN" "$MIB_I_TICK")"
     return 0
   fi
@@ -654,7 +616,7 @@ move_in_batch() {
     mode_tags+="$(colorize "$MIB_C_MAGENTA" " [flatten]")"
   fi
 
-  print_banner "Batch Move Operation" "v${MIB_SCRIPT_VERSION}"
+  uk_section_title "Batch Move Operation"
 
   msg_info "Source:      $(colorize "$MIB_C_BOLD" "$target")"
   msg_info "Output:      $(colorize "${MIB_C_BOLD}${MIB_C_CYAN}" "$output")"
@@ -879,7 +841,7 @@ move_in_batch() {
   end_time=$(date +%s)
   local duration=$((end_time - start_time))
 
-  print_banner "Operation Complete" "Processed in $(format_duration "$duration")"
+  uk_section_title "Operation Complete — processed in $(format_duration "$duration")"
 
   printf "  %s  %s\n" "$(colorize "$MIB_C_GREEN" "$MIB_I_TICK")" "$(colorize "$MIB_C_BOLD" "Summary")"
   printf "\n"
@@ -983,6 +945,7 @@ mib_main() {
   init_terminal_caps
   init_colors
   init_icons
+  uk_banner "move-in-batch" "Bulk copy or move files with exclusions and collision-safe renaming" "" "$@"
   move_in_batch "$@"
 }
 #  11. ENTRY POINT

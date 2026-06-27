@@ -30,6 +30,7 @@ sd_secure_delete() {
   rm -f "$file"
 }
 sd_main() {
+  uk_banner "shredder" "Multi-pass overwrite using shred or /dev/urandom fallback" "" "$@"
   SD_APPLY=0
   SD_PASSES=3
   SD_FILES=()
@@ -49,7 +50,6 @@ sd_main() {
     shift
   done
   if ((${#SD_FILES[@]} == 0)) && [[ -t 0 && -t 1 ]]; then
-    uk_header 'UtilityKit Shredder' 'Secure file erasure with overwrite passes'
 
     local input_file
     input_file="$(uk_prompt \
@@ -79,7 +79,7 @@ sd_main() {
     return 1
   fi
 
-  uk_header 'UtilityKit Shredder' "Passes: $SD_PASSES"
+  uk_section_title "Passes: $SD_PASSES"
   local f
   for f in "${SD_FILES[@]}"; do
     if [[ ! -f "$f" ]]; then

@@ -159,6 +159,7 @@ mc_convert_one() {
   fi
 }
 mc_main() {
+  uk_banner "media-convert" "Batch image and video conversion via ImageMagick or ffmpeg" "" "$@"
   MC_KIND='image'
   MC_TO='webp'
   MC_QUALITY=82
@@ -197,7 +198,6 @@ mc_main() {
 
   # Interactive mode
   if ((${#MC_PATHS[@]} == 0)) && [[ -t 0 && -t 1 ]]; then
-    uk_header 'UtilityKit Media Convert' 'Batch image and video conversion'
 
     MC_KIND="$(uk_prompt \
       'Enter conversion kind' \
@@ -281,7 +281,7 @@ mc_main() {
   # Check required tools before proceeding
   mc_require_tool || exit 1
 
-  uk_header 'UtilityKit Media Convert' "$MC_KIND -> $MC_TO | output: $MC_OUTPUT | ${#files[@]} file(s) found"
+  uk_section_title "$MC_KIND -> $MC_TO | output: $MC_OUTPUT | ${#files[@]} file(s) found"
 
   for file in "${files[@]}"; do
     mc_convert_one "$file"

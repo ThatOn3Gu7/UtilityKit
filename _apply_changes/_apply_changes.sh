@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/uk_common.sh"
 
 MODE="dry-run"
 MIRROR=0
@@ -568,6 +570,7 @@ apply_changes() {
 }
 # Argument parsing & execution entry point -
 ac_main() {
+  uk_banner "apply-changes" "Directory sync with dry-run preview, backup, and rollback" "" "$@"
   _setup_colors
   trap 'cleanup_and_trap EXIT' EXIT
   trap 'cleanup_and_trap SIGINT' SIGINT

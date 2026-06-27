@@ -21,6 +21,7 @@ cm_have() {
   }
 }
 cm_main() {
+  uk_banner "cron-manager" "List, add, and remove crontab entries with format validation" "" "$@"
   local action='list' line='' num='' apply=0
   while [[ $# -gt 0 ]]; do
     case "$1" in

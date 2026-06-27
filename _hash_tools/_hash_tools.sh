@@ -30,6 +30,7 @@ ht_usage() {
   echo 'Usage: _hash_tools.sh FILE|DIR...'
 }
 ht_main() {
+  uk_banner "hash-tools" "sha256/md5 hashing over files and directory trees" "" "$@"
   if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
     ht_usage
     return 0

@@ -3,6 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 psrch_usage() { echo 'Usage: _project_search.sh --text PATTERN|--name GLOB [DIR]'; }
 psrch_main() {
+  uk_banner "project-search" "Text or filename search with rg → grep → find fallback" "" "$@"
   local text='' name='' dir='.'
   while [[ $# -gt 0 ]]; do
     case "$1" in --text)

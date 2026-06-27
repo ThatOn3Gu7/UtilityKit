@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+RB_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$RB_SCRIPT_DIR/../lib/uk_common.sh"
 
 IFS=$'\n\t'
 
@@ -241,44 +243,6 @@ box_line() {
   local width="$2"
   printf "  %s %-*s %s\n" "$RB_I_BOX_V" "$width" "$content" "$RB_I_BOX_V"
 }
-print_banner() {
-  local title="$1"
-  local subtitle="${2:-}"
-  local maxlen=${#title}
-  [[ ${#subtitle} -gt $maxlen ]] && maxlen=${#subtitle}
-  local inner_width=$((maxlen + 4))
-
-  local hrule=""
-  local i
-  for ((i = 0; i < inner_width; i++)); do hrule+="$RB_I_BOX_H"; done
-
-  printf "\n"
-  # Top Border
-  printf "  %s%s%s\n" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_TL")" "$(colorize "$RB_C_CYAN" "$hrule")" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_TR")"
-
-  # Title Line
-  # Calculate right padding using the raw ${#title} to avoid invisible character math
-  local title_pad=$((inner_width - 2 - ${#title}))
-  printf "  %s  %s%*s%s\n" \
-    "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")" \
-    "$(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$title")" \
-    "$title_pad" "" \
-    "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")"
-
-  # Subtitle Line (if provided)
-  if [[ -n "$subtitle" ]]; then
-    local sub_pad=$((inner_width - 2 - ${#subtitle}))
-    printf "  %s  %s%*s%s\n" \
-      "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")" \
-      "$(colorize "$RB_C_DIM" "$subtitle")" \
-      "$sub_pad" "" \
-      "$(colorize "$RB_C_CYAN" "$RB_I_BOX_V")"
-  fi
-
-  # Bottom Border
-  printf "  %s%s%s\n" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_BL")" "$(colorize "$RB_C_CYAN" "$hrule")" "$(colorize "$RB_C_CYAN" "$RB_I_BOX_BR")"
-  printf "\n"
-}
 format_size() {
   local size="$1"
   if ((size >= 1073741824)); then
@@ -468,7 +432,6 @@ already_has_extension() {
 }
 #  7.  HELP & VERSION
 show_help() {
-  print_banner "$SCRIPT_NAME" "v${SCRIPT_VERSION}"
 
   printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "USAGE")"
   printf "\n"
@@ -548,6 +511,7 @@ rb_main() {
   init_terminal_caps
   init_colors
   init_icons
+  uk_banner "rename-batch" "Recursively rename or copy files to a new extension" "" "$@"
   # 1. Parse incoming script flags and parameters
   local positional_args=()
   while [[ $# -gt 0 ]]; do
@@ -589,7 +553,7 @@ rb_main() {
       exit 1
     fi
 
-    print_banner "Interactive Configuration" "UtilityKit Script Wizard Fallback"
+    uk_section_title "Interactive Configuration"
 
     printf "  %s  Enter target directory to process [default: .] \n  %s " "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$(colorize "$RB_C_DIM" "> ")"
     read -r source_dir
@@ -651,7 +615,7 @@ rb_main() {
 
   if ((file_count == 0)); then
     msg_warning "No files found in $(colorize "$RB_C_BOLD" "$source_dir")"
-    print_banner "Operation Summary" "Nothing to process"
+    uk_section_title "Operation Summary — Nothing to process"
     printf "  %s  0 files processed\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")"
     exit 0
   fi
@@ -699,7 +663,7 @@ rb_main() {
   local mode_label="In-place rename"
   [[ "$mode" == "copy" ]] && mode_label="Copy + rename → $(colorize "$RB_C_CYAN" "$output_dir")"
 
-  print_banner "Batch Rename Operation" "v${SCRIPT_VERSION}"
+  uk_section_title "Batch Rename Operation"
 
   msg_info "Source:      $(colorize "$RB_C_BOLD" "$source_dir")"
   msg_info "Extension:   $(colorize "${RB_C_BOLD}${RB_C_YELLOW}" ".${new_ext}")"
@@ -965,7 +929,7 @@ rb_main() {
   end_time=$(date +%s)
   local duration=$((end_time - start_time))
 
-  print_banner "Operation Complete" "Processed in $(format_duration "$duration")"
+  uk_section_title "Operation Complete — processed in $(format_duration "$duration")"
 
   printf "  %s  %s\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")" "$(colorize "$RB_C_BOLD" "Summary")"
   printf "\n"

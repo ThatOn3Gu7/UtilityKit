@@ -181,6 +181,7 @@ PY2
   fi
 }
 mt_main() {
+  uk_banner "markdown-toc" "Insert or refresh markdown TOC with link validation" "" "$@"
   MT_FILE=''
   MT_APPLY=0
   MT_CHECK_LINKS=0
@@ -200,7 +201,6 @@ mt_main() {
     shift
   done
   if [[ -z "$MT_FILE" ]] && [[ -t 0 && -t 1 ]]; then
-    uk_header 'UtilityKit Markdown TOC' 'TOC generation, link checking and table alignment'
 
     MT_FILE="$(uk_prompt \
       'Enter the markdown file to process' \
@@ -228,7 +228,7 @@ mt_main() {
     return 1
   fi
 
-  uk_header 'UtilityKit Markdown TOC' "$MT_FILE"
+  uk_section_title "File: $MT_FILE"
   mt_insert_toc
   ((MT_CHECK_LINKS == 1)) && {
     printf '\n'

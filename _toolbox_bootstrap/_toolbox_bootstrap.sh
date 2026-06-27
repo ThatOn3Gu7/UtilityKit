@@ -3,6 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
 tb_usage() { echo 'Usage: _toolbox_bootstrap.sh'; }
 tb_main() {
+  uk_banner "toolbox-bootstrap" "Audit recommended CLI tools (fzf, rg, fd, bat, jq…)" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in -h | --help)
       tb_usage

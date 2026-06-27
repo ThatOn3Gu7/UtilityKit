@@ -125,7 +125,7 @@ gs_preview() {
   mapfile -t stashes < <(git -C "$GS_REPO" stash list 2>/dev/null || true)
   mapfile -t clean_preview < <(git -C "$GS_REPO" clean -fdxn 2>/dev/null || true)
 
-  uk_header "UtilityKit Git Sweep" "Repository: $(uk_abs_path "$GS_REPO") | Base branch: $base"
+  uk_section_title "Repository: $(uk_abs_path "$GS_REPO") | Base branch: $base"
   gs_print_lines_or_none 'Merged local branches:' "${local_branches[@]}"
   gs_print_lines_or_none 'Merged remote branches:' "${remote_branches[@]}"
   gs_print_lines_or_none 'Git stashes:' "${stashes[@]}"
@@ -221,6 +221,7 @@ gs_interactive() {
   gs_run "$base"
 }
 gs_main() {
+  uk_banner "git-sweep" "Merged-branch cleanup, stash purge, repo garbage collection" "" "$@"
   GS_APPLY=0
   GS_LOCAL=0
   GS_REMOTE=0

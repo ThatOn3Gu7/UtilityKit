@@ -26,6 +26,7 @@ Options:
 USAGE
 }
 jx_main() {
+  uk_banner "json-explorer" "JSON pretty-print, dot-path extraction, key listing" "" "$@"
   local file='-'
   local path=''
   local keys=0

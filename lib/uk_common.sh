@@ -5,6 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
+readonly UK_VERSION='4.1.2'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -199,4 +200,67 @@ uk_copy_to_clipboard() {
 }
 uk_slugify() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr ' /' '--' | tr -cd 'a-z0-9._-'
+}
+uk_visible_len() {
+  local s
+  s="$(printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')"
+  printf '%s' "${#s}"
+}
+uk_banner() {
+  local name="$1" tagline="$2" icon="${3:-}"
+  shift 3 2>/dev/null || true
+
+  [[ -n "${UK_BANNER_PRINTED:-}" ]] && return 0
+  [[ ! -t 1 ]] && return 0
+  [[ -n "${NO_BANNER:-}" ]] && return 0
+  local a
+  for a in "$@"; do
+    case "$a" in -q | --quiet) return 0 ;; esac
+  done
+
+  [[ -z "$icon" ]] && icon="$UK_I_WORK"
+
+  local tl tr bl br h v
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    tl='╭' tr='╮' bl='╰' br='╯' h='─' v='│'
+  else
+    tl='+' tr='+' bl='+' br='+' h='-' v='|'
+  fi
+
+  local l1="  $icon utilitykit $UK_I_SEP $name  v$UK_VERSION  "
+  local l2="  $tagline  "
+  local l3="  linux $UK_I_DOT macos $UK_I_DOT termux  "
+
+  local n1 n2 n3 inner
+  n1="$(uk_visible_len "$l1")"
+  n2="$(uk_visible_len "$l2")"
+  n3="$(uk_visible_len "$l3")"
+  inner=44
+  ((n1 > inner)) && inner=$n1
+  ((n2 > inner)) && inner=$n2
+  ((n3 > inner)) && inner=$n3
+
+  local hbar='' i
+  for ((i = 0; i < inner; i++)); do hbar+="$h"; done
+
+  printf '\n'
+  printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$tl" "$hbar" "$tr" "$UK_C_RESET"
+  printf '%s%s%s%s%*s%s%s%s\n' \
+    "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
+    "$UK_C_BOLD$UK_C_BRIGHT_CYAN$l1$UK_C_RESET" "$((inner - n1))" '' \
+    "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
+  if [[ -n "$tagline" ]]; then
+    printf '%s%s%s%s%*s%s%s%s\n' \
+      "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
+      "$UK_C_DIM$l2$UK_C_RESET" "$((inner - n2))" '' \
+      "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
+  fi
+  printf '%s%s%s%s%*s%s%s%s\n' \
+    "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
+    "$UK_C_DIM$l3$UK_C_RESET" "$((inner - n3))" '' \
+    "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
+  printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$bl" "$hbar" "$br" "$UK_C_RESET"
+  printf '\n'
+
+  UK_BANNER_PRINTED=1
 }

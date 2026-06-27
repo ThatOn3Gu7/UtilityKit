@@ -19,6 +19,7 @@ am_check_archive_paths() {
   printf '%s\n' "$entries" | awk 'length($0) && ($0 ~ /^\// || $0 ~ /^\.\.\// || $0 ~ /\.\.\//) {print; bad=1} END{exit bad?1:0}'
 }
 am_main() {
+  uk_banner "archive-manager" "List, extract, and create tar.gz / zip archives safely" "" "$@"
   local action='' archive='' dest='.' out='' paths=()
   while [[ $# -gt 0 ]]; do
     case "$1" in

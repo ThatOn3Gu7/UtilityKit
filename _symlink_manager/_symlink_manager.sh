@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-#
-# _symlink_manager.sh — Cross-platform intelligent dotfile/directory symlink manager
-# Features automatic backup of existing files/directories, dry-run mode, and status reporting.
+SM_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SM_SCRIPT_DIR/../lib/uk_common.sh"
 
 SM_VERSION="1.0.0"
 SM_MODE="dry-run"
@@ -68,6 +67,7 @@ ${C_BOLD}Examples:${C_RESET}
 EOF
 }
 sm_main() {
+  uk_banner "symlink-manager" "Transactional symlink creator with backup of existing targets" "" "$@"
   sm_setup_colors
   SM_MODE="dry-run"
   SM_BACKUP_DIR=""

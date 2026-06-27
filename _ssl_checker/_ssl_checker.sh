@@ -55,6 +55,7 @@ sc_tls_checks() {
   fi
 }
 sc_main() {
+  uk_banner "ssl-checker" "Certificate expiry, DNS records, legacy TLS probe" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --port)
@@ -73,7 +74,6 @@ sc_main() {
   done
   if [[ -z "$SC_HOST" ]]; then
     if [[ -t 0 && -t 1 ]]; then
-      uk_header 'UtilityKit SSL Checker' 'Certificate expiry, DNS records and legacy TLS probe'
       SC_HOST="$(uk_prompt \
         'Enter the domain or host to inspect' \
         '' \
@@ -97,7 +97,7 @@ sc_main() {
     uk_error 'openssl is required.'
     return 1
   }
-  uk_header 'UtilityKit SSL Checker' "$SC_HOST:$SC_PORT"
+  uk_section_title "$SC_HOST:$SC_PORT"
   local cert_info expiry issuer subject days
   cert_info=$(openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" </dev/null 2>/dev/null | openssl x509 -noout -dates -issuer -subject 2>/dev/null) || {
     uk_error 'Failed to retrieve certificate.'

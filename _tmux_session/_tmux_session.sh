@@ -251,6 +251,7 @@ tms_usage() {
 }
 
 tms_main() {
+  uk_banner "tmux-session" "Friendly wrapper for tmux list / new / attach / kill" "" "$@"
   local action="wizard"
   local name=""
 

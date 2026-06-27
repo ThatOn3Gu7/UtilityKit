@@ -162,6 +162,7 @@ func main() {
 __GO__
 }
 ps_main() {
+  uk_banner "project-scaffold" "Starter project generator for Bash, Python, Node, Go" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --type)
@@ -189,7 +190,6 @@ ps_main() {
     shift
   done
   if [[ -z "$PS_TYPE" && -t 0 ]]; then
-    uk_header 'UtilityKit Project Scaffold' 'Generate standardized starter projects'
     PS_TYPE="$(uk_prompt 'Enter scaffold type (bash, python-flask, node-cli, go-service)' 'bash' 'python-flask' 'Each scaffold creates starter files, CI boilerplate, and a minimal runtime entrypoint.')"
     PS_NAME="$(uk_prompt 'Enter the project folder name to generate' '' 'demo-app' 'This becomes the directory name inside the destination folder.')"
     PS_DEST="$(uk_prompt 'Enter the parent destination directory' '.' '~/projects' 'The new scaffold folder will be created inside this destination.')"

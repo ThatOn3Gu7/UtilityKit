@@ -142,6 +142,7 @@ at_run_request() {
   fi
 }
 at_main() {
+  uk_banner "api-tester" "One-off HTTP requests or saved/replayable profiles" "" "$@"
   AT_ACTION='run'
   AT_NAME=''
   AT_METHOD='GET'
@@ -218,7 +219,7 @@ at_main() {
     ;;
   run)
     if [[ -z "$AT_URL" && -t 0 && -t 1 ]]; then
-      uk_header 'UtilityKit API Tester' 'One-off HTTP request'
+      uk_section_title 'One-off HTTP request'
 
       printf '\n %s%s◆ Method%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
       printf '  %sHTTP verb to use for the request%s\n' "$UK_C_DIM" "$UK_C_RESET"

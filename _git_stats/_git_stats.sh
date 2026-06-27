@@ -27,6 +27,7 @@ gst_usage() {
   echo 'Usage: _git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]'
 }
 gst_main() {
+  uk_banner "git-stats" "Commit counts, most-changed files, branch activity" "" "$@"
   local repo='.'
   local since=''
   local until=''
@@ -96,7 +97,7 @@ gst_main() {
   [[ -n "$until" ]] && args+=(--until="$until")
   [[ -n "$author" ]] && args+=(--author="$author")
 
-  uk_header 'UtilityKit Git Stats' "repo: $(uk_abs_path "$repo")"
+  uk_section_title "repo: $(uk_abs_path "$repo")"
 
   # ── Commits by author ──────────────────────────────────────────────
   printf '\n  %s%s◆ Commits by author%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"

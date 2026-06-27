@@ -148,6 +148,7 @@ np_trace() {
   done <<<"$output"
 }
 np_main() {
+  uk_banner "network-probe" "Ping, DNS lookup, public IP, and route tracing" "" "$@"
   local host='example.com' count=4 dns='' public=1 trace=1
 
   while [[ $# -gt 0 ]]; do
@@ -174,7 +175,7 @@ np_main() {
   # Default DNS target to host if not set separately
   [[ -z "$dns" ]] && dns="$host"
 
-  uk_header 'UtilityKit Network Probe' "target: $host"
+  uk_section_title "target: $host"
 
   np_ping "$host" "$count"
   np_dns "$dns"

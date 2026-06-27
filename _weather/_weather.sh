@@ -173,6 +173,7 @@ Examples:
 EOF
 }
 wt_main() {
+  uk_banner "weather" "Current weather from wttr.in with offline cache fallback" "" "$@"
   local loc=""
   local units="metric"
   local style="concise"

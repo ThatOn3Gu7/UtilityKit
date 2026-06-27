@@ -132,7 +132,6 @@ cs_interactive() {
   local choice done_loop=0
   while ((done_loop == 0)); do
     clear
-    uk_header 'UtilityKit Cheat Sheet' 'Your personal markdown snippet store'
     printf '  %s1)%s List saved snippets     %s(show all snippet names you have stored)%s\n' \
       "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
     printf '  %s2)%s Add a new snippet       %s(save a one-liner or short block with tags)%s\n' \
@@ -211,6 +210,7 @@ cs_interactive() {
 }
 # Main
 cs_main() {
+  uk_banner "cheat-sheet" "Personal markdown snippet store with tagging and search" "" "$@"
   CS_ACTION=''
   CS_NAME=''
   CS_TEXT=''

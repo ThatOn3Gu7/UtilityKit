@@ -56,7 +56,6 @@ dj_count() {
   echo "$count"
 }
 dj_preview() {
-  uk_header 'UtilityKit Docker Janitor' 'Stopped containers, dangling images, and orphaned volumes'
 
   local containers images volumes
   containers="$(dj_count ps -aq -f status=exited)"
@@ -126,6 +125,7 @@ dj_interactive() {
   dj_run
 }
 dj_main() {
+  uk_banner "docker-janitor" "Prune stopped containers, dangling images, and orphan volumes" "" "$@"
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --containers) DJ_CONTAINERS=1 ;;

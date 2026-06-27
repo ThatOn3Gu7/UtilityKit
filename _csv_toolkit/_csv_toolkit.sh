@@ -14,6 +14,7 @@ Options:
 USAGE
 }
 csvt_main() {
+  uk_banner "csv-toolkit" "CSV column header print and row preview" "" "$@"
   local file='' cols=0 headn=10
 
   while [[ $# -gt 0 ]]; do

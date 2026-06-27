@@ -35,6 +35,7 @@ pg_string() {
   printf '\n'
 }
 pg_main() {
+  uk_banner "password-gen" "XKCD-style passphrases or random strings with entropy" "" "$@"
   PG_MODE='passphrase'
   PG_WORDS=4
   PG_LENGTH=20
@@ -74,7 +75,6 @@ pg_main() {
   done
 
   if ((seen_args == 0)) && [[ -t 0 && -t 1 ]]; then
-    uk_header 'UtilityKit Password Generator' 'Passphrases and random strings'
 
     PG_MODE="$(uk_prompt \
       'Choose generator mode' \

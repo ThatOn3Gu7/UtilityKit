@@ -53,18 +53,11 @@ bd_show_top_processes() {
 }
 # Main
 bd_main() {
+  uk_banner "battery-doctor" "Battery status and top CPU/memory processes" "" "$@"
   # Handle help
   if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     bd_usage
     return 0
-  fi
-
-  # Show a header (uses uk_header if available, else fallback)
-  if declare -f uk_header >/dev/null 2>&1; then
-    uk_header 'Battery Doctor' 'System power & process monitor'
-  else
-    printf '\n%sBattery Doctor%s\n' "${UK_C_BOLD:-}" "${UK_C_RESET:-}"
-    printf '%s\n' "======================="
   fi
   # Battery info
   if ! bd_show_battery; then

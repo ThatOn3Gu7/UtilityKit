@@ -46,6 +46,7 @@ dv_decrypt_token() {
   rm -f "$tmp"
 }
 dv_main() {
+  uk_banner "dotenv-vault" "Encrypt .env values to ENC:: tokens with gpg" "" "$@"
   local file='.env' key='' decrypt=0 apply=0 output=''
   while [[ $# -gt 0 ]]; do
     case "$1" in

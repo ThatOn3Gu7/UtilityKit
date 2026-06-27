@@ -29,6 +29,7 @@ sw_check() {
   return "$ok"
 }
 sw_main() {
+  uk_banner "service-watcher" "HTTP endpoint status and response-time checks" "" "$@"
   local expect='2xx,3xx' interval=0 save='' profile='' urls=()
   while [[ $# -gt 0 ]]; do
     case "$1" in --expect)
@@ -72,7 +73,7 @@ sw_main() {
     return 1
   }
   while true; do
-    uk_header 'UtilityKit Service Watcher' "expect: $expect"
+    uk_section_title "expect: $expect"
     local fail=0 u
     for u in "${urls[@]}"; do sw_check "$u" "$expect" || fail=1; done
     ((interval > 0)) || return "$fail"
