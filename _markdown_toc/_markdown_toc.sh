@@ -40,48 +40,78 @@ mt_generate_toc() {
   done <"$MT_FILE"
 }
 mt_insert_toc() {
-  local toc tmp
-  toc=$(mktemp)
-  tmp=$(mktemp)
-  trap "rm -f '$toc' '$tmp'" RETURN
-  mt_generate_toc >"$toc"
-  MT_TOC_COUNT=$(wc -l <"$toc" | tr -d ' ')
+  local toc_lines tmp
+  toc_lines=$(mt_generate_toc)
+  MT_TOC_COUNT=$(printf '%s\n' "$toc_lines" | grep -c . || true)
 
   if ((MT_TOC_COUNT == 0)); then
     uk_warn 'No markdown headings were found; TOC would be empty.'
+    return 0
   fi
 
-  awk -v start="$MT_START" -v end="$MT_END" -v tocfile="$toc" '
-    BEGIN {inblock=0; has_markers=0; inserted=0}
-    $0==start {
-      has_markers=1
-      print
-      while ((getline line < tocfile) > 0) print line
-      inblock=1
-      next
-    }
-    $0==end {inblock=0; print; next}
-    inblock {next}
-    {
-      print
-      if (!has_markers && !inserted && $0 ~ /^# /) {
-        print ""
-        print start
-        while ((getline line < tocfile) > 0) print line
-        print end
-        print ""
-        inserted=1
-      }
-    }
-    END {
-      if (!has_markers && !inserted) {
-        print ""
-        print start
-        while ((getline line < tocfile) > 0) print line
-        print end
-      }
-    }
-  ' "$MT_FILE" >"$tmp"
+  tmp=$(mktemp)
+
+  python3 - "$MT_FILE" "$tmp" "$MT_START" "$MT_END" <<PYEOF
+import sys
+
+src_path  = sys.argv[1]
+dst_path  = sys.argv[2]
+start_tag = sys.argv[3]
+end_tag   = sys.argv[4]
+
+toc_block = """$toc_lines"""
+toc_lines = toc_block.splitlines()
+
+with open(src_path, 'r', encoding='utf-8') as f:
+    lines = f.read().splitlines()
+
+out = []
+in_block    = False
+has_markers = False
+inserted    = False
+
+for i, line in enumerate(lines):
+    stripped = line.rstrip('\r')
+    if stripped == start_tag:
+        has_markers = True
+        in_block = True
+        out.append(line)
+        for t in toc_lines:
+            out.append(t)
+        continue
+    if stripped == end_tag:
+        in_block = False
+        out.append(line)
+        continue
+    if in_block:
+        continue
+    out.append(line)
+    if not has_markers and not inserted and stripped.startswith('# '):
+        out.append('')
+        out.append(start_tag)
+        for t in toc_lines:
+            out.append(t)
+        out.append(end_tag)
+        out.append('')
+        inserted = True
+
+if not has_markers and not inserted:
+    out.append('')
+    out.append(start_tag)
+    for t in toc_lines:
+        out.append(t)
+    out.append(end_tag)
+
+with open(dst_path, 'w', encoding='utf-8') as f:
+    f.write('\n'.join(out) + '\n')
+PYEOF
+
+  local py_status=$?
+  if ((py_status != 0)); then
+    rm -f "$tmp"
+    uk_error 'TOC insertion failed.'
+    return 1
+  fi
 
   if ((MT_APPLY == 1)); then
     mv "$tmp" "$MT_FILE"
@@ -89,6 +119,7 @@ mt_insert_toc() {
   else
     uk_note "Preview with $MT_TOC_COUNT entr$( ((MT_TOC_COUNT == 1)) && printf 'y' || printf 'ies'):"
     cat "$tmp"
+    rm -f "$tmp"
   fi
 }
 mt_check_links() {
