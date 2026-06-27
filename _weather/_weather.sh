@@ -75,7 +75,7 @@ wt_fetch() {
   # URL encode location if one is provided
   local encoded_loc=""
   if [[ -n "$loc" && "$loc" != "auto" ]]; then
-    encoded_loc="$(printf '%s' "$loc" | sed 's/ /+/g')"
+    encoded_loc="${loc// /+}"
   fi
 
   # Build target query url

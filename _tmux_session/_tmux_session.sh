@@ -183,8 +183,9 @@ tms_wizard() {
     ;;
   new)
     # Dynamic Fallback: Safely sanitize the current directory name
-    local current_dir
-    current_dir=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]/-/g')
+    local current_dir="${PWD##*/}"
+    current_dir="${current_dir,,}"
+    current_dir="${current_dir//[^a-z0-9_-]/-}"
     local def_new="${current_dir:-temp-session}"
 
     local new_name

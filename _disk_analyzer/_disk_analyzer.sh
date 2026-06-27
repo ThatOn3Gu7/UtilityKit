@@ -237,8 +237,7 @@ da_main() {
 
   for line in "${items[@]}"; do
     local size path
-    size="$(printf '%s' "$line" | awk '{print $1}')"
-    path="$(printf '%s' "$line" | awk '{$1=""; print $0}' | sed 's/^ *//')"
+    read -r size path <<< "$line"
 
     if [[ "$path" == "$target_dir" || "$path" == "." ]]; then
       printf "  %s %-12s %s (Total)%s\n" "${C_GREEN}${I_BULLET}" "${size}" "${path}" "${C_RESET}"
