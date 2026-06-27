@@ -231,34 +231,69 @@ uk_banner() {
   local l2="  $tagline  "
   local l3="  linux $UK_I_DOT macos $UK_I_DOT termux  "
 
-  local n1 n2 n3 inner
+  local n1 n2 n3 term_width inner min_inner
   n1="$(uk_visible_len "$l1")"
   n2="$(uk_visible_len "$l2")"
   n3="$(uk_visible_len "$l3")"
-  inner=44
-  ((n1 > inner)) && inner=$n1
-  ((n2 > inner)) && inner=$n2
-  ((n3 > inner)) && inner=$n3
+
+  if uk_has_cmd tput; then
+    term_width="$(tput cols 2>/dev/null)"
+  fi
+  if [[ -z "$term_width" ]] && uk_has_cmd stty; then
+    term_width="$(stty size 2>/dev/null | cut -d' ' -f2)"
+  fi
+  if [[ -z "$term_width" ]]; then
+    term_width="${COLUMNS:-80}"
+  fi
+  
+  # Failsafe in case term_width is still somehow empty or not a number
+  if ! [[ "$term_width" =~ ^[0-9]+$ ]]; then
+    term_width=80
+  fi
+
+  inner=$((term_width - 2))
+
+  min_inner=44
+  ((n1 > min_inner)) && min_inner=$n1
+  ((n2 > min_inner)) && min_inner=$n2
+  ((n3 > min_inner)) && min_inner=$n3
+  ((inner < min_inner)) && inner=$min_inner
 
   local hbar='' i
   for ((i = 0; i < inner; i++)); do hbar+="$h"; done
 
   printf '\n'
   printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$tl" "$hbar" "$tr" "$UK_C_RESET"
-  printf '%s%s%s%s%*s%s%s%s\n' \
+  
+  local pad1=$(( (inner - n1) / 2 ))
+  local pad1_r=$(( inner - n1 - pad1 ))
+  printf '%s%s%s%*s%s%*s%s%s%s\n' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
-    "$UK_C_BOLD$UK_C_BRIGHT_CYAN$l1$UK_C_RESET" "$((inner - n1))" '' \
+    "$pad1" '' \
+    "$UK_C_BOLD$UK_C_BRIGHT_CYAN$l1$UK_C_RESET" \
+    "$pad1_r" '' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
+    
   if [[ -n "$tagline" ]]; then
-    printf '%s%s%s%s%*s%s%s%s\n' \
+    local pad2=$(( (inner - n2) / 2 ))
+    local pad2_r=$(( inner - n2 - pad2 ))
+    printf '%s%s%s%*s%s%*s%s%s%s\n' \
       "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
-      "$UK_C_DIM$l2$UK_C_RESET" "$((inner - n2))" '' \
+      "$pad2" '' \
+      "$UK_C_DIM$l2$UK_C_RESET" \
+      "$pad2_r" '' \
       "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
   fi
-  printf '%s%s%s%s%*s%s%s%s\n' \
+  
+  local pad3=$(( (inner - n3) / 2 ))
+  local pad3_r=$(( inner - n3 - pad3 ))
+  printf '%s%s%s%*s%s%*s%s%s%s\n' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
-    "$UK_C_DIM$l3$UK_C_RESET" "$((inner - n3))" '' \
+    "$pad3" '' \
+    "$UK_C_DIM$l3$UK_C_RESET" \
+    "$pad3_r" '' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
+    
   printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$bl" "$hbar" "$br" "$UK_C_RESET"
   printf '\n'
 
