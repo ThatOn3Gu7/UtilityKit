@@ -40,6 +40,87 @@ da_setup_colors() {
     I_DISK="O"
   fi
 }
+da_fake_progress() {
+  local pid="$1"
+  local width=28
+  local pct=0
+  local fill empty bar bar_fill bar_empty
+
+  # Choose characters
+  local ch_fill ch_empty
+  if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
+    ch_fill='█'
+    ch_empty='░'
+  else
+    ch_fill='#'
+    ch_empty='-'
+  fi
+
+  local color_bar color_done
+  if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    color_bar="${C_CYAN}"
+    color_done="${C_GREEN}"
+  else
+    color_bar=''
+    color_done=''
+  fi
+
+  printf '\n'
+
+  while kill -0 "$pid" 2>/dev/null; do
+    # Acceleration curve
+    if ((pct < 50)); then
+      increment=3
+    elif ((pct < 75)); then
+      increment=2
+    elif ((pct < 85)); then
+      increment=1
+    elif ((pct < 99)); then
+      increment=1
+    else
+      increment=0
+    fi
+
+    pct=$((pct + increment))
+    ((pct > 99)) && pct=99
+
+    fill=$((pct * width / 100))
+    empty=$((width - fill))
+
+    # Build the bar without tr
+    printf -v bar_fill '%*s' "$fill" ''
+    printf -v bar_empty '%*s' "$empty" ''
+    bar_fill="${bar_fill// /$ch_fill}"
+    bar_empty="${bar_empty// /$ch_empty}"
+    bar="${color_bar}${bar_fill}${C_DIM}${bar_empty}${C_RESET}"
+
+    printf '\r  %s%s%s  %s%3d%%%s  Scanning...' \
+      "${C_BOLD}" "${I_BULLET}" "${C_RESET}" \
+      "${C_BOLD}" "$pct" "${C_RESET}"
+
+    printf ' [%s]' "$bar"
+
+    # Pacing
+    if ((pct < 50)); then
+      sleep 0.08
+    elif ((pct < 85)); then
+      sleep 0.18
+    else
+      sleep 0.55
+    fi
+  done
+
+  # Final 100% bar
+  printf -v bar_fill '%*s' "$width" ''
+  bar_fill="${bar_fill// /$ch_fill}"
+  bar="${color_done}${bar_fill}${C_RESET}"
+
+  printf '\r  %s%s%s  %s%3d%%%s  ' \
+    "${C_GREEN}" "${I_SUCCESS}" "${C_RESET}" \
+    "${C_BOLD}" 100 "${C_RESET}"
+  printf '[%s]' "$bar"
+  printf '  %s%sScan complete.%s\n\n' "${C_GREEN}" "${C_BOLD}" "${C_RESET}"
+}
 da_usage() {
   cat <<EOF
 ${C_BOLD}Usage:${C_RESET}
@@ -107,12 +188,40 @@ da_main() {
 
   printf "\n  %s %sDisk Space Analyzer%s\n\n" "${C_CYAN}${I_DISK}" "${C_BOLD}" "${C_RESET}"
   printf "  %s Target: %s\n" "${C_BLUE}${I_ARROW}${C_RESET}" "${C_BOLD}$(realpath "$target_dir" 2>/dev/null || echo "$target_dir")${C_RESET}"
-  printf "  %s Scanning largest %d visible items (metadata folders like .git are skipped)...\n\n" "${C_YELLOW}${I_INFO}${C_RESET}" "$DA_COUNT"
+  printf "  %s Scanning largest %d visible items (metadata folders like .git are skipped)...\n" "${C_YELLOW}${I_INFO}${C_RESET}" "$DA_COUNT"
+
+  # Write du output to a temp file in the background so we can show a progress bar
+  local _da_tmp
+  _da_tmp=$(mktemp)
+
+  # Use -d 1 as a fallback for BSD/macOS where --max-depth is not supported
+  if du --max-depth=1 . >/dev/null 2>&1; then
+    du -ah --max-depth=1 "$target_dir" 2>/dev/null |
+      grep -Ev "$DA_EXCLUDE_REGEX" |
+      sort -hr |
+      head -n $((DA_COUNT + 1)) \
+        >"$_da_tmp" &
+  else
+    du -ah -d 1 "$target_dir" 2>/dev/null |
+      grep -Ev "$DA_EXCLUDE_REGEX" |
+      sort -hr |
+      head -n $((DA_COUNT + 1)) \
+        >"$_da_tmp" &
+  fi
+  local _da_bg_pid=$!
+
+  # Only show the progress bar when output is a TTY
+  if [[ -t 1 ]]; then
+    da_fake_progress "$_da_bg_pid"
+  else
+    wait "$_da_bg_pid"
+  fi
 
   local items=()
   while IFS= read -r line; do
     items+=("$line")
-  done < <(du -ah --max-depth=1 "$target_dir" 2>/dev/null | grep -Ev "$DA_EXCLUDE_REGEX" | sort -hr | head -n $((DA_COUNT + 1)) || true)
+  done <"$_da_tmp"
+  rm -f "$_da_tmp"
 
   if [[ ${#items[@]} -eq 0 ]]; then
     printf "  %s No items found or permission denied.\n\n" "${C_YELLOW}${I_WARN}${C_RESET}"
