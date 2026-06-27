@@ -369,7 +369,7 @@ show_version() {
 _exclusion_group() {
   local filepath="$1"
   local basename
-  basename="$(basename "$filepath")"
+  basename="${filepath##*/}"
   shift
   local exts=("$@")
   for ext in "${exts[@]}"; do
@@ -391,7 +391,7 @@ _exclusion_group() {
 _is_excluded() {
   local filepath="$1"
   local basename
-  basename="$(basename "$filepath")"
+  basename="${filepath##*/}"
   shift
   local exts=("$@")
   for ext in "${exts[@]}"; do
@@ -546,7 +546,7 @@ move_in_batch() {
 
   for file in "${files[@]}"; do
     local basename
-    basename="$(basename "$file")"
+    basename="${file##*/}"
     local rel_path
     rel_path="${file#"$target"}"
     rel_path="${rel_path#/}"
@@ -654,9 +654,9 @@ move_in_batch() {
     local d="${dests[$idx]}"
     if [[ "$d" != __SKIP__:* ]]; then
       local fn
-      fn="$(basename "${files[$idx]}")"
+      fn="${files[$idx]##*/}"
       local dn
-      dn="$(basename "$d")"
+      dn="${d##*/}"
       printf "    %s %s %s %s\n" \
         "$(colorize "$MIB_C_DIM" "${MIB_I_ARROW}")" \
         "$(colorize "$MIB_C_GRAY" "$fn")" \
@@ -790,7 +790,7 @@ move_in_batch() {
     local src="${files[$idx]}"
     local dst="${dests[$idx]}"
     local src_name
-    src_name="$(basename "$src")"
+    src_name="${src##*/}"
 
     # Skip excluded files (already counted in _excluded_groups)
     if [[ "$dst" == __SKIP__:* ]]; then
@@ -819,7 +819,7 @@ move_in_batch() {
 
     if ((op_status == 0)); then
       success_count=$((success_count + 1))
-      processed_files+=("$(basename "$dst")")
+      processed_files+=("${dst##*/}")
       ROLLBACK_SRC+=("$src")
       ROLLBACK_DST+=("$dst")
     else

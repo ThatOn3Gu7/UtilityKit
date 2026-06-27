@@ -343,7 +343,7 @@ is_excluded_file() {
 
   local filepath="$1"
   local base_name
-  base_name="$(basename "$filepath")"
+  base_name="${filepath##*/}"
 
   # 1. Check exact filenames (lowercased for safety)
   local lower_base="${base_name,,}"
@@ -373,7 +373,7 @@ compute_new_name() {
   local new_ext="$2"
   local output_dir="$3"
   local basename
-  basename="$(basename "$filepath")"
+  basename="${filepath##*/}"
 
   local name_part
 
@@ -423,7 +423,7 @@ already_has_extension() {
   local filepath="$1"
   local new_ext="$2"
   local basename
-  basename="$(basename "$filepath")"
+  basename="${filepath##*/}"
 
   [[ "$basename" != *.* ]] && return 1
 
@@ -648,9 +648,9 @@ rb_main() {
     dest_names+=("$dest")
 
     local base_dest
-    base_dest="$(basename "$dest")"
+    base_dest="${dest##*/}"
     local base_orig
-    base_orig="$(basename "$filepath")"
+    base_orig="${filepath##*/}"
     local expected="${base_orig%.*}.${new_ext}"
     if [[ "$base_dest" != "$expected" ]] && [[ "$base_dest" != "$base_orig" ]]; then
       conflicts=$((conflicts + 1))
@@ -706,8 +706,8 @@ rb_main() {
       break
     fi
 
-    local src_name="$(basename "${file_old_names[$idx]}")"
-    local dst_name="$(basename "${dest_names[$idx]}")"
+    local src_name="${file_old_names[$idx]##*/}"
+    local dst_name="${dest_names[$idx]##*/}"
     local src_rel="${file_old_names[$idx]#"$source_dir"/}"
     [[ "$src_rel" == "${file_old_names[$idx]}" ]] && src_rel="$src_name"
     local dst_rel="$dst_name"
@@ -862,9 +862,9 @@ rb_main() {
     local src="${file_old_names[$idx]}"
     local dst="${dest_names[$idx]}"
     local src_name
-    src_name="$(basename "$src")"
+    src_name="${src##*/}"
     local dst_name
-    dst_name="$(basename "$dst")"
+    dst_name="${dst##*/}"
 
     if [[ "$src" == "$dst" ]]; then
       skipped_count=$((skipped_count + 1))
