@@ -59,6 +59,7 @@ _gs_repo_check() {
     uk_error "Not a git repository: $GS_REPO"
     return 1
   }
+}
 _gs_default_branch() {
   local head
   head=$(git -C "$GS_REPO" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
