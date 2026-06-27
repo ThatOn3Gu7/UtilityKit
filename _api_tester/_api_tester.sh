@@ -88,7 +88,7 @@ at_run_request() {
 
   curl "${curl_args[@]}" 2>"$tmp_meta" >"$tmp_timing" || true
 
-  printf '\n  %s%sRequest%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '\n  %s%s◆ Request%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   printf '  %sMethod:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$AT_METHOD" "$UK_C_RESET"
   printf '  %sURL:%s     %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_URL" "$UK_C_RESET"
@@ -98,7 +98,7 @@ at_run_request() {
   [[ -n "$AT_BODY" ]] && printf '  %sBody:%s    %s%s%s\n' \
     "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_BODY" "$UK_C_RESET"
 
-  printf '\n  %s%sTiming%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '\n  %s%s◆ Timing%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   local code dns tcp ttfb total
   code=$(grep '^code=' "$tmp_timing" | cut -d= -f2)
@@ -115,12 +115,24 @@ at_run_request() {
   printf '  %sTTFB:%s    %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$ttfb"
   printf '  %sTotal:%s   %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$total"
 
-  printf '\n  %s%sResponse body%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
+  printf '\n  %s%s◆ Response body%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  if uk_has_cmd jq && jq . "$tmp_body" >/dev/null 2>&1; then
-    jq . "$tmp_body" | sed 's/^/  /'
+
+  # --- Beautiful output: bat → jq -C → plain cat ---
+  if uk_has_cmd bat; then
+    # bat with syntax highlighting, no line numbers, force colour
+    bat --language=json --style=plain --color=always "$tmp_body" 2>/dev/null | sed 's/^/  /'
+  elif uk_has_cmd jq; then
+    # Check if the response is valid JSON, then pretty‑print with colour
+    if jq -e . "$tmp_body" >/dev/null 2>&1; then
+      jq -C . "$tmp_body" 2>/dev/null | sed 's/^/  /'
+    else
+      # Not JSON – fall back to plain cat
+      cat "$tmp_body" 2>/dev/null | sed 's/^/  /'
+    fi
   else
-    cat "$tmp_body" | sed 's/^/  /'
+    # No bat, no jq – plain cat
+    cat "$tmp_body" 2>/dev/null | sed 's/^/  /'
   fi
 
   if [[ -s "$tmp_meta" ]]; then
@@ -207,28 +219,32 @@ at_main() {
   run)
     if [[ -z "$AT_URL" && -t 0 && -t 1 ]]; then
       uk_header 'UtilityKit API Tester' 'One-off HTTP request'
-      AT_METHOD="$(uk_prompt \
-        'Enter HTTP method' \
-        'GET' \
-        'GET  |  POST  |  PUT  |  PATCH  |  DELETE' \
-        'GET fetches data, POST creates, PUT replaces, PATCH updates, DELETE removes.')"
-      AT_URL="$(uk_prompt \
-        'Enter request URL' \
-        '' \
-        'https://api.example.com/items  |  http://127.0.0.1:8000/health' \
-        'Must include the protocol. Use http:// for local servers.')"
+
+      printf '\n %s%s◆ Method%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+      printf '  %sHTTP verb to use for the request%s\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sExamples:%s GET · POST · PUT · PATCH · DELETE\n' "$UK_C_DIM" "$UK_C_RESET"
+      AT_METHOD="$(uk_prompt 'Method' 'GET' '' '')"
+
+      printf '\n %s%s◆ URL%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+      printf '  %sFull URL including protocol%s\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sExamples:%s https://api.example.com/users · http://127.0.0.1:3000/health\n' "$UK_C_DIM" "$UK_C_RESET"
+      AT_URL="$(uk_prompt 'URL' '' '' '')"
+
+      printf '\n %s%s◆ Header%s %s(optional — leave blank to skip)%s\n' \
+        "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sFormat:%s  Key: Value\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sExamples:%s Authorization: Bearer TOKEN · Content-Type: application/json\n' "$UK_C_DIM" "$UK_C_RESET"
       local hdr
-      hdr="$(uk_prompt \
-        'Optional header in Key: Value format (leave blank to skip)' \
-        '' \
-        'Authorization: Bearer TOKEN  |  Content-Type: application/json' \
-        'Only one header can be added here. Use --header for multiple.')"
+      hdr="$(uk_prompt 'Header' '' '' '')"
       [[ -n "$hdr" ]] && AT_HEADERS+=("$hdr")
-      AT_BODY="$(uk_prompt \
-        'Optional request body (leave blank to skip)' \
-        '' \
-        '{"name":"demo"}  |  id=1&active=true' \
-        'For JSON bodies also add a Content-Type: application/json header above.')"
+
+      printf '\n %s%s◆ Body%s %s(optional — leave blank to skip)%s\n' \
+        "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sFor JSON bodies also set Content-Type: application/json above%s\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '  %sExamples:%s {"name":"demo"} · id=1&active=true\n' "$UK_C_DIM" "$UK_C_RESET"
+      AT_BODY="$(uk_prompt 'Body' '' '' '')"
+
+      printf '\n'
     fi
     [[ -n "$AT_URL" ]] || {
       at_usage
