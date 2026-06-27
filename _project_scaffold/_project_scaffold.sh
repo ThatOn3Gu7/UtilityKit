@@ -106,7 +106,7 @@ __GI__
   cat >"$dir/package.json" <<__PKG__
 {
   "name": "$slug",
-  "version": "0.1.0",
+  "version": "2.0.2",
   "type": "module",
   "bin": {
     "$slug": "index.js"

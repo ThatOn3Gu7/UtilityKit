@@ -2,7 +2,7 @@
 SM_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SM_SCRIPT_DIR/../lib/uk_common.sh"
 
-SM_VERSION="1.0.0"
+SM_VERSION="2.0.2"
 SM_MODE="dry-run"
 SM_BACKUP_DIR=""
 SM_YES=0

@@ -6,7 +6,7 @@ IFS=$'\n\t'
 
 #  0.  METADATA
 readonly SCRIPT_NAME="Batch File Renamer"
-readonly SCRIPT_VERSION="1.0.3"
+readonly SCRIPT_VERSION="2.0.2"
 readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 #  1.  TERMINAL CAPABILITY DETECTION

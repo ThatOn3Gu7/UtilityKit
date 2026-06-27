@@ -15,7 +15,7 @@
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%204%2F4-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-4.1.2-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-2.0.2-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
