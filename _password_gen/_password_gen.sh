@@ -122,27 +122,54 @@ pg_main() {
     ;;
   esac
 
-  uk_header 'UtilityKit Password Generator' "$PG_MODE"
+  # ── Output box ───
+  local div
+  div="$(printf '%*s' 52 '' | tr ' ' '-')"
 
-  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  printf '  %s%sGenerated%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
-  printf '\n  %s%s%s\n\n' "$UK_C_GREEN$UK_C_BOLD" "$generated" "$UK_C_RESET"
-  printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  printf '  %sEntropy :%s ~%s bits\n' "$UK_C_BOLD" "$UK_C_RESET" "$entropy"
-  printf '  %sMode    :%s %s\n' "$UK_C_BOLD" "$UK_C_RESET" "$PG_MODE"
+  printf '\n  %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
+  printf '  %s✦ Generated%s\n' "$UK_C_BOLD$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+  printf '  %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
+  printf '\n'
+  printf '  %s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$generated" "$UK_C_RESET"
+  printf '\n'
+  printf ' + %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
+  printf ' | %s◆ Entropy :%s  %s~%s bits%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_YELLOW" "$entropy" "$UK_C_RESET"
+  printf ' | %s◆ Mode    :%s  %s%s%s\n' \
+    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$PG_MODE" "$UK_C_RESET"
   if [[ "$PG_MODE" == 'passphrase' ]]; then
-    printf '  %sWords   :%s %s  %s(separator: %s)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$PG_WORDS" "$UK_C_DIM" "$PG_SEPARATOR" "$UK_C_RESET"
+    printf ' | %s◆ Words   :%s  %s%s%s  %s(separator: %s)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" \
+      "$UK_C_WHITE" "$PG_WORDS" "$UK_C_RESET" \
+      "$UK_C_DIM" "$PG_SEPARATOR" "$UK_C_RESET"
   else
-    printf '  %sLength  :%s %s characters\n' "$UK_C_BOLD" "$UK_C_RESET" "$PG_LENGTH"
+    printf '  %s◆ Length  :%s  %s%s characters%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_WHITE" "$PG_LENGTH" "$UK_C_RESET"
   fi
-  printf '  %s\n\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
+  printf ' + %s%s%s\n\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
 
+  # ── Clipboard ────
   if ((PG_COPY == 1)); then
     if uk_copy_to_clipboard "$generated"; then
       uk_success 'Copied to clipboard.'
     else
-      uk_warn 'No supported clipboard tool found (tried wl-copy, xclip, pbcopy, termux-clipboard-set).'
+      uk_warn 'No clipboard tool found (tried wl-copy, xclip, pbcopy, termux-clipboard-set).'
+    fi
+  fi
+
+  # ── Save to file ────
+  if [[ -t 0 && -t 1 ]]; then
+    local save_dir save_path
+    save_dir="$(uk_data_dir)/passwords"
+    save_path="$save_dir/$(date '+%Y%m%d_%H%M%S')_${PG_MODE}.txt"
+    printf ' ◆ %sSave to file?%s %s[Y/n]%s %s>%s ' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    local save_reply
+    read -r save_reply </dev/tty
+    if [[ ! "$save_reply" =~ ^[Nn]$ ]]; then
+      mkdir -p "$save_dir"
+      printf '%s\n' "$generated" >"$save_path"
+      uk_success "Saved to $save_path"
     fi
   fi
 }
