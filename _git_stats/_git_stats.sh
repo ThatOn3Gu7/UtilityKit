@@ -33,7 +33,6 @@ gst_main() {
   local author=''
   local args=()
 
-  # Safely parse arguments to prevent trailing shift and unbound variable errors
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --repo)
@@ -84,32 +83,65 @@ gst_main() {
       gst_usage
       return 0
       ;;
-    *)
-      # Safely skip/shift unknown arguments
-      shift
-      ;;
+    *) shift ;;
     esac
   done
-  # Validate that the target is a git repository
+
   git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
     uk_error "Not a git repository: $repo"
     return 1
   }
-  # Build the argument array dynamically
+
   [[ -n "$since" ]] && args+=(--since="$since")
   [[ -n "$until" ]] && args+=(--until="$until")
   [[ -n "$author" ]] && args+=(--author="$author")
+
   uk_header 'UtilityKit Git Stats' "repo: $(uk_abs_path "$repo")"
-  # Commits by author
-  uk_section_title 'Commits by author'
-  # Safe array expansion ${args[@]+"${args[@]}"} prevents unbound errors on empty arrays in older bash versions
-  git -C "$repo" shortlog -sn HEAD ${args[@]+"${args[@]}"} 2>/dev/null | sed 's/^/  /' || true
-  # Most changed files
-  uk_section_title 'Most changed files'
-  git -C "$repo" log --name-only --pretty=format: ${args[@]+"${args[@]}"} 2>/dev/null | sed '/^$/d' | sort | uniq -c | sort -rn | head -n 15 | sed 's/^/  /' || true
-  # Branches by activity (guarded with || true to prevent SIGPIPE crash on long branch lists under pipefail)
-  uk_section_title 'Branches by activity'
-  git -C "$repo" for-each-ref --sort=-committerdate --format='  %(committerdate:short) %(refname:short)' refs/heads refs/remotes 2>/dev/null | head -n 20 || true
+
+  # ── Commits by author ──────────────────────────────────────────────
+  printf '\n  %s%s◆ Commits by author%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+  printf '  %s%s%s\n' "$UK_C_DIM" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
+
+  while IFS= read -r line; do
+    local count name
+    count=$(printf '%s' "$line" | awk '{print $1}')
+    name=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    printf '  %s%6s%s  %s%s%s\n' \
+      "$UK_C_YELLOW" "$count" "$UK_C_RESET" \
+      "$UK_C_WHITE" "$name" "$UK_C_RESET"
+  done < <(git -C "$repo" shortlog -sn HEAD ${args[@]+"${args[@]}"} 2>/dev/null || true)
+
+  # ── Most changed files ─────────────────────────────────────────────
+  printf '\n  %s%s◆ Most changed files%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+  printf '  %s%s%s\n' "$UK_C_DIM" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
+
+  while IFS= read -r line; do
+    local count file
+    count=$(printf '%s' "$line" | awk '{print $1}')
+    file=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    printf '  %s%6s%s  %s%s%s\n' \
+      "$UK_C_CYAN" "$count" "$UK_C_RESET" \
+      "$UK_C_DIM" "$file" "$UK_C_RESET"
+  done < <(git -C "$repo" log --name-only --pretty=format: ${args[@]+"${args[@]}"} 2>/dev/null |
+    sed '/^$/d' | sort | uniq -c | sort -rn | head -n 15 || true)
+
+  # ── Branches by activity ───────────────────────────────────────────
+  printf '\n  %s%s◆ Branches by activity%s\n' "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
+  printf '  %s%s%s\n' "$UK_C_DIM" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
+
+  while IFS= read -r line; do
+    local date branch
+    date=$(printf '%s' "$line" | awk '{print $1}')
+    branch=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    printf '  %s%s%s  %s%s%s\n' \
+      "$UK_C_DIM" "$date" "$UK_C_RESET" \
+      "$UK_C_GREEN" "$branch" "$UK_C_RESET"
+  done < <(git -C "$repo" for-each-ref \
+    --sort=-committerdate \
+    --format='%(committerdate:short) %(refname:short)' \
+    refs/heads refs/remotes 2>/dev/null | head -n 20 || true)
+
+  printf '\n'
 }
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail
