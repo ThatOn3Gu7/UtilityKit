@@ -99,7 +99,8 @@ bs_main() {
   if ((apply == 1)); then
     uk_note 'Copying files using cp (rsync not available)...'
 
-    while IFS= read -r -d '' item; do
+    mapfile -d '' item_list < <(find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print0 2>/dev/null)
+    for item in "${item_list[@]}"; do
       local rel="${item#"$src"/}"
       local target="$dst/$rel"
       if [[ -d "$item" && ! -L "$item" ]]; then
@@ -109,7 +110,7 @@ bs_main() {
         mkdir -p "$(dirname "$target")"
         cp -a "$item" "$target" 2>/dev/null || cp -p "$item" "$target"
       fi
-    done < <(find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print0 2>/dev/null)
+    done
     uk_success "Copy completed."
   else
     uk_note 'Dry-run: files that would be copied (excluding patterns):'

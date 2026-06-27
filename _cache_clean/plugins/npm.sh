@@ -18,7 +18,8 @@ npm_get_cache_dirs() {
 }
 npm_scan_cache() {
   local dir
-  while IFS= read -r dir; do
+  mapfile -t dir_list < <(npm_get_cache_dirs)
+  for dir in "${dir_list[@]}"; do
     [ -z "$dir" ] && continue
     if [ ! -d "$dir" ]; then
       cc_emit_err "$dir" "directory not found"
@@ -51,7 +52,7 @@ npm_scan_cache() {
       cc_emit_orphan "$dir" "$f" "partial or empty file"
     done < <(cc_find_partial "$dir")
 
-  done < <(npm_get_cache_dirs)
+  done
 }
 npm_clean_orphans() {
   cc_clean_orphans_from_file "$1"

@@ -345,7 +345,8 @@ collect_changes() {
     done
   fi
 
-  while IFS= read -r -d '' path; do
+  mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
+  for path in "${path_list[@]}"; do
     rel="${path#"$src"/}"
     should_exclude_rel "$rel" && continue
     target="$dst/$rel"
@@ -384,16 +385,17 @@ collect_changes() {
     else
       warn "Skipping unsupported source path type: $rel"
     fi
-  done < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
+  done
 
   if [[ "$mirror" -eq 1 ]]; then
-    while IFS= read -r -d '' path; do
+    mapfile -d '' path_list < <(find "$dst" -mindepth 1 -depth -print0)
+    for path in "${path_list[@]}"; do
       rel="${path#"$dst"/}"
       should_exclude_rel "$rel" && continue
       if ! path_exists_or_link "$src/$rel"; then
         add_change "DELETE" "$rel"
       fi
-    done < <(find "$dst" -mindepth 1 -depth -print0)
+    done
   fi
 }
 print_change_summary() {

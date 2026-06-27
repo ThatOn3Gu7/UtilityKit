@@ -13,7 +13,8 @@ conan_get_cache_dirs() {
 }
 conan_scan_cache() {
   local dir
-  while IFS= read -r dir; do
+  mapfile -t dir_list < <(conan_get_cache_dirs)
+  for dir in "${dir_list[@]}"; do
     [ -z "$dir" ] && continue
     if [ ! -d "$dir" ]; then
       cc_emit_err "$dir" "directory not found"
@@ -33,7 +34,7 @@ conan_scan_cache() {
       [ -z "$f" ] && continue
       cc_emit_orphan "$dir" "$f" "partial or empty file"
     done < <(cc_find_partial "$dir")
-  done < <(conan_get_cache_dirs)
+  done
 }
 conan_clean_orphans() {
   cc_clean_orphans_from_file "$1"

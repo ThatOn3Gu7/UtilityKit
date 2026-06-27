@@ -15,7 +15,8 @@ apt_get_cache_dirs() {
 }
 apt_scan_cache() {
   local dir
-  while IFS= read -r dir; do
+  mapfile -t dir_list < <(apt_get_cache_dirs)
+  for dir in "${dir_list[@]}"; do
     [ -z "$dir" ] && continue
     if [ ! -d "$dir" ]; then
       cc_emit_err "$dir" "directory not found (may need root)"
@@ -41,7 +42,7 @@ apt_scan_cache() {
       esac
       cc_emit_orphan "$dir" "$f" "partial or empty download"
     done < <(cc_find_partial "$dir")
-  done < <(apt_get_cache_dirs)
+  done
 }
 apt_clean_orphans() {
   cc_clean_orphans_from_file "$1"

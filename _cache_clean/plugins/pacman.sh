@@ -15,7 +15,8 @@ pacman_get_cache_dirs() {
 }
 pacman_scan_cache() {
   local dir
-  while IFS= read -r dir; do
+  mapfile -t dir_list < <(pacman_get_cache_dirs)
+  for dir in "${dir_list[@]}"; do
     [ -z "$dir" ] && continue
     if [ ! -d "$dir" ]; then
       cc_emit_err "$dir" "directory not found (may need root)"
@@ -35,7 +36,7 @@ pacman_scan_cache() {
       [ -z "$f" ] && continue
       cc_emit_orphan "$dir" "$f" "partial or empty download"
     done < <(cc_find_partial "$dir")
-  done < <(pacman_get_cache_dirs)
+  done
 }
 pacman_clean_orphans() {
   cc_clean_orphans_from_file "$1"
