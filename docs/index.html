@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="UtilityKit — A modular Bash toolbox for Linux, macOS, and Termux. 51 tools, one dashboard.">
+  <meta name="theme-color" content="#0F172A">
+  <title>UtilityKit — 51-Tool Bash Toolbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════════ */
+    :root {
+      --bg:           #0F172A;
+      --bg-card:      #1E293B;
+      --bg-card-h:    #243450;
+      --bg-muted:     #162032;
+      --bg-overlay:   rgba(15,23,42,0.95);
+      --text:         #F8FAFC;
+      --text-muted:   #94A3B8;
+      --text-dim:     #64748B;
+      --border:       #1E293B;
+      --border-bright:#334155;
+      --accent:       #22C55E;
+      --accent-dim:   rgba(34,197,94,0.15);
+      --accent-glow:  0 0 20px rgba(34,197,94,0.3);
+      --cyan:         #06B6D4;
+      --blue:         #3B82F6;
+      --purple:       #A855F7;
+      --amber:        #F59E0B;
+      --emerald:      #10B981;
+      --red:          #EF4444;
+      --font:         'JetBrains Mono', 'Courier New', monospace;
+      --r:            8px;
+      --r-lg:         14px;
+      --nav-h:        60px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 14px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.65;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+    code, pre { font-family: var(--font); }
+    img, svg { display: block; max-width: 100%; }
+    ul { list-style: none; }
+
+    /* ═══════════════════════════════════════════════
+       SHARED UTILITIES
+    ═══════════════════════════════════════════════ */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .section {
+      padding: 96px 0;
+    }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--accent);
+    }
+    .section-title {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+    .section-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 560px;
+      line-height: 1.7;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ═══════════════════════════════════════════════
+       NAVIGATION
+    ═══════════════════════════════════════════════ */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      height: var(--nav-h);
+      background: var(--bg-overlay);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: border-color 0.3s;
+    }
+    .nav.scrolled {
+      border-bottom-color: var(--border-bright);
+    }
+    .nav-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .nav-logo-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 7px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-links a {
+      padding: 6px 12px;
+      border-radius: var(--r);
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--text);
+      background: var(--bg-card);
+    }
+    .nav-links a.active {
+      color: var(--accent);
+    }
+    .nav-github {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: var(--r);
+      border: 1px solid var(--border-bright);
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .nav-github:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .nav-mobile-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r);
+      color: var(--text-muted);
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-mobile-toggle:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+    .nav-mobile-menu {
+      display: none;
+      position: fixed;
+      top: var(--nav-h);
+      left: 0;
+      right: 0;
+      background: var(--bg-overlay);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-bright);
+      padding: 16px 24px;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 999;
+    }
+    .nav-mobile-menu.open {
+      display: flex;
+    }
+    .nav-mobile-menu a {
+      padding: 10px 12px;
+      border-radius: var(--r);
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-mobile-menu a:hover {
+      color: var(--text);
+      background: var(--bg-card);
+    }
+
+    /* ═══════════════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════════════ */
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: calc(var(--nav-h) + 48px) 24px 80px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 50% -10%, rgba(34,197,94,0.08) 0%, transparent 60%),
+        linear-gradient(rgba(30,41,59,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,41,59,0.4) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      z-index: 0;
+    }
+    .hero-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(15,23,42,0.9), transparent);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+    .hero-version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 100px;
+      border: 1px solid rgba(34,197,94,0.3);
+      background: rgba(34,197,94,0.08);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+    .hero-version-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .hero-logo {
+      font-size: clamp(36px, 8vw, 72px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .hero-logo-utility {
+      color: var(--text);
+    }
+    .hero-logo-kit {
+      color: var(--accent);
+      text-shadow: 0 0 40px rgba(34,197,94,0.4);
+    }
+    .hero-tagline {
+      font-size: clamp(14px, 2.5vw, 18px);
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+    .hero-tagline strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .hero-install {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 520px;
+      width: 100%;
+    }
+    .hero-install-prompt {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--accent);
+      white-space: nowrap;
+      border-right: 1px solid var(--border-bright);
+      user-select: none;
+    }
+    .hero-install-cmd {
+      flex: 1;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: none;
+    }
+    .hero-copy-btn {
+      padding: 10px 16px;
+      color: var(--text-muted);
+      font-size: 11px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .hero-copy-btn:hover {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .hero-copy-btn.copied {
+      color: var(--accent);
+    }
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 22px;
+      border-radius: var(--r);
+      background: var(--accent);
+      color: #0F172A;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font);
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .btn-primary:hover {
+      background: #16A34A;
+      transform: translateY(-1px);
+      box-shadow: var(--accent-glow);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 22px;
+      border-radius: var(--r);
+      border: 1px solid var(--border-bright);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: var(--font);
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .hero-platforms {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--border-bright);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--bg-muted);
+    }
+    .platform-badge span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* ═══════════════════════════════════════════════
+       STATS BAR
+    ═══════════════════════════════════════════════ */
+    .stats-bar {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .stat-item {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════
+       QUICK START / TERMINAL
+    ═══════════════════════════════════════════════ */
+    .terminal-window {
+      background: #0D1117;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      max-width: 760px;
+      margin: 0 auto;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.5);
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #161B22;
+      border-bottom: 1px solid #21262D;
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .terminal-dot.red   { background: #FF5F57; }
+    .terminal-dot.yellow{ background: #FEBC2E; }
+    .terminal-dot.green { background: #28C840; }
+    .terminal-tabs {
+      display: flex;
+      gap: 2px;
+      margin-left: 16px;
+    }
+    .terminal-tab {
+      padding: 4px 12px;
+      border-radius: 5px;
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+    }
+    .terminal-tab.active {
+      background: #1F2937;
+      color: var(--text);
+    }
+    .terminal-tab:hover:not(.active) {
+      color: var(--text-muted);
+    }
+    .terminal-body {
+      padding: 20px 24px;
+      min-height: 260px;
+    }
+    .terminal-panel {
+      display: none;
+    }
+    .terminal-panel.active {
+      display: block;
+    }
+    .term-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .term-prompt {
+      color: var(--accent);
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .term-cmd {
+      color: var(--text);
+    }
+    .term-comment {
+      color: var(--text-dim);
+      font-size: 12px;
+      padding: 4px 0 4px 16px;
+      display: block;
+      font-style: italic;
+    }
+    .term-output {
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 0 8px 16px;
+      display: block;
+    }
+    .term-output.success { color: var(--accent); }
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--accent);
+      vertical-align: middle;
+      animation: blink 1.2s step-end infinite;
+      opacity: 0.8;
+      border-radius: 1px;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0; }
+    }
+    .term-highlight {
+      color: var(--cyan);
+    }
+
+    /* ═══════════════════════════════════════════════
+       TOOLS SECTION
+    ═══════════════════════════════════════════════ */
+    .tools-header {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 36px;
+    }
+    .tools-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .search-box {
+      position: relative;
+      max-width: 440px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px 14px 10px 40px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input::placeholder { color: var(--text-dim); }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      border: 1px solid var(--border-bright);
+      font-size: 12px;
+      font-family: var(--font);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-tab:hover {
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+    .filter-tab.active {
+      color: var(--bg);
+      border-color: transparent;
+    }
+    .filter-tab .tab-count {
+      font-size: 10px;
+      opacity: 0.7;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .tool-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      cursor: default;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
+      overflow: hidden;
+    }
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--cat-color, var(--border-bright));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .tool-card:hover {
+      border-color: var(--border-bright);
+      background: var(--bg-card-h);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .tool-card:hover::before {
+      opacity: 1;
+    }
+    .tool-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tool-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .tool-cmd {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: var(--bg);
+      border: 1px solid var(--border-bright);
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tool-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .tool-example {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--accent);
+      line-height: 1.5;
+      word-break: break-all;
+      transition: all 0.2s;
+    }
+    .tool-card:hover .tool-example {
+      display: block;
+    }
+    .tool-cat-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text-dim);
+      padding: 2px 0;
+    }
+    .tool-cat-dot::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cat-color, var(--border-bright));
+      flex-shrink: 0;
+    }
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .no-results strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+    .tools-count {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       ARCHITECTURE
+    ═══════════════════════════════════════════════ */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    .file-tree {
+      background: #0D1117;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .file-tree .dir  { color: var(--cyan); }
+    .file-tree .file { color: var(--text-muted); }
+    .file-tree .note { color: var(--text-dim); }
+    .file-tree .arrow{ color: var(--accent); }
+    .how-it-works {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .how-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .how-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(34,197,94,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .how-body {}
+    .how-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .how-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .how-desc code {
+      color: var(--cyan);
+      background: var(--bg-card);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       LIBRARY API TABLE
+    ═══════════════════════════════════════════════ */
+    .api-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r-lg);
+    }
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .api-table th {
+      padding: 12px 20px;
+      text-align: left;
+      background: var(--bg-card);
+      color: var(--text-dim);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-bright);
+      white-space: nowrap;
+    }
+    .api-table td {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .api-table tr:last-child td { border-bottom: none; }
+    .api-table tr:hover td { background: var(--bg-muted); }
+    .api-fn {
+      font-weight: 600;
+      color: var(--cyan);
+      white-space: nowrap;
+    }
+    .api-desc {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .api-desc code {
+      color: var(--amber);
+      background: var(--bg-card);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       PLUGINS SECTION
+    ═══════════════════════════════════════════════ */
+    .plugins-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    .plugin-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .plugin-tag {
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .plugin-contract {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .contract-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 14px;
+      background: var(--bg-muted);
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+    }
+    .contract-fn {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--purple);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .contract-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .code-block {
+      background: #0D1117;
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #161B22;
+      border-bottom: 1px solid #21262D;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .code-block pre {
+      padding: 20px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+    .code-block .kw { color: #FF7B72; }
+    .code-block .fn { color: #D2A8FF; }
+    .code-block .str{ color: #A5D6FF; }
+    .code-block .cm { color: #8B949E; font-style: italic; }
+    .code-block .var{ color: #FFA657; }
+    .code-block .op { color: var(--text-dim); }
+
+    /* ═══════════════════════════════════════════════
+       CONTRIBUTING
+    ═══════════════════════════════════════════════ */
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .contrib-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 22px;
+    }
+    .contrib-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .contrib-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(34,197,94,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .contrib-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .contrib-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+    .contrib-desc code {
+      color: var(--cyan);
+      background: var(--bg);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .commit-types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .commit-type {
+      padding: 5px 12px;
+      border-radius: var(--r);
+      font-size: 12px;
+      border: 1px solid;
+    }
+
+    /* ═══════════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 0 32px;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 280px;
+    }
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .footer-logo .kit { color: var(--accent); }
+    .footer-tagline {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .footer-links-grid {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .footer-col {}
+    .footer-col-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .footer-col ul {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-col a {
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .footer-copy {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .footer-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ═══════════════════════════════════════════════
+       SECTION DIVIDER
+    ═══════════════════════════════════════════════ */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-bright) 30%, var(--border-bright) 70%, transparent);
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .nav-links, .nav-github { display: none; }
+      .nav-mobile-toggle { display: flex; }
+      .section { padding: 64px 0; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+      .stat-item:nth-child(odd) { border-right: 1px solid var(--border); }
+      .stat-item:nth-child(3), .stat-item:nth-child(4) { border-bottom: none; }
+      .arch-grid { grid-template-columns: 1fr; }
+      .plugins-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+      .hero-install { font-size: 12px; }
+      .tools-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .hero-ctas { flex-direction: column; align-items: stretch; }
+      .btn-primary, .btn-outline { justify-content: center; }
+    }
+
+    /* ═══════════════════════════════════════════════
+       SCROLL ANIMATIONS
+    ═══════════════════════════════════════════════ */
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { opacity: 1; transform: none; transition: none; }
+      * { animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ═══════════════ NAVIGATION ═══════════════ -->
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#hero" class="nav-logo">
+        <div class="nav-logo-icon">&gt;_</div>
+        UtilityKit
+      </a>
+      <div class="nav-links">
+        <a href="#quickstart">Quick Start</a>
+        <a href="#tools">Tools</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#library">API</a>
+        <a href="#contributing">Contribute</a>
+      </div>
+      <a href="https://github.com/Thaton3gu7/UtilityKit" target="_blank" rel="noopener" class="nav-github">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-mobile-menu" id="mobileMenu">
+    <a href="#quickstart" onclick="closeMobileMenu()">Quick Start</a>
+    <a href="#tools" onclick="closeMobileMenu()">Tools</a>
+    <a href="#architecture" onclick="closeMobileMenu()">Architecture</a>
+    <a href="#library">API Reference</a>
+    <a href="#contributing" onclick="closeMobileMenu()">Contributing</a>
+    <a href="https://github.com/Thaton3gu7/UtilityKit" target="_blank" rel="noopener">GitHub →</a>
+  </div>
+
+  <main>
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <section class="hero" id="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <div class="hero-version-badge">
+          <div class="hero-version-dot"></div>
+          v2.0.2 · MIT License · Bash 5+
+        </div>
+        <div class="hero-logo" aria-label="UtilityKit">
+          <span class="hero-logo-utility">Utility</span><span class="hero-logo-kit">Kit</span>
+        </div>
+        <p class="hero-tagline">
+          A modular Bash toolbox for <strong>Linux, macOS, and Termux</strong>.<br>
+          51 self-contained tools. One unified dashboard.
+        </p>
+        <div class="hero-install" role="group" aria-label="Install command">
+          <span class="hero-install-prompt">$</span>
+          <span class="hero-install-cmd" id="heroCmd">git clone https://github.com/Thaton3gu7/UtilityKit.git &amp;&amp; cd UtilityKit &amp;&amp; bash main.sh</span>
+          <button class="hero-copy-btn" id="heroCopyBtn" onclick="copyHeroCmd()" aria-label="Copy install command">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <span id="heroCopyLabel">Copy</span>
+          </button>
+        </div>
+        <div class="hero-ctas">
+          <a href="#quickstart" class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+            Quick Start
+          </a>
+          <a href="#tools" class="btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Browse All Tools
+          </a>
+          <a href="https://github.com/Thaton3gu7/UtilityKit" target="_blank" rel="noopener" class="btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+        <div class="hero-platforms" aria-label="Supported platforms">
+          <div class="platform-badge"><span></span>Linux</div>
+          <div class="platform-badge"><span></span>macOS</div>
+          <div class="platform-badge"><span></span>Termux / Android</div>
+          <div class="platform-badge"><span></span>No root required</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ STATS ═══════════════ -->
+    <div class="stats-bar">
+      <div class="container">
+        <div class="stats-inner">
+          <div class="stat-item fade-in">
+            <div class="stat-value">51</div>
+            <div class="stat-label">Tools</div>
+          </div>
+          <div class="stat-item fade-in" style="transition-delay:0.1s">
+            <div class="stat-value">3</div>
+            <div class="stat-label">Platforms</div>
+          </div>
+          <div class="stat-item fade-in" style="transition-delay:0.2s">
+            <div class="stat-value">MIT</div>
+            <div class="stat-label">License</div>
+          </div>
+          <div class="stat-item fade-in" style="transition-delay:0.3s">
+            <div class="stat-value">PASS</div>
+            <div class="stat-label">Smoke Tests</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ QUICK START ═══════════════ -->
+    <section class="section" id="quickstart">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Get Started</div>
+          <h2 class="section-title">Up and running in seconds</h2>
+          <p class="section-sub">Clone, run, done. Every tool works standalone or through the unified dashboard — no build step, no config files, no root.</p>
+        </div>
+        <div style="height:40px"></div>
+        <div class="terminal-window fade-in" style="transition-delay:0.15s">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot yellow"></div>
+              <div class="terminal-dot green"></div>
+            </div>
+            <div class="terminal-tabs">
+              <div class="terminal-tab active" data-tab="install" onclick="switchTab(this,'install')">Install</div>
+              <div class="terminal-tab" data-tab="cli" onclick="switchTab(this,'cli')">Direct CLI</div>
+              <div class="terminal-tab" data-tab="system" onclick="switchTab(this,'system')">System-wide</div>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-panel active" id="tab-install">
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">git clone https://github.com/Thaton3gu7/UtilityKit.git</span></div>
+              <span class="term-output">Cloning into 'UtilityKit'...</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">cd UtilityKit</span></div>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash main.sh</span></div>
+              <span class="term-output success">✔  UtilityKit v2.0.2 — interactive dashboard loaded</span>
+              <span class="term-comment"># Navigate with numbers, m for more tools, q to quit</span>
+              <div class="term-line" style="margin-top:8px"><span class="term-prompt">$</span><span class="cursor"></span></div>
+            </div>
+            <div class="terminal-panel" id="tab-cli">
+              <span class="term-comment"># Direct CLI — no menu, full scripting support</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash main.sh <span class="term-highlight">port</span> 3000</span></div>
+              <span class="term-output">Port 3000  →  node (PID 4521)  ·  LISTEN</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash main.sh <span class="term-highlight">pass</span> --mode passphrase --words 6</span></div>
+              <span class="term-output">tiger-canyon-velvet-flame-orbit-echo  [entropy: 77 bits]</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash main.sh <span class="term-highlight">json</span> package.json --summary</span></div>
+              <span class="term-output">Keys: 12  ·  Arrays: 3  ·  Objects: 5  ·  Depth: 2</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash main.sh <span class="term-highlight">env</span> --dir . --compare</span></div>
+              <span class="term-output">Missing: DATABASE_URL, REDIS_URL  ·  Matches: 8</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="cursor"></span></div>
+            </div>
+            <div class="terminal-panel" id="tab-system">
+              <span class="term-comment"># Install system-wide launcher</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">bash setup.sh --no-menu --bin-dir ~/.local/bin</span></div>
+              <span class="term-output success">✔  Installed launcher: ~/.local/bin/utility</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">utility help</span></div>
+              <span class="term-output">usage: utility &lt;command&gt; [args]</span>
+              <span class="term-output">  apply  rename  move  cacheclean  disk  env  git …</span>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">utility env --dir . --compare</span></div>
+              <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">utility port 3000 --kill</span></div>
+              <div class="term-line"><span class="term-prompt">$</span><span class="cursor"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════ TOOLS ═══════════════ -->
+    <section class="section" id="tools">
+      <div class="container">
+        <div class="tools-header">
+          <div class="fade-in">
+            <div class="section-label">The Toolbox</div>
+            <h2 class="section-title">51 tools. Zero friction.</h2>
+            <p class="section-sub">Every tool is self-contained, namespaced, and independently runnable. Source it as a library or call it from the CLI.</p>
+          </div>
+          <div class="tools-controls fade-in" style="transition-delay:0.1s">
+            <div class="search-box">
+              <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="search" class="search-input" id="toolSearch" placeholder="Search tools, commands, descriptions…" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="filter-tabs" id="filterTabs">
+              <button class="filter-tab active" data-cat="all" onclick="filterTools('all',this)" style="--fc:#22C55E">All <span class="tab-count" id="allCount">50</span></button>
+              <button class="filter-tab" data-cat="core" onclick="filterTools('core',this)" style="--fc:#06B6D4">Core <span class="tab-count">6</span></button>
+              <button class="filter-tab" data-cat="dev" onclick="filterTools('dev',this)" style="--fc:#3B82F6">Developer <span class="tab-count">14</span></button>
+              <button class="filter-tab" data-cat="system" onclick="filterTools('system',this)" style="--fc:#A855F7">System <span class="tab-count">11</span></button>
+              <button class="filter-tab" data-cat="files" onclick="filterTools('files',this)" style="--fc:#F59E0B">Files &amp; Security <span class="tab-count">8</span></button>
+              <button class="filter-tab" data-cat="productivity" onclick="filterTools('productivity',this)" style="--fc:#10B981">Productivity <span class="tab-count">12</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="tools-count" id="toolsCount">Showing all 50 tools</div>
+        <div class="tools-grid" id="toolsGrid">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════ ARCHITECTURE ═══════════════ -->
+    <section class="section" id="architecture">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Architecture</div>
+          <h2 class="section-title">Three patterns. Infinite extensibility.</h2>
+          <p class="section-sub">Understanding the BASH_SOURCE guard, the router, and uk_common.sh is enough to add a new tool in minutes.</p>
+        </div>
+        <div style="height:40px"></div>
+        <div class="arch-grid fade-in" style="transition-delay:0.1s">
+          <div class="file-tree" role="img" aria-label="Project directory structure">
+<pre>
+<span class="dir">UtilityKit/</span>
+<span class="file">├── main.sh</span>            <span class="arrow">←</span> <span class="note">router + dashboard</span>
+<span class="file">├── setup.sh</span>           <span class="arrow">←</span> <span class="note">installer</span>
+<span class="dir">├── lib/</span>
+<span class="file">│   └── uk_common.sh</span>   <span class="arrow">←</span> <span class="note">shared helpers</span>
+<span class="dir">├── _&lt;tool&gt;/</span>
+<span class="file">│   ├── _&lt;tool&gt;.sh</span>     <span class="arrow">←</span> <span class="note">BASH_SOURCE guarded</span>
+<span class="file">│   └── _&lt;tool&gt;_README.md</span>
+<span class="dir">├── _cache_clean/</span>
+<span class="dir">│   └── plugins/</span>       <span class="arrow">←</span> <span class="note">17 auto-loaded plugins</span>
+<span class="dir">├── docs/</span>
+<span class="dir">├── tests/</span>
+<span class="file">│   └── smoke_test.sh</span>
+<span class="file">└── CHANGES.md</span>
+</pre>
+          </div>
+          <div class="how-it-works">
+            <div class="how-item">
+              <div class="how-num">1</div>
+              <div class="how-body">
+                <div class="how-title">BASH_SOURCE guard</div>
+                <div class="how-desc">Each tool wraps its entry point in <code>&lt;prefix&gt;_main()</code> and guards top-level execution with <code>[[ "${BASH_SOURCE[0]}" == "${0}" ]]</code>. This lets <code>main.sh</code> safely <em>source</em> all 51 scripts without side effects on startup.</div>
+              </div>
+            </div>
+            <div class="how-item">
+              <div class="how-num">2</div>
+              <div class="how-body">
+                <div class="how-title">Lazy router in main.sh</div>
+                <div class="how-desc"><code>UK_TOOL_PATHS</code> maps keys to script paths. <code>uk_load &lt;key&gt;</code> sources a tool the first time it is needed (idempotent via <code>UK_TOOL_LOADED</code>). Each route calls <code>&lt;prefix&gt;_main "$@"</code> for scripting or <code>run_&lt;tool&gt;_wizard</code> for the interactive dashboard.</div>
+              </div>
+            </div>
+            <div class="how-item">
+              <div class="how-num">3</div>
+              <div class="how-body">
+                <div class="how-title">Shared visuals: uk_common.sh</div>
+                <div class="how-desc">All tools source <code>lib/uk_common.sh</code> for colors, icons, prompts, progress bars, and platform detection. Uses a load-once guard (<code>UK_COMMON_SH_LOADED</code>) so nested sourcing is free. <code>NO_COLOR=1</code> and <code>NO_UNICODE=1</code> are respected globally.</div>
+              </div>
+            </div>
+            <div class="how-item">
+              <div class="how-num">4</div>
+              <div class="how-body">
+                <div class="how-title">Namespaced functions</div>
+                <div class="how-desc">Every tool defines a short prefix for all its functions (<code>pi_</code> for port_inspector, <code>mc_</code> for media_convert, etc.). Register <code>trap</code> handlers <em>inside</em> <code>&lt;prefix&gt;_main</code>, never at the top level — top-level traps overwrite the parent shell's handlers when sourced.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════ LIBRARY API ═══════════════ -->
+    <section class="section" id="library">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Shared Library</div>
+          <h2 class="section-title">uk_common.sh — the shared foundation</h2>
+          <p class="section-sub">Every tool in the suite sources this library. Never re-implement colors, prompts, or platform detection — use these helpers.</p>
+        </div>
+        <div style="height:36px"></div>
+        <div class="api-table-wrap fade-in" style="transition-delay:0.1s">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th>Function</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="api-fn">uk_prompt</td><td class="api-desc"><code>read -r</code> with <code>/dev/tty</code> — safe in subshells and pipelines</td></tr>
+              <tr><td class="api-fn">uk_confirm</td><td class="api-desc">[Y/n] prompt with non-interactive fallback</td></tr>
+              <tr><td class="api-fn">uk_header</td><td class="api-desc">Section header with color and divider line</td></tr>
+              <tr><td class="api-fn">uk_section_title</td><td class="api-desc">Inline section label</td></tr>
+              <tr><td class="api-fn">uk_note / uk_info</td><td class="api-desc">ℹ blue info line to stdout</td></tr>
+              <tr><td class="api-fn">uk_success</td><td class="api-desc">✔ green success line to stdout</td></tr>
+              <tr><td class="api-fn">uk_warn</td><td class="api-desc">⚠ yellow warning to stderr</td></tr>
+              <tr><td class="api-fn">uk_error</td><td class="api-desc">✖ red error to stderr</td></tr>
+              <tr><td class="api-fn">uk_die</td><td class="api-desc">Print error and <code>return 1</code></td></tr>
+              <tr><td class="api-fn">uk_bar</td><td class="api-desc">ASCII progress bar — <code># fill - empty</code></td></tr>
+              <tr><td class="api-fn">uk_has_cmd</td><td class="api-desc"><code>command -v</code> wrapper</td></tr>
+              <tr><td class="api-fn">uk_is_interactive</td><td class="api-desc">Tests <code>[[ -t 0 &amp;&amp; -t 1 ]]</code></td></tr>
+              <tr><td class="api-fn">uk_platform</td><td class="api-desc">Returns <code>linux</code> | <code>macos</code> | <code>termux</code></td></tr>
+              <tr><td class="api-fn">uk_abs_path</td><td class="api-desc"><code>realpath</code> → <code>python3</code> → <code>PWD</code> fallback</td></tr>
+              <tr><td class="api-fn">uk_data_dir</td><td class="api-desc"><code>~/.local/share/utilitykit/</code> (auto-created)</td></tr>
+              <tr><td class="api-fn">uk_state_dir</td><td class="api-desc"><code>~/.local/state/utilitykit/</code> (auto-created)</td></tr>
+              <tr><td class="api-fn">uk_slugify</td><td class="api-desc">Lowercase + hyphen-safe string transform</td></tr>
+              <tr><td class="api-fn">uk_copy_to_clipboard</td><td class="api-desc"><code>wl-copy</code> → <code>xclip</code> → <code>pbcopy</code> → <code>termux-clipboard-set</code> → <code>clip.exe</code></td></tr>
+              <tr><td class="api-fn">uk_repeat</td><td class="api-desc">Repeat a character N times</td></tr>
+              <tr><td class="api-fn">uk_now / uk_stamp</td><td class="api-desc">Date helpers for logs and filenames</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════ PLUGINS ═══════════════ -->
+    <section class="section" id="plugins">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Plugin System</div>
+          <h2 class="section-title">Extend cache_clean in one file</h2>
+          <p class="section-sub">Drop a script in <code style="color:var(--cyan)">_cache_clean/plugins/</code> that implements five functions. The plugin is auto-loaded when its package manager is detected.</p>
+        </div>
+        <div style="height:36px"></div>
+        <div class="plugins-grid fade-in" style="transition-delay:0.1s">
+          <div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;font-weight:600;">17 built-in plugins</p>
+            <div class="plugin-list">
+              <span class="plugin-tag">npm</span><span class="plugin-tag">yarn</span><span class="plugin-tag">pnpm</span><span class="plugin-tag">bun</span>
+              <span class="plugin-tag">pip</span><span class="plugin-tag">cargo</span><span class="plugin-tag">go</span><span class="plugin-tag">gem</span>
+              <span class="plugin-tag">composer</span><span class="plugin-tag">dotnet</span><span class="plugin-tag">conan</span><span class="plugin-tag">vcpkg</span>
+              <span class="plugin-tag">apt</span><span class="plugin-tag">pacman</span><span class="plugin-tag">dnf</span><span class="plugin-tag">brew</span><span class="plugin-tag">apk</span>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:16px;margin-bottom:16px;">Each plugin implements a five-function contract:</p>
+            <div class="plugin-contract">
+              <div class="contract-item"><span class="contract-fn">&lt;id&gt;_plugin_info</span><span class="contract-desc">Returns <code style="font-size:11px;color:var(--cyan)">id|display_name|icon</code></span></div>
+              <div class="contract-item"><span class="contract-fn">&lt;id&gt;_detect</span><span class="contract-desc">Returns 0 if the package manager is present</span></div>
+              <div class="contract-item"><span class="contract-fn">&lt;id&gt;_get_cache_dirs</span><span class="contract-desc">Prints cache directory paths, one per line</span></div>
+              <div class="contract-item"><span class="contract-fn">&lt;id&gt;_scan_cache</span><span class="contract-desc">Emits orphan entries using <code style="font-size:11px;color:var(--amber)">cc_emit_*</code> helpers</span></div>
+              <div class="contract-item"><span class="contract-fn">&lt;id&gt;_clean_orphans</span><span class="contract-desc">Calls <code style="font-size:11px;color:var(--amber)">cc_clean_orphans_from_file "$1"</code></span></div>
+            </div>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header">
+              <span>plugins/mybuild.sh</span>
+              <button onclick="copyCode('plugin-code','pluginCopyBtn')" id="pluginCopyBtn" style="font-size:11px;color:var(--text-dim);cursor:pointer;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">Copy</button>
+            </div>
+            <pre id="plugin-code"><span class="cm"># plugins/mybuild.sh</span>
+
+<span class="fn">mybuild_plugin_info</span>() {
+  printf <span class="str">'mybuild|MyBuild|🔨\n'</span>
+}
+
+<span class="fn">mybuild_detect</span>() {
+  command -v mybuild &gt;/dev/null <span class="op">2&gt;&amp;1</span>
+}
+
+<span class="fn">mybuild_get_cache_dirs</span>() {
+  printf <span class="str">'%s\n'</span> <span class="str">"$HOME/.mybuild/cache"</span>
+}
+
+<span class="fn">mybuild_scan_cache</span>() {
+  <span class="kw">local</span> <span class="var">dir</span>
+  <span class="kw">while</span> IFS= read -r <span class="var">dir</span>; do
+    [ -z <span class="str">"$dir"</span> ] &amp;&amp; <span class="kw">continue</span>
+    cc_emit_tot <span class="str">"$dir"</span> <span class="str">"$(cc_du_kb "$dir")"</span>
+    <span class="kw">while</span> IFS= read -r <span class="var">f</span>; do
+      cc_emit_orphan <span class="str">"$dir"</span> <span class="str">"$f"</span> <span class="str">"stale"</span>
+    <span class="kw">done</span> &lt; &lt;(cc_find_old <span class="str">"$dir"</span> <span class="str">"$CC_OLDER_THAN"</span>)
+  <span class="kw">done</span> &lt; &lt;(mybuild_get_cache_dirs)
+}
+
+<span class="fn">mybuild_clean_orphans</span>() {
+  cc_clean_orphans_from_file <span class="str">"$1"</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══════════════ CONTRIBUTING ═══════════════ -->
+    <section class="section" id="contributing">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Contributing</div>
+          <h2 class="section-title">Add a new tool in 5 steps</h2>
+          <p class="section-sub">The wiring is spread across several files — edit all five to fully integrate a new tool.</p>
+        </div>
+        <div style="height:40px"></div>
+        <div class="contrib-grid fade-in" style="transition-delay:0.1s">
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num">1</div><div class="contrib-title">Create the tool script</div></div>
+            <div class="contrib-desc">Add <code>_&lt;tool&gt;/_&lt;tool&gt;.sh</code> with namespaced functions and a BASH_SOURCE guard. All function names must share a unique prefix (e.g. <code>xt_</code> for <code>_xtool</code>). Register traps inside <code>&lt;prefix&gt;_main()</code>, never at the top level.</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num">2</div><div class="contrib-title">Write a README</div></div>
+            <div class="contrib-desc">Create <code>_&lt;tool&gt;/_&lt;tool&gt;_README.md</code> documenting standalone usage, flags, and examples for users who call the script directly without <code>main.sh</code>.</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num">3</div><div class="contrib-title">Wire up main.sh</div></div>
+            <div class="contrib-desc">Add an entry to <code>UK_TOOL_PATHS</code>, a <code>case</code> branch routing the CLI command, a <code>run_&lt;tool&gt;_wizard()</code> for the interactive dashboard, and a menu entry on the appropriate "More tools" page.</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num">4</div><div class="contrib-title">Add smoke tests</div></div>
+            <div class="contrib-desc">Append the CLI command to the <code>cmds=(...)</code> array in <code>tests/smoke_test.sh</code> so <code>&lt;cmd&gt; --help</code> is exercised. Add a behavioral smoke case if the tool has side effects.</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num">5</div><div class="contrib-title">Use the shared library</div></div>
+            <div class="contrib-desc">Source <code>lib/uk_common.sh</code> and use <code>uk_success</code>, <code>uk_warn</code>, <code>uk_error</code>, <code>uk_confirm</code>, <code>uk_bar</code>, etc. Never re-implement colors, icons, or platform detection. Respect <code>NO_COLOR=1</code> and <code>NO_UNICODE=1</code>.</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-step"><div class="contrib-num" style="background:var(--bg-card);border-color:var(--border-bright);color:var(--text-dim)">✓</div><div class="contrib-title">Commit style</div></div>
+            <div class="contrib-desc">Use semantic prefixes scoped to the tool:
+              <div class="commit-types" style="margin-top:12px">
+                <span class="commit-type" style="color:var(--cyan);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.05)">feat(tool):</span>
+                <span class="commit-type" style="color:var(--red);border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.05)">fix(tool):</span>
+                <span class="commit-type" style="color:var(--purple);border-color:rgba(168,85,247,0.3);background:rgba(168,85,247,0.05)">refactor(tool):</span>
+                <span class="commit-type" style="color:var(--text-muted);border-color:var(--border-bright)">docs:</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">Utility<span class="kit">Kit</span></div>
+          <div class="footer-tagline">Built for developers who live in the terminal. 51 tools. One unified dashboard. Zero friction.</div>
+        </div>
+        <div class="footer-links-grid">
+          <div class="footer-col">
+            <div class="footer-col-title">Documentation</div>
+            <ul>
+              <li><a href="#quickstart">Quick Start</a></li>
+              <li><a href="#tools">All Tools</a></li>
+              <li><a href="#architecture">Architecture</a></li>
+              <li><a href="#library">API Reference</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">Contribute</div>
+            <ul>
+              <li><a href="#contributing">Adding a Tool</a></li>
+              <li><a href="#plugins">Plugin System</a></li>
+              <li><a href="https://github.com/Thaton3gu7/UtilityKit" target="_blank" rel="noopener">GitHub</a></li>
+              <li><a href="https://github.com/Thaton3gu7/UtilityKit/issues" target="_blank" rel="noopener">Issues</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">Platform</div>
+            <ul>
+              <li><a href="#hero">Linux</a></li>
+              <li><a href="#hero">macOS</a></li>
+              <li><a href="#hero">Termux / Android</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2024 UtilityKit · MIT License · v2.0.2</div>
+        <div class="footer-badges">
+          <span class="badge" style="color:var(--cyan);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.05)">Shell: Bash 5+</span>
+          <span class="badge" style="color:var(--accent);border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.05)">Tests: PASS 4/4</span>
+          <span class="badge" style="color:var(--text-muted);border-color:var(--border-bright)">MIT License</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════ SCRIPTS ═══════════════ -->
+  <script>
+    /* ── Tool data ──────────────────────────────── */
+    const CATS = {
+      core:         { label:'Core Suite',       color:'#06B6D4' },
+      dev:          { label:'Developer',        color:'#3B82F6' },
+      system:       { label:'System',           color:'#A855F7' },
+      files:        { label:'Files & Security', color:'#F59E0B' },
+      productivity: { label:'Productivity',     color:'#10B981' },
+    };
+
+    const tools = [
+      /* Core Suite */
+      { id:'apply',     cmd:'apply',      name:'Apply Changes',    cat:'core', desc:'Enterprise-grade directory sync: dry-run preview → backup → apply → verify. Supports mirror delete, rollback on failure, concurrency locking, and audit logging.', example:'bash main.sh apply --dir src --target /backup --mirror' },
+      { id:'rename',    cmd:'rename',     name:'Batch Rename',     cat:'core', desc:'Recursively rename or copy-rename files to a new extension. Preview budgets, transactional Ctrl+C rollback, safety exclusions for LICENSE/README/lockfiles.', example:'bash main.sh rename --from .txt --to .md --dir ./docs' },
+      { id:'move',      cmd:'move',       name:'Move in Batch',    cat:'core', desc:'Bulk copy or move files with exclusion patterns, optional flattening, collision-safe renaming, and Ctrl+C rollback. Sourceable as a library module.', example:'bash main.sh move --src ./src --dst ./dist --exclude .git' },
+      { id:'cacheclean',cmd:'cacheclean', name:'Cache Clean',      cat:'core', desc:'Multi-manager cache cleaner with a 17-plugin system (npm, pip, cargo, go, gem, apt, brew…). Two-confirmation deletion flow, orphan listing, responsive layout.', example:'bash main.sh cacheclean --dry-run' },
+      { id:'symlink',   cmd:'symlink',    name:'Symlink Manager',  cat:'core', desc:'Transactional symlink creator with automatic backup of existing targets. Dry-run by default. Detects and reports broken links.', example:'bash main.sh symlink --src ./config --dst ~/.config' },
+      { id:'disk',      cmd:'disk',       name:'Disk Analyzer',    cat:'core', desc:'Largest-items disk usage explorer with optional in-place archive creation. Skips .git and VCS metadata by default.', example:'bash main.sh disk --dir /home --top 20' },
+
+      /* Developer Tools */
+      { id:'env',       cmd:'env',        name:'Env Manager',      cat:'dev', desc:'.env profile switching, key comparison vs .env.example, syntax validation, GPG/OpenSSL encrypt/decrypt of secret values.', example:'bash main.sh env --dir . --compare' },
+      { id:'git',       cmd:'git',        name:'Git Sweep',        cat:'dev', desc:'Merged-branch detection, stash cleanup, git clean -fdx artifact sweep, git gc --prune=now. Safe preview before every action.', example:'bash main.sh git --sweep --dry-run' },
+      { id:'docker',    cmd:'docker',     name:'Docker Janitor',   cat:'dev', desc:'Preview and prune stopped containers, dangling images, and orphaned volumes. Requires Docker daemon. Hidden from Termux dashboard.', example:'bash main.sh docker --prune --dry-run' },
+      { id:'scaffold',  cmd:'scaffold',   name:'Project Scaffold', cat:'dev', desc:'Starter project generator for Bash, Python Flask, Node CLI, and Go service stacks. Creates CI workflow, Dockerfile, Makefile, and README.', example:'bash main.sh scaffold --lang python --name myapp' },
+      { id:'api',       cmd:'api',        name:'API Tester',       cat:'dev', desc:'One-off HTTP requests or saved/replayable profiles. Timing breakdown (DNS, TCP, TTFB, total), jq pretty-print, status-code coloring.', example:'bash main.sh api --url https://api.example.com --method POST --data \'{"key":"val"}\'' },
+      { id:'ssh',       cmd:'ssh',        name:'SSH Assistant',    cat:'dev', desc:'Parses ~/.ssh/config, lists named hosts, connects by number, runs ssh-copy-id. Explains auth-only disconnects from GitHub/GitLab/Bitbucket.', example:'bash main.sh ssh --list' },
+      { id:'github',    cmd:'github',     name:'GitHub Helper',    cat:'dev', desc:'Thin wrapper around gh CLI for auth status, PR list, issue list, and workflow run list. Requires gh installed.', example:'bash main.sh github --prs --repo user/repo' },
+      { id:'release',   cmd:'release',    name:'Release Helper',   cat:'dev', desc:'Git status, recent commit log, optional tag creation with --apply guard. Validates clean working tree before tagging.', example:'bash main.sh release --tag v2.0.0 --apply' },
+      { id:'git-stats', cmd:'git-stats',  name:'Git Stats',        cat:'dev', desc:'Commit counts by author, most-changed files, branch activity sorted by committer date. --since/--until/--author filters.', example:'bash main.sh git-stats --since 2024-01-01 --author "Alice"' },
+      { id:'toc',       cmd:'toc',        name:'Markdown TOC',     cat:'dev', desc:'Insert or refresh TOC using <!-- utilitykit:toc:start/end --> markers. Relative link validation. Pipe-table column alignment via Python.', example:'bash main.sh toc README.md --apply --check-links' },
+      { id:'links',     cmd:'links',      name:'Link Checker',     cat:'dev', desc:'Python-backed Markdown link validator. Checks local relative links; optional HTTP/HTTPS live checks with configurable timeout.', example:'bash main.sh links README.md --http --timeout 5' },
+      { id:'json',      cmd:'json',       name:'JSON Explorer',    cat:'dev', desc:'Python-backed JSON pretty-print, dot-path extraction, key listing, and structure summary. Reads stdin or file.', example:'bash main.sh json package.json --path dependencies.react' },
+      { id:'csv',       cmd:'csv',        name:'CSV Toolkit',      cat:'dev', desc:'Python-backed CSV column header print and row preview with configurable head count. Supports stdin.', example:'bash main.sh csv data.csv --head 10' },
+      { id:'regex',     cmd:'regex',      name:'Regex Lab',        cat:'dev', desc:'grep -En with color against inline text or a file. Interactive pattern testing with context lines and match count.', example:'bash main.sh regex --pattern "v[0-9]+\\.[0-9]+" --file CHANGES.md' },
+
+      /* System & Network */
+      { id:'port',       cmd:'port',       name:'Port Inspector',   cat:'system', desc:'Find which process owns a local TCP port via lsof or ss. Interface summary, optional SIGTERM of the owning process.', example:'bash main.sh port 3000 --kill' },
+      { id:'proc',       cmd:'proc',       name:'Process Killer',   cat:'system', desc:'RAM/swap bar chart, top-10 memory consumers, optional SIGTERM/SIGKILL by PID with post-signal confirmation.', example:'bash main.sh proc --kill 1234' },
+      { id:'battery',    cmd:'battery',    name:'Battery Doctor',   cat:'system', desc:'Battery status via termux-battery-status → pmset → acpi. Top CPU/memory process list with multi-platform support.', example:'bash main.sh battery' },
+      { id:'disk-health',cmd:'disk-health',name:'Disk Health',      cat:'system', desc:'SMART health and attribute report via smartctl. Auto-detects first disk. Optional short self-test trigger.', example:'bash main.sh disk-health --test' },
+      { id:'snapshot',   cmd:'snapshot',   name:'System Snapshot',  cat:'system', desc:'Compact diagnostic summary: OS, platform, disk usage. Outputs to terminal and optionally to a file.', example:'bash main.sh snapshot --out /tmp/sys.txt' },
+      { id:'open-files', cmd:'open-files', name:'Open Files',       cat:'system', desc:'Find all processes using a given path or port via lsof. Useful for debugging "resource busy" errors.', example:'bash main.sh open-files --port 8080' },
+      { id:'service',    cmd:'service',    name:'Service Watcher',  cat:'system', desc:'HTTP endpoint status and response-time checks. Saved URL profiles, looping interval mode, bell on failure.', example:'bash main.sh service --url https://example.com --interval 30' },
+      { id:'network',    cmd:'network',    name:'Network Probe',    cat:'system', desc:'Ping, DNS lookup, public IP via curl, route tracing with traceroute/tracepath. Graceful fallbacks when tools are missing.', example:'bash main.sh network --host google.com --trace' },
+      { id:'cron',       cmd:'cron',       name:'Cron Manager',     cat:'system', desc:'List, add (with format validation), and remove crontab entries. Dry-run default, --apply to write.', example:'bash main.sh cron --add "0 * * * * /path/to/script.sh" --apply' },
+      { id:'tmux',       cmd:'tmux',       name:'Tmux Sessions',    cat:'system', desc:'Friendly wrapper for tmux list/new/attach/kill. Clear install hint for Termux. Stores named session configs.', example:'bash main.sh tmux --new dev' },
+      { id:'toolbox',    cmd:'toolbox',    name:'Toolbox Bootstrap',cat:'system', desc:'Audits recommended CLI tools (fzf, rg, fd, bat, eza, jq, curl, git, tmux, gh, zoxide, tldr) and prints [OK]/[MISSING].', example:'bash main.sh toolbox' },
+
+      /* Files & Security */
+      { id:'dup',       cmd:'dup',       name:'Duplicate Finder',  cat:'files', desc:'Size-first, hash-second duplicate detection. Actions: report, delete, or replace with hardlinks. Skips .git/.hg/.svn.', example:'bash main.sh dup --dir ~/Documents --delete' },
+      { id:'archive',   cmd:'archive',   name:'Archive Manager',   cat:'files', desc:'List, safely extract (with path traversal guard), and create .tar.gz or .zip archives. Extracts only to explicitly specified destinations.', example:'bash main.sh archive --create backup.tar.gz ./src' },
+      { id:'media',     cmd:'media',     name:'Media Convert',     cat:'files', desc:'Batch image conversion via ImageMagick or ffmpeg. Video conversion via ffmpeg libx264. EXIF stripping, quality control, directory scanning.', example:'bash main.sh media --dir ./photos --to webp --quality 85' },
+      { id:'backup',    cmd:'backup',    name:'Backup Sync',       cat:'files', desc:'Dry-run-first backup wrapper around rsync (with --delete support) or cp/find fallback. Configurable excludes.', example:'bash main.sh backup --src ~/Documents --dst /mnt/backup' },
+      { id:'shred',     cmd:'shred',     name:'Shredder',          cat:'files', desc:'Multi-pass overwrite using shred or /dev/urandom fallback. Configurable passes (default 3). Dry-run preview with method/passes display.', example:'bash main.sh shred --file secret.txt --passes 7' },
+      { id:'hash',      cmd:'hash',      name:'Hash Tools',        cat:'files', desc:'sha256sum (or shasum/md5sum fallback) over files and directory trees. Verify checksums against a manifest file.', example:'bash main.sh hash --dir ./dist --algo sha256' },
+      { id:'dotenv',    cmd:'dotenv',    name:'Dotenv Vault',      cat:'files', desc:'Encrypt individual KEY=value pairs in a .env file to ENC:: tokens using GPG symmetric encryption. Backup on apply.', example:'bash main.sh dotenv --encrypt .env --key SECRET_TOKEN' },
+      { id:'clipboard', cmd:'clipboard', name:'Clipboard Manager', cat:'files', desc:'Session/manual clipboard history helper using wl-copy/xclip/pbcopy/termux-clipboard-set. Multi-platform clipboard cascade.', example:'bash main.sh clipboard --list' },
+
+      /* Productivity */
+      { id:'cheat',      cmd:'cheat',      name:'Cheat Sheet',      cat:'productivity', desc:'Personal markdown snippet store with tagging, search, and a persistent interactive loop. Files stored at ~/.local/share/utilitykit/cheat_sheets/.', example:'bash main.sh cheat --add --tag git "git log --oneline -10"' },
+      { id:'todo',       cmd:'todo',       name:'Todo Manager',     cat:'productivity', desc:'Plain-text TSV task tracker with tags, --done by line number, and --search. Tasks persist in ~/.local/share/utilitykit/.', example:'bash main.sh todo --add "Fix auth bug" --tag backend' },
+      { id:'pomodoro',   cmd:'pomodoro',   name:'Pomodoro Timer',   cat:'productivity', desc:'Work/break cycle timer with a live progress bar, session log at ~/.local/state/utilitykit/pomodoro.log, and Termux vibration support.', example:'bash main.sh pomodoro --work 25 --break 5' },
+      { id:'zen',        cmd:'zen',        name:'Zen Mode',         cat:'productivity', desc:'Full-screen terminal screensavers: matrix rain, Conway\'s Game of Life (Python), and ASCII wave animation. CLI-only; hidden from dashboard menu.', example:'bash main.sh zen --mode matrix' },
+      { id:'pass',       cmd:'pass',       name:'Password Gen',     cat:'productivity', desc:'XKCD-style passphrases from a 37-word list, or random strings from a 72-char charset. Entropy display. Clipboard copy on all platforms.', example:'bash main.sh pass --mode passphrase --words 6' },
+      { id:'search',     cmd:'search',     name:'Project Search',   cat:'productivity', desc:'Text or filename search with rg → grep -RIn → find fallback chain. Respects .gitignore by default.', example:'bash main.sh search --text "TODO" --dir ./src' },
+      { id:'license',    cmd:'license',    name:'License Helper',   cat:'productivity', desc:'Detects LICENSE*/COPYING* in the current directory. Generates MIT or Apache 2.0 text with current year and author.', example:'bash main.sh license --generate mit --author "Jane Doe"' },
+      { id:'weather',    cmd:'weather',    name:'Weather',          cat:'productivity', desc:'Fetches current weather from wttr.in. Caches last result for offline fallback. Metric/imperial toggle.', example:'bash main.sh weather --city London --units metric' },
+      { id:'font',       cmd:'font',       name:'Font Inspector',   cat:'productivity', desc:'Terminal glyph sample output (ASCII, box-drawing, Powerline). Optional fc-list font enumeration with filter.', example:'bash main.sh font --list --filter "Mono"' },
+      { id:'log-inspect',cmd:'log-inspect',name:'Log Inspector',    cat:'productivity', desc:'Grep for errors/warnings/failures with configurable pattern. Top-10 repeated line frequency summary for fast diagnosis.', example:'bash main.sh log-inspect --file app.log --pattern ERROR' },
+      { id:'ssl',        cmd:'ssl',        name:'SSL Checker',      cat:'productivity', desc:'Certificate expiry (colored by days remaining), DNS A/AAAA/MX/TXT records, legacy TLS 1.0/1.1 probe.', example:'bash main.sh ssl --host example.com' },
+    ];
+
+    /* ── Active filter/search state ────────────── */
+    let activeCat = 'all';
+    let searchQuery = '';
+
+    /* ── Render tools grid ──────────────────────── */
+    function renderTools() {
+      const grid = document.getElementById('toolsGrid');
+      const countEl = document.getElementById('toolsCount');
+      const q = searchQuery.toLowerCase().trim();
+
+      const filtered = tools.filter(t => {
+        const matchCat = activeCat === 'all' || t.cat === activeCat;
+        const matchQ = !q ||
+          t.name.toLowerCase().includes(q) ||
+          t.cmd.toLowerCase().includes(q) ||
+          t.desc.toLowerCase().includes(q) ||
+          t.cat.toLowerCase().includes(q);
+        return matchCat && matchQ;
+      });
+
+      countEl.textContent = filtered.length === tools.length
+        ? `Showing all ${tools.length} tools`
+        : `Showing ${filtered.length} of ${tools.length} tools`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="no-results"><strong>No tools found</strong>Try a different search or reset the filter</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(t => {
+        const cat = CATS[t.cat];
+        return `
+          <div class="tool-card" style="--cat-color:${cat.color}">
+            <div class="tool-card-top">
+              <span class="tool-name">${escHtml(t.name)}</span>
+              <code class="tool-cmd">${escHtml(t.cmd)}</code>
+            </div>
+            <div class="tool-desc">${escHtml(t.desc)}</div>
+            <div class="tool-example">${escHtml(t.example)}</div>
+            <div class="tool-cat-dot" style="--cat-color:${cat.color}">${cat.label}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Filter tabs ────────────────────────────── */
+    function filterTools(cat, btn) {
+      activeCat = cat;
+      document.querySelectorAll('.filter-tab').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = '';
+        b.style.color = '';
+        b.style.borderColor = '';
+      });
+      const fc = getComputedStyle(btn).getPropertyValue('--fc').trim();
+      btn.classList.add('active');
+      btn.style.background = fc;
+      btn.style.color = '#0F172A';
+      btn.style.borderColor = 'transparent';
+      renderTools();
+    }
+
+    /* Set initial active tab color */
+    (function() {
+      const firstTab = document.querySelector('.filter-tab[data-cat="all"]');
+      if (firstTab) {
+        firstTab.style.background = '#22C55E';
+        firstTab.style.color = '#0F172A';
+        firstTab.style.borderColor = 'transparent';
+      }
+    })();
+
+    /* ── Search ─────────────────────────────────── */
+    let searchTimer;
+    document.getElementById('toolSearch').addEventListener('input', function(e) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchQuery = e.target.value;
+        renderTools();
+      }, 150);
+    });
+
+    /* ── Terminal tabs ──────────────────────────── */
+    function switchTab(btn, id) {
+      document.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.terminal-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + id).classList.add('active');
+    }
+
+    /* ── Copy buttons ───────────────────────────── */
+    function copyHeroCmd() {
+      const cmd = 'git clone https://github.com/Thaton3gu7/UtilityKit.git && cd UtilityKit && bash main.sh';
+      navigator.clipboard.writeText(cmd).then(() => {
+        const label = document.getElementById('heroCopyLabel');
+        const btn = document.getElementById('heroCopyBtn');
+        label.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { label.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      }).catch(() => fallbackCopy(cmd));
+    }
+
+    function copyCode(id, btnId) {
+      const el = document.getElementById(id);
+      const text = el.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(btnId);
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.color = 'var(--accent)';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+      }).catch(() => fallbackCopy(text));
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    /* ── Mobile menu ────────────────────────────── */
+    const mobileToggle = document.getElementById('mobileToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileToggle.addEventListener('click', () => mobileMenu.classList.toggle('open'));
+    function closeMobileMenu() { mobileMenu.classList.remove('open'); }
+
+    /* ── Sticky nav scroll effect ───────────────── */
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 10);
+    }, { passive: true });
+
+    /* ── Scroll fade-in animations ──────────────── */
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.fade-in').forEach(el => io.observe(el));
+
+    /* ── Active nav link highlight ──────────────── */
+    const sections = ['hero','quickstart','tools','architecture','library','plugins','contributing'];
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sio = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          navLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id);
+          });
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    sections.forEach(id => { const el = document.getElementById(id); if (el) sio.observe(el); });
+
+    /* ── Initial render ─────────────────────────── */
+    const allCountEl = document.getElementById('allCount');
+    if (allCountEl) allCountEl.textContent = tools.length;
+    renderTools();
+  </script>
+</body>
+</html>

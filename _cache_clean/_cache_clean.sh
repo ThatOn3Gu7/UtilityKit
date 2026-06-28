@@ -296,6 +296,7 @@ cc_file_size() {
 }
 cc_du_kb() { du -sk -- "$1" 2>/dev/null | awk '{print $1}' || echo 0; }
 cc_find_old() { find "$1" -type f -mtime +"$2" 2>/dev/null; }
+cc_find_partial() { find "$1" -type f \( -empty -o -name '*.tmp' -o -name '*.part' -o -name '*.download' -o -name '*.incomplete' \) 2>/dev/null; }
 cc_emit_tot() { printf 'TOT|%s|%s\n' "$1" "$2"; }
 cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")" "$3"; }
 cc_emit_err() { printf 'ERR|%s|%s\n' "$1" "$2"; }
