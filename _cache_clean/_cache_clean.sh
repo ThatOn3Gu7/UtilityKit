@@ -302,14 +302,12 @@ cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")
 cc_emit_err() { printf 'ERR|%s|%s\n' "$1" "$2"; }
 cc_clean_orphans_from_file() {
   local file=$1 deleted=0 failed=0 reclaimed=0
-  local -a seen=()
+  declare -A seen=()
   while IFS='|' read -r type dir path size reason; do
     [ "$type" = "ORPHAN" ] || continue
     [ -z "$path" ] && continue
-    local dup=0 j
-    for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$path" ] && dup=1; done
-    [ "$dup" -eq 1 ] && continue
-    seen+=("$path")
+    [ -n "${seen[$path]:-}" ] && continue
+    seen[$path]=1
     [ -f "$path" ] || continue
     if rm -f -- "$path"; then
       deleted=$((deleted + 1))
@@ -384,11 +382,10 @@ cc_scan_plugin() {
   printf '%s' "$sf"
 }
 cc_run_scans() {
-  local i
+  local i p n ic
   for i in "${!CC_ACTIVE_PLUGINS[@]}"; do
-    local p="${CC_ACTIVE_PLUGINS[$i]}"
-    local n=$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2)
-    local ic=$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f3)
+    p="${CC_ACTIVE_PLUGINS[$i]}"
+    IFS='|' read -r _ n ic _ <<<"${CC_PLUGIN_INFO[$i]}"
     cc_scan_plugin "$p" "$n" "$ic" >/dev/null
   done
 }
@@ -398,47 +395,49 @@ cc_print_report() {
   CC_TOTAL_ORPHAN_COUNT=0
   CC_ERRORS=()
 
-  local -a rows_m rows_i rows_p rows_t rows_c rows_s seen_paths
+  local -a rows_m rows_i rows_p rows_t rows_c rows_s
+  declare -A seen_paths=()
+  declare -A path_to_idx=()
 
-  local i prefix scan_file line
+  local i prefix scan_file line pname picon
   for i in "${!CC_ACTIVE_PLUGINS[@]}"; do
     prefix="${CC_ACTIVE_PLUGINS[$i]}"
     scan_file="$CC_STATE_DIR/${prefix}.scan"
     [ -f "$scan_file" ] || continue
+
+    # Hoist plugin-info parsing out of the per-line loop (saves 2 forks per record)
+    IFS='|' read -r _ pname picon _ <<<"${CC_PLUGIN_INFO[$i]}"
 
     while IFS= read -r line; do
       local type=${line%%|*}
       case "$type" in
       TOT)
         IFS='|' read -r _ dir kb <<<"$line"
-        rows_m+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2)")
-        rows_i+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f3)")
+        rows_m+=("$pname")
+        rows_i+=("$picon")
         rows_p+=("$dir")
         rows_t+=("${kb:-0}")
         rows_c+=(0)
         rows_s+=(0)
+        path_to_idx[$dir]=$((${#rows_p[@]} - 1))
         CC_TOTAL_CACHE_KB=$((CC_TOTAL_CACHE_KB + ${kb:-0}))
         ;;
       ORPHAN)
         IFS='|' read -r _ dir path bytes reason <<<"$line"
         local key="${dir}|${path}"
-        local dup=0 j
-        for j in "${!seen_paths[@]}"; do [ "${seen_paths[$j]}" = "$key" ] && dup=1; done
-        if [ "$dup" -eq 0 ]; then
-          seen_paths+=("$key")
-          local idx=-1
-          for j in "${!rows_p[@]}"; do [ "${rows_p[$j]}" = "$dir" ] && idx=$j; done
-          if [ "$idx" -ge 0 ]; then
-            rows_c[$idx]=$((rows_c[$idx] + 1))
-            rows_s[$idx]=$((rows_s[$idx] + ${bytes:-0}))
-          fi
-          CC_TOTAL_ORPHAN_COUNT=$((CC_TOTAL_ORPHAN_COUNT + 1))
-          CC_TOTAL_ORPHAN_BYTES=$((CC_TOTAL_ORPHAN_BYTES + ${bytes:-0}))
+        [ -n "${seen_paths[$key]:-}" ] && continue
+        seen_paths[$key]=1
+        local idx="${path_to_idx[$dir]:-}"
+        if [ -n "$idx" ]; then
+          rows_c[$idx]=$((rows_c[$idx] + 1))
+          rows_s[$idx]=$((rows_s[$idx] + ${bytes:-0}))
         fi
+        CC_TOTAL_ORPHAN_COUNT=$((CC_TOTAL_ORPHAN_COUNT + 1))
+        CC_TOTAL_ORPHAN_BYTES=$((CC_TOTAL_ORPHAN_BYTES + ${bytes:-0}))
         ;;
       ERR)
         IFS='|' read -r _ dir msg <<<"$line"
-        CC_ERRORS+=("$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2): ${dir} — ${msg}")
+        CC_ERRORS+=("${pname}: ${dir} — ${msg}")
         ;;
       esac
     done <"$scan_file"
@@ -494,12 +493,11 @@ cc_prompt_confirm() {
 }
 cc_list_orphans_to_delete() {
   cc_section_title "Files that will be deleted" 52
-  local -a seen=()
+  declare -A seen=()
   local i prefix name icon scan_file
   for i in "${!CC_ACTIVE_PLUGINS[@]}"; do
     prefix="${CC_ACTIVE_PLUGINS[$i]}"
-    name=$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f2)
-    icon=$(printf '%s' "${CC_PLUGIN_INFO[$i]}" | cut -d'|' -f3)
+    IFS='|' read -r _ name icon _ <<<"${CC_PLUGIN_INFO[$i]}"
     scan_file="$CC_STATE_DIR/${prefix}.scan"
     [ -f "$scan_file" ] || continue
     local mgr_printed=0
@@ -507,10 +505,8 @@ cc_list_orphans_to_delete() {
       [ "$type" = "ORPHAN" ] || continue
       [ -z "$path" ] && continue
       local key="${dir}|${path}"
-      local dup=0 j
-      for j in "${!seen[@]}"; do [ "${seen[$j]}" = "$key" ] && dup=1; done
-      [ "$dup" -eq 1 ] && continue
-      seen+=("$key")
+      [ -n "${seen[$key]:-}" ] && continue
+      seen[$key]=1
       [ "$mgr_printed" -eq 0 ] && {
         printf '\n  %s%s%s %s%s%s\n' "$C_LCYAN" "$icon" "$C_RESET" "$C_BOLD$C_WHITE" "$name" "$C_RESET"
         mgr_printed=1
