@@ -21,18 +21,26 @@ USAGE
 # Show battery information using the first available backend
 bd_show_battery() {
   if uk_has_cmd termux-battery-status; then
-    termux-battery-status
-    return 0
-  elif uk_has_cmd pmset; then
-    pmset -g batt
-    return 0
-  elif uk_has_cmd acpi; then
-    acpi -V
-    return 0
-  else
-    uk_warn 'No battery backend found (termux-battery-status, pmset, or acpi).'
-    return 1
+    local out
+    out=$(termux-battery-status 2>/dev/null) && [[ -n "$out" ]] && {
+      printf '%s\n' "$out"
+      return 0
+    }
+    uk_warn 'termux-battery-status is installed but returned no data — trying next backend.'
   fi
+
+  if uk_has_cmd pmset; then
+    pmset -g batt && return 0
+    uk_warn 'pmset failed — trying next backend.'
+  fi
+
+  if uk_has_cmd acpi; then
+    acpi -V && return 0
+    uk_warn 'acpi failed.'
+  fi
+
+  uk_warn 'No battery backend found (termux-battery-status, pmset, or acpi).'
+  return 1
 }
 # Show top CPU/memory processes (with a fallback if ps fails)
 bd_show_top_processes() {
