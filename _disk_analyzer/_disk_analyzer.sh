@@ -100,6 +100,10 @@ da_fake_progress() {
 
     printf ' [%s]' "$bar"
 
+    # Check again before sleeping so we exit immediately when du finishes,
+    # rather than burning up to 0.55s of wall time on the final tick.
+    kill -0 "$pid" 2>/dev/null || break
+
     # Pacing
     if ((pct < 50)); then
       sleep 0.08
