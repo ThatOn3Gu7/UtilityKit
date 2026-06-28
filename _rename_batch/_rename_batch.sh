@@ -13,6 +13,7 @@ readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 RB_CAP_USE_COLOR=false
 RB_CAP_USE_UNICODE=false
 RB_CAP_IS_INTERACTIVE=false
+RB_TERM_WIDTH=80
 OPT_ALLOW_EXCLUDED=false # Global switch for exclusion overrides
 
 init_terminal_caps() {
@@ -40,6 +41,8 @@ init_terminal_caps() {
   else
     RB_CAP_IS_INTERACTIVE=false
   fi
+
+  RB_TERM_WIDTH="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
 }
 #  2.  ANSI ESCAPE CODES
 RB_C_RESET=""
@@ -273,8 +276,8 @@ draw_progress() {
 
   ((total == 0)) && return
 
-  # 1. Get terminal width dynamically (fallback to 80 if unsupported)
-  local term_width=$(tput cols 2>/dev/null || echo 80)
+  # 1. Terminal width cached once at startup (init_terminal_caps) — no per-tick fork
+  local term_width="$RB_TERM_WIDTH"
 
   # 2. Scale the progress bar based on screen size, keeping it within sensible limits
   local bar_width=$((term_width / 4))
@@ -410,11 +413,11 @@ compute_copy_destination() {
   local rel_path rel_dir target_dir
 
   rel_path="${filepath#"$source_dir"/}"
-  rel_dir="$(dirname "$rel_path")"
-  if [[ "$rel_dir" == "." ]]; then
-    target_dir="$output_dir"
-  else
+  if [[ "$rel_path" == */* ]]; then
+    rel_dir="${rel_path%/*}"
     target_dir="$output_dir/$rel_dir"
+  else
+    target_dir="$output_dir"
   fi
 
   compute_new_name "$filepath" "$new_ext" "$target_dir"
@@ -642,7 +645,11 @@ rb_main() {
       dest="$(compute_copy_destination "$filepath" "$new_ext" "$source_dir" "$output_dir")"
     else
       local dir
-      dir="$(dirname "$filepath")"
+      if [[ "$filepath" == */* ]]; then
+        dir="${filepath%/*}"
+      else
+        dir="."
+      fi
       dest="$(compute_new_name "$filepath" "$new_ext" "$dir")"
     fi
     dest_names+=("$dest")
@@ -888,7 +895,13 @@ rb_main() {
     fi
 
     local op_status=0
-    mkdir -p "$(dirname "$dst")"
+    local dst_dir
+    if [[ "$dst" == */* ]]; then
+      dst_dir="${dst%/*}"
+    else
+      dst_dir="."
+    fi
+    mkdir -p "$dst_dir"
     if [[ "$mode" == "copy" ]]; then
       if cp -- "$src" "$dst"; then
         : # success
