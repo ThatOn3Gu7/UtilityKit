@@ -13,6 +13,7 @@ MIB_SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 MIB_CAP_USE_COLOR=false
 MIB_CAP_USE_UNICODE=false
 MIB_CAP_IS_INTERACTIVE=false
+MIB_TERM_WIDTH=80
 MIB_METHOD="cp" # default: safe copy
 MIB_FLATTEN_MODE=false
 
@@ -41,6 +42,8 @@ init_terminal_caps() {
   else
     MIB_CAP_IS_INTERACTIVE=false
   fi
+
+  MIB_TERM_WIDTH="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
 }
 
 #  2.  ANSI ESCAPE CODES
@@ -260,8 +263,7 @@ draw_progress() {
     return 0
   fi
 
-  local term_width
-  term_width=$(tput cols 2>/dev/null || echo 80)
+  local term_width="$MIB_TERM_WIDTH"
 
   local bar_width=$((term_width / 4))
   ((bar_width > 30)) && bar_width=30
@@ -492,21 +494,23 @@ move_in_batch() {
     method_label="move  (mv)"
   fi
 
+  mkdir -p "$output"
+
+  # Resolve once, reuse for both checks.
+  local real_target real_output
+  real_target="$(realpath "$target" 2>/dev/null || (cd "$target" && pwd -P))"
+  real_output="$(realpath "$output" 2>/dev/null || (cd "$output" && pwd -P))"
+
   # ---- same-directory guard ----
-  if [[ "$(realpath "$target" 2>/dev/null || echo "$target")" == "$(realpath "$output" 2>/dev/null || echo "$output")" ]]; then
+  if [[ "$real_target" == "$real_output" ]]; then
     msg_error "Target and output directories are the same. Refusing to transfer."
     return 1
   fi
 
-  mkdir -p "$output"
-
   # Refuse destination nesting inside the source tree; otherwise a re-run can
   # recursively copy/move the previous output back into itself.
-  local real_target real_output
-  real_target="$(realpath "$target" 2>/dev/null || (cd "$target" && pwd -P))"
-  real_output="$(realpath "$output" 2>/dev/null || (cd "$output" && pwd -P))"
-  if [[ "$real_output" == "$real_target" || "$real_output" == "$real_target"/* ]]; then
-    msg_error "Output directory must not be the source directory or inside it: $output"
+  if [[ "$real_output" == "$real_target"/* ]]; then
+    msg_error "Output directory must not be inside the source directory: $output"
     return 1
   fi
 
@@ -515,18 +519,28 @@ move_in_batch() {
 
   local files=()
   local total_size=0
-  while IFS= read -r -d '' filepath; do
-    local file_size
-    if file_size=$(stat -c '%s' "$filepath" 2>/dev/null); then
-      :
-    elif file_size=$(stat -f '%z' "$filepath" 2>/dev/null); then
-      :
-    else
-      file_size=0
-    fi
-    files+=("$filepath")
-    total_size=$((total_size + file_size))
-  done < <(find "$target" -type f -print0 2>/dev/null | sort -z)
+  # Prefer GNU find's -printf for size+path in one syscall pass.
+  # Fall back to per-file stat on BSD/macOS.
+  if find "$target" -type f -printf '' >/dev/null 2>&1; then
+    local file_size filepath
+    while IFS=$'\t' read -r -d '' file_size filepath; do
+      files+=("$filepath")
+      total_size=$((total_size + file_size))
+    done < <(find "$target" -type f -printf '%s\t%p\0' 2>/dev/null | sort -z)
+  else
+    while IFS= read -r -d '' filepath; do
+      local file_size
+      if file_size=$(stat -c '%s' "$filepath" 2>/dev/null); then
+        :
+      elif file_size=$(stat -f '%z' "$filepath" 2>/dev/null); then
+        :
+      else
+        file_size=0
+      fi
+      files+=("$filepath")
+      total_size=$((total_size + file_size))
+    done < <(find "$target" -type f -print0 2>/dev/null | sort -z)
+  fi
 
   local total_files=${#files[@]}
 
@@ -808,7 +822,13 @@ move_in_batch() {
     fi
 
     # Ensure parent directories exist
-    mkdir -p "$(dirname "$dst")"
+    local dst_dir
+    if [[ "$dst" == */* ]]; then
+      dst_dir="${dst%/*}"
+    else
+      dst_dir="."
+    fi
+    mkdir -p "$dst_dir"
 
     local op_status=0
     if [[ "$MIB_METHOD" == "cp" ]]; then
