@@ -75,7 +75,7 @@ wt_fetch() {
   # URL encode location if one is provided
   local encoded_loc=""
   if [[ -n "$loc" && "$loc" != "auto" ]]; then
-    encoded_loc="${loc// /+}"
+    encoded_loc="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))' "$loc")"
   fi
 
   # Build target query url
