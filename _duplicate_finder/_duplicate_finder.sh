@@ -73,15 +73,14 @@ df_scan() {
     return 1
   fi
 
-  # Removed sizes_file and duplicates_file from 'local' so they stay in scope for the EXIT trap
   local current_size='' file size
+  sizes_file=''
+  duplicates_file=''
+
+  trap '[[ -n "$sizes_file" ]] && rm -f "$sizes_file"; [[ -n "$duplicates_file" ]] && rm -f "$duplicates_file"' EXIT
 
   sizes_file=$(mktemp)
   duplicates_file=$(mktemp)
-
-  # Use double quotes so the exact temp file paths are evaluated immediately,
-  # bypassing any strict unbound variable/scope issues during EXIT
-  trap "rm -f '$sizes_file' '$duplicates_file'" EXIT
 
   uk_section_title "Directory: $(uk_abs_path "$DF_DIR")"
   uk_note 'Scanning files by size first, then hashing exact-size matches...'
