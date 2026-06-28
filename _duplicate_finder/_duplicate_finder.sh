@@ -77,7 +77,7 @@ df_scan() {
   sizes_file=''
   duplicates_file=''
 
-  trap '[[ -n "$sizes_file" ]] && rm -f "$sizes_file"; [[ -n "$duplicates_file" ]] && rm -f "$duplicates_file"' EXIT
+  trap 'rm -f -- "$sizes_file" "$duplicates_file"' EXIT
 
   sizes_file=$(mktemp)
   duplicates_file=$(mktemp)
