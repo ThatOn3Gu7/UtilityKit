@@ -23,11 +23,11 @@ USAGE
 }
 lic_main() {
   uk_banner "license-helper" "Detect existing license and generate MIT or Apache 2.0" "" "$@"
-  local gen='' name=''
+  local gen='' name='' detect=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-    --detect) gen='' ;;
+    --detect) detect=1 ;;
     --generate)
       if [[ $# -gt 1 ]]; then
         shift
@@ -46,27 +46,27 @@ lic_main() {
         return 1
       fi
       ;;
-    -h | --help)
-      lic_usage
-      return 0
-      ;;
-    *)
-      uk_warn "Unknown option: $1"
-      return 1
-      ;;
+    -h|--help) lic_usage; return 0 ;;
+    *) uk_warn "Unknown option: $1"; return 1 ;;
     esac
     shift
   done
 
   # Detection logic
-  if [[ -z "$gen" ]]; then
-    if ! find . -maxdepth 1 \( -name 'LICENSE*' -o -name 'COPYING*' \) -print -quit | grep -q .; then
+  if ((detect == 1)); then
+    local found
+    found=$(find . -maxdepth 1 -type f \( -name 'LICENSE*' -o -name 'COPYING*' \) 2>/dev/null | head -1)
+    if [[ -z "$found" ]]; then
       uk_warn 'No license file (LICENSE* or COPYING*) found in current directory.'
+    else
+      uk_success "Found: $found"
     fi
     return 0
   fi
 
   # Generation logic
+  [[ -n "$gen" ]] || { lic_usage; return 1; }
+
   case "$gen" in
   mit)
     printf "MIT License\n\nCopyright (c) %s %s\n\nPermission is hereby granted..." "$(date +%Y)" "$name"
