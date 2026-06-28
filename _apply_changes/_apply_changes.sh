@@ -345,47 +345,116 @@ collect_changes() {
     done
   fi
 
-  mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
-  for path in "${path_list[@]}"; do
-    rel="${path#"$src"/}"
-    should_exclude_rel "$rel" && continue
-    target="$dst/$rel"
+  # GNU find can return type/size/mode/path in a single syscall pass via -printf,
+  # eliminating the per-file stat forks on the source side. Probe once.
+  local _have_printf=0
+  if find "$src" -maxdepth 0 -printf '' >/dev/null 2>&1; then
+    _have_printf=1
+  fi
 
-    if [[ -d "$path" && ! -L "$path" ]]; then
-      if ! [[ -d "$target" && ! -L "$target" ]]; then
-        add_change "MKDIR" "$rel"
-      elif modes_differ "$path" "$target"; then
-        add_change "CHMOD" "$rel"
-      fi
-    elif [[ -L "$path" ]]; then
-      source_link=$(readlink "$path" 2>/dev/null || true)
-      if [[ ! -L "$target" ]]; then
-        add_change "SYMLINK" "$rel"
-      else
-        target_link=$(readlink "$target" 2>/dev/null || true)
-        [[ "$source_link" == "$target_link" ]] || add_change "SYMLINK" "$rel"
-      fi
-    elif [[ -f "$path" ]]; then
-      if ! path_exists_or_link "$target"; then
-        add_change "CREATE" "$rel"
-      elif [[ ! -f "$target" || -L "$target" ]]; then
-        add_change "REPLACE" "$rel"
-      else
-        # Smart size comparison before running expensive cmp
-        src_size=$(stat -c '%s' "$path" 2>/dev/null || stat -f '%z' "$path" 2>/dev/null || echo -1)
-        dst_size=$(stat -c '%s' "$target" 2>/dev/null || stat -f '%z' "$target" 2>/dev/null || echo -2)
-        if [[ "$src_size" != "$dst_size" ]]; then
-          add_change "UPDATE" "$rel"
-        elif ! cmp -s "$path" "$target"; then
-          add_change "UPDATE" "$rel"
+  local path_list rec ftype fsize fmode tmeta dst_mode
+  if ((_have_printf)); then
+    mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -printf '%y\t%s\t%m\t%p\0')
+    for rec in "${path_list[@]}"; do
+      # Record layout: type<TAB>size<TAB>mode<TAB>path  (path may itself contain tabs)
+      ftype="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
+      fsize="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
+      fmode="${rec%%$'\t'*}"; path="${rec#*$'\t'}"
+      rel="${path#"$src"/}"
+      should_exclude_rel "$rel" && continue
+      target="$dst/$rel"
+
+      case "$ftype" in
+      d)
+        if ! [[ -d "$target" && ! -L "$target" ]]; then
+          add_change "MKDIR" "$rel"
+        else
+          dst_mode=$(file_mode "$target")
+          if [[ -n "$fmode" && -n "$dst_mode" && "$fmode" != "$dst_mode" ]]; then
+            add_change "CHMOD" "$rel"
+          fi
+        fi
+        ;;
+      l)
+        source_link=$(readlink "$path" 2>/dev/null || true)
+        if [[ ! -L "$target" ]]; then
+          add_change "SYMLINK" "$rel"
+        else
+          target_link=$(readlink "$target" 2>/dev/null || true)
+          [[ "$source_link" == "$target_link" ]] || add_change "SYMLINK" "$rel"
+        fi
+        ;;
+      f)
+        if ! path_exists_or_link "$target"; then
+          add_change "CREATE" "$rel"
+        elif [[ ! -f "$target" || -L "$target" ]]; then
+          add_change "REPLACE" "$rel"
+        else
+          # One stat per target file for size + mode together (GNU); BSD fallback below.
+          if tmeta=$(stat -c '%s %a' "$target" 2>/dev/null); then
+            dst_size="${tmeta% *}"
+            dst_mode="${tmeta#* }"
+          else
+            dst_size=$(stat -f '%z' "$target" 2>/dev/null || echo -2)
+            dst_mode=$(stat -f '%Lp' "$target" 2>/dev/null || echo "")
+          fi
+          if [[ "$fsize" != "$dst_size" ]]; then
+            add_change "UPDATE" "$rel"
+          elif ! cmp -s "$path" "$target"; then
+            add_change "UPDATE" "$rel"
+          elif [[ -n "$fmode" && -n "$dst_mode" && "$fmode" != "$dst_mode" ]]; then
+            add_change "CHMOD" "$rel"
+          fi
+        fi
+        ;;
+      *)
+        warn "Skipping unsupported source path type: $rel"
+        ;;
+      esac
+    done
+  else
+    # Slow path preserved for non-GNU find (BSD/macOS).
+    mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
+    for path in "${path_list[@]}"; do
+      rel="${path#"$src"/}"
+      should_exclude_rel "$rel" && continue
+      target="$dst/$rel"
+
+      if [[ -d "$path" && ! -L "$path" ]]; then
+        if ! [[ -d "$target" && ! -L "$target" ]]; then
+          add_change "MKDIR" "$rel"
         elif modes_differ "$path" "$target"; then
           add_change "CHMOD" "$rel"
         fi
+      elif [[ -L "$path" ]]; then
+        source_link=$(readlink "$path" 2>/dev/null || true)
+        if [[ ! -L "$target" ]]; then
+          add_change "SYMLINK" "$rel"
+        else
+          target_link=$(readlink "$target" 2>/dev/null || true)
+          [[ "$source_link" == "$target_link" ]] || add_change "SYMLINK" "$rel"
+        fi
+      elif [[ -f "$path" ]]; then
+        if ! path_exists_or_link "$target"; then
+          add_change "CREATE" "$rel"
+        elif [[ ! -f "$target" || -L "$target" ]]; then
+          add_change "REPLACE" "$rel"
+        else
+          src_size=$(stat -c '%s' "$path" 2>/dev/null || stat -f '%z' "$path" 2>/dev/null || echo -1)
+          dst_size=$(stat -c '%s' "$target" 2>/dev/null || stat -f '%z' "$target" 2>/dev/null || echo -2)
+          if [[ "$src_size" != "$dst_size" ]]; then
+            add_change "UPDATE" "$rel"
+          elif ! cmp -s "$path" "$target"; then
+            add_change "UPDATE" "$rel"
+          elif modes_differ "$path" "$target"; then
+            add_change "CHMOD" "$rel"
+          fi
+        fi
+      else
+        warn "Skipping unsupported source path type: $rel"
       fi
-    else
-      warn "Skipping unsupported source path type: $rel"
-    fi
-  done
+    done
+  fi
 
   if [[ "$mirror" -eq 1 ]]; then
     mapfile -d '' path_list < <(find "$dst" -mindepth 1 -depth -print0)
