@@ -211,14 +211,10 @@ run_apply_wizard() {
   local src dst apply mirror force include_runtime custom
   src="$(uk_prompt 'Enter updated source directory to sync from' '.' '~/path/to/source' 'Use a directory that contains the newest version of your files.')"
   dst="$(uk_prompt 'Enter local target directory to update' '.' '~/path/to/target' 'The target directory will be compared against the source.')"
-  printf ' %s Apply changes now? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r apply
-  printf ' %s Mirror delete missing target files too? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r mirror
-  printf ' %s Force past local git changes if needed? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r force
-  printf ' %s Include runtime logs/tmp files? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r include_runtime
+  if uk_confirm 'Apply changes now?' 'N'; then apply=y; else apply=n; fi
+  if uk_confirm 'Mirror delete missing target files too?' 'N'; then mirror=y; else mirror=n; fi
+  if uk_confirm 'Force past local git changes if needed?' 'N'; then force=y; else force=n; fi
+  if uk_confirm 'Include runtime logs/tmp files?' 'N'; then include_runtime=y; else include_runtime=n; fi
   custom=""
   [[ "$apply" =~ ^[Yy]$ ]] && custom+=" --apply --yes"
   [[ "$mirror" =~ ^[Yy]$ ]] && custom+=" --mirror"
@@ -237,8 +233,7 @@ run_rename_wizard() {
   src="$(uk_prompt 'Enter target directory to process' '.' '~/path/to/your/directory' 'Every non-hidden file in this folder tree will be considered.')"
   ext="$(uk_prompt 'Enter target new extension format (e.g. sh, py, txt)' '' '.md' 'Do not worry about the leading dot; both md and .md work.')"
   out="$(uk_prompt 'Enter output export directory (leave blank for in-place rename)' '' '~/path/to/export-folder' 'Leave blank to rename files where they already live.')"
-  printf ' %s Force protected files too (README, LICENSE, *.md, *.json)? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r force
+  if uk_confirm 'Force protected files too (README, LICENSE, *.md, *.json)?' 'N'; then force=y; else force=n; fi
   if [[ "$force" =~ ^[Yy]$ ]]; then
     if [[ -n "$out" ]]; then
       (rb_main --force "$(uk_expand_path "$src")" "$ext" "$(uk_expand_path "$out")")
@@ -258,8 +253,7 @@ run_symlink_wizard() {
   local src dst apply
   src="$(uk_prompt 'Enter source file or directory to link from' '' '~/.dotfiles/.bashrc' 'This is the real file or folder that should back the symlink.')"
   dst="$(uk_prompt 'Enter target link path to create or replace' '' '~/.bashrc' 'If the target already exists, the tool can back it up first.')"
-  printf ' %s Apply the symlink change now? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r apply
+  if uk_confirm 'Apply the symlink change now?' 'Y'; then apply=y; else apply=n; fi
   if [[ "$apply" =~ ^[Nn]$ ]]; then
     (sm_main "$(uk_expand_path "$src")" "$(uk_expand_path "$dst")")
   else
@@ -350,8 +344,7 @@ run_port_wizard() {
   uk_banner "port-inspector" "Find which process owns a local TCP port" ""
   local port kill_flag
   port="$(uk_prompt 'Enter the local TCP port to inspect' '' '3000' 'The tool will search for whichever process is listening on this port.')"
-  printf ' %s Terminate the process if one is found? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r kill_flag
+  if uk_confirm 'Terminate the process if one is found?' 'N'; then kill_flag=y; else kill_flag=n; fi
   if [[ "$kill_flag" =~ ^[Yy]$ ]]; then
     (pi_main "$port" --kill)
   else
@@ -425,8 +418,7 @@ run_password_wizard() {
   mode="$(uk_prompt 'Choose generator mode (passphrase|string)' 'passphrase' 'string' 'Passphrases are easier to remember; random strings are denser.')"
   if [[ "$mode" == 'string' ]]; then
     length="$(uk_prompt 'Enter string length' '20' '32' 'Longer strings give you higher theoretical entropy.')"
-    printf ' %s Copy the generated password to clipboard too? [y/N]: ' "$UK_I_ARROW" >&2
-    read -r copy
+    if uk_confirm 'Copy the generated password to clipboard too?' 'N'; then copy=y; else copy=n; fi
     if [[ "$copy" =~ ^[Yy]$ ]]; then
       (pg_main --mode string --length "$length" --copy)
     else
@@ -434,8 +426,7 @@ run_password_wizard() {
     fi
   else
     words="$(uk_prompt 'Enter passphrase word count' '4' '5' 'More words increase entropy and length.')"
-    printf ' %s Copy the generated passphrase to clipboard too? [y/N]: ' "$UK_I_ARROW" >&2
-    read -r copy
+    if uk_confirm 'Copy the generated passphrase to clipboard too?' 'N'; then copy=y; else copy=n; fi
     if [[ "$copy" =~ ^[Yy]$ ]]; then
       (pg_main --mode passphrase --words "$words" --copy)
     else
@@ -469,8 +460,7 @@ run_shred_wizard() {
   local file passes apply
   file="$(uk_prompt 'Enter file path to securely erase' '' '~/secret.txt' 'Shredding overwrites file contents before unlinking the file.')"
   passes="$(uk_prompt 'How many overwrite passes should be used?' '3' '7' 'Higher values are slower but overwrite the file more times.')"
-  printf ' %s Apply secure erase now? [y/N]: ' "$UK_I_ARROW" >&2
-  read -r apply
+  if uk_confirm 'Apply secure erase now?' 'N'; then apply=y; else apply=n; fi
   if [[ "$apply" =~ ^[Yy]$ ]]; then
     (sd_main --passes "$passes" --apply "$(uk_expand_path "$file")")
   else
@@ -490,11 +480,9 @@ run_media_wizard() {
   output="$(uk_prompt 'Enter output directory for converted files' 'converted' '~/converted-media' 'Converted files are written here so your originals stay intact.')"
   strip='n'
   if [[ "$kind" == 'image' ]]; then
-    printf ' %s Strip EXIF metadata from images? [Y/n]: ' "$UK_I_ARROW" >&2
-    read -r strip
+    if uk_confirm 'Strip EXIF metadata from images?' 'Y'; then strip=y; else strip=n; fi
   fi
-  printf ' %s Apply conversion now? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r apply
+  if uk_confirm 'Apply conversion now?' 'Y'; then apply=y; else apply=n; fi
   local args=()
   [[ ! "$strip" =~ ^[Nn]$ && "$kind" == 'image' ]] && args+=(--strip-exif)
   [[ ! "$apply" =~ ^[Nn]$ ]] && args+=(--apply)
@@ -504,14 +492,10 @@ run_toc_wizard() {
   uk_banner "markdown-toc" "Insert or refresh markdown TOC with link validation" ""
   local file apply check align show_diff before after
   file="$(uk_prompt 'Enter markdown file to update' '' 'README.md' 'A table of contents will be inserted or refreshed based on headings in this file.')"
-  printf ' %s Apply changes now? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r apply
-  printf ' %s Check relative links too? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r check
-  printf ' %s Align markdown tables too? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r align
-  printf ' %s Show a unified diff after the change? [Y/n]: ' "$UK_I_ARROW" >&2
-  read -r show_diff
+  if uk_confirm 'Apply changes now?' 'Y'; then apply=y; else apply=n; fi
+  if uk_confirm 'Check relative links too?' 'Y'; then check=y; else check=n; fi
+  if uk_confirm 'Align markdown tables too?' 'Y'; then align=y; else align=n; fi
+  if uk_confirm 'Show a unified diff after the change?' 'Y'; then show_diff=y; else show_diff=n; fi
   file="$(uk_expand_path "$file")"
   before="$(mktemp)"
   after="$(mktemp)"

@@ -108,14 +108,21 @@ uk_confirm() {
     [[ "$default" =~ ^[Yy]$ ]] && return 0 || return 1
   fi
   if [[ "$default" =~ ^[Yy]$ ]]; then
-    printf '%s %s [Y/n]: ' "$UK_I_ARROW" "$prompt"
+    printf ' %s %s [Y/n]: ' "$UK_I_ARROW" "$prompt" >&2
   else
-    printf '%s %s [y/N]: ' "$UK_I_ARROW" "$prompt"
+    printf ' %s %s [y/N]: ' "$UK_I_ARROW" "$prompt" >&2
   fi
   if [[ -r /dev/tty ]]; then
     read -r reply </dev/tty
   else
     read -r reply
+  fi
+  if [[ -z "$reply" ]]; then
+    if [[ "$default" =~ ^[Yy]$ ]]; then
+      printf '\033[1A\r\033[K %s %s [Y/n]: %s\n' "$UK_I_ARROW" "$prompt" "$default" >&2
+    else
+      printf '\033[1A\r\033[K %s %s [y/N]: %s\n' "$UK_I_ARROW" "$prompt" "$default" >&2
+    fi
   fi
   [[ -z "$reply" ]] && reply="$default"
   [[ "$reply" =~ ^[Yy] ]]
@@ -137,6 +144,9 @@ uk_prompt() {
     read -r reply </dev/tty
   else
     read -r reply
+  fi
+  if [[ -z "$reply" && -n "$default" ]]; then
+    printf '\033[1A\r\033[K %s %s\n' "$UK_I_ARROW" "$default" >&2
   fi
   printf '%s\n' "${reply:-$default}"
 }
