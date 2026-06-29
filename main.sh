@@ -4,6 +4,9 @@ set -euo pipefail
 readonly UK_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$UK_ROOT_DIR/lib/uk_common.sh"
 
+# Fallback for color names not defined in uk_common.sh.
+: "${UK_C_BRIGHT_GREEN:=$UK_C_GREEN}"
+
 uk_source_tool() {
   local path="$1"
   [[ -f "$path" ]] || {
@@ -113,99 +116,7 @@ EOF
     "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET$UK_C_DIM$UK_I_SEP$UK_C_RESET" "$UK_C_BRIGHT_BLUE" "${UK_VERSION}" "$UK_C_RESET"
   printf '%s\n\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
 }
-uk_home_menu() {
-  printf '  %s❯ %sPlease select a utility from the suite below:%s\n\n' "$UK_C_BOLD" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET"
-  printf '    %s1)%s %s↻ Apply Changes%s    %s(Robust Directory Synchronization)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s2)%s %s✎ Batch Rename%s     %s(Recursive File Renaming & Copying)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_BLUE" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s3)%s %s🗑 Cache Cleaner%s    %s(Intelligent System Cache Cleanup)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_MAGENTA" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s4)%s %s► Symlink Manager%s  %s(Dotfiles & System Config Management)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_YELLOW" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s5)%s %s◆ Disk Analyzer%s    %s(Storage Inspection & Quick Archiving)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %s6)%s %s⚙ Setup / Install%s  %s(Launcher & Path Configuration)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %sm)%s %s☰ More tools%s       %s(Load additional utilities)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  printf '    %sq)%s %s✖ Quit UtilityKit%s  %s(Quit out of UtilityKit)%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_BOLD$UK_C_RED" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-}
-uk_menu_line() {
-  local num="$1" icon="$2" color="$3" name="$4" desc="$5"
-  printf '    %s%2s)%s %s%s %-18s%s %s(%s)%s\n' \
-    "$UK_C_BOLD" "$num" "$UK_C_RESET" "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" "$UK_C_DIM" "$desc" "$UK_C_RESET"
-}
-uk_menu_nav() {
-  printf '\n    %sn)%s %sNext page%s       %sp)%s %sPrevious%s       %sb)%s %sBack home%s       %sq)%s %sQuit%s\n\n' \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_RED" "$UK_C_RESET"
-}
-uk_more_menu_page_1() {
-  printf '  %s❯ %sMore tools%s — %sPage 1 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  uk_menu_line 1 '◎' "$UK_C_CYAN" 'Env Manager' 'compare, validate, and switch .env profiles'
-  uk_menu_line 2 '⑂' "$UK_C_GREEN" 'Git Sweep' 'clean merged branches, stashes, and artifacts'
-  uk_menu_line 3 '▣' "$UK_C_BRIGHT_BLUE" 'Project Scaffold' 'generate starter projects from guided templates'
-  uk_menu_line 4 '◆' "$UK_C_MAGENTA" 'Duplicate Finder' 'find exact duplicate files and reclaim space'
-  uk_menu_line 5 '✖' "$UK_C_RED" 'Process Killer' 'inspect memory pressure and terminate processes'
-  uk_menu_line 6 '◉' "$UK_C_BRIGHT_CYAN" 'Port Inspector' 'find which process owns a local port'
-  uk_menu_nav
-}
-uk_more_menu_page_2() {
-  printf '  %s❯ %sMore tools%s — %sPage 2 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  uk_menu_line 1 '🔒' "$UK_C_CYAN" 'SSL Checker' 'inspect certificate expiry, DNS, and TLS support'
-  uk_menu_line 2 '⇄' "$UK_C_GREEN" 'API Tester' 'send HTTP requests and save reusable profiles'
-  uk_menu_line 3 '✦' "$UK_C_YELLOW" 'Password Gen' 'generate passphrases or random strings'
-  uk_menu_line 4 '⇢' "$UK_C_BRIGHT_BLUE" 'SSH Assistant' 'list SSH hosts and run connection helpers'
-  uk_menu_line 5 '⌫' "$UK_C_RED" 'Shredder' 'securely erase sensitive files with fallbacks'
-  uk_menu_line 6 '▧' "$UK_C_MAGENTA" 'Media Convert' 'batch convert images/videos when tools exist'
-  uk_menu_line 7 '☷' "$UK_C_CYAN" 'Markdown TOC' 'generate TOCs, check links, align tables'
-  uk_menu_line 8 '◷' "$UK_C_GREEN" 'Pomodoro' 'run focused work/break cycles'
-  uk_menu_line 9 '☰' "$UK_C_YELLOW" 'Cheat Sheet' 'store, search, and show command snippets'
-  uk_menu_line 10 '⇥' "$UK_C_BRIGHT_CYAN" 'Move in Batch' 'copy/move files safely with exclusions'
-  if [[ "$(uk_platform)" != 'termux' ]]; then
-    uk_menu_line 11 '⬢' "$UK_C_BRIGHT_BLUE" 'Docker Janitor' 'clean containers, images, and volumes'
-  else
-    uk_menu_line 11 '⬢' "$UK_C_DIM" 'Docker Janitor' 'unavailable / usually not useful in Termux'
-  fi
-  uk_menu_nav
-}
-uk_more_menu_page_3() {
-  printf '  %s❯ %sNew utilities%s — %sPage 3 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  uk_menu_line 1 '⌁' "$UK_C_BRIGHT_CYAN" 'Network Probe' 'ping, DNS, public IP, and route diagnostics'
-  uk_menu_line 2 '◍' "$UK_C_GREEN" 'Service Watcher' 'check HTTP services and response times'
-  uk_menu_line 3 '⑂' "$UK_C_YELLOW" 'Git Stats' 'summarize authors, branches, and changed files'
-  uk_menu_line 4 '{}' "$UK_C_MAGENTA" 'JSON Explorer' 'pretty-print, inspect, and extract JSON paths'
-  uk_menu_line 5 '🔗' "$UK_C_CYAN" 'Link Checker' 'validate Markdown local and HTTP links'
-  uk_menu_line 6 '⇄' "$UK_C_GREEN" 'Backup Sync' 'dry-run-first backup wrapper with fallbacks'
-  uk_menu_line 7 '⌕' "$UK_C_BRIGHT_BLUE" 'Project Search' 'search files/text with rg/grep/find fallbacks'
-  uk_menu_line 8 '≡' "$UK_C_YELLOW" 'Log Inspector' 'summarize warnings, errors, repeated lines'
-  uk_menu_line 9 '▤' "$UK_C_MAGENTA" 'CSV Toolkit' 'inspect CSV headers and preview rows'
-  uk_menu_nav
-}
-uk_more_menu_page_4() {
-  printf '  %s❯ %sNew utilities%s — %sPage 4 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  uk_menu_line 1 '◷' "$UK_C_CYAN" 'Cron Manager' 'list/add/remove crontab entries safely'
-  uk_menu_line 2 '🔐' "$UK_C_GREEN" 'Dotenv Vault' 'encrypt selected .env values with gpg'
-  uk_menu_line 3 '◆' "$UK_C_YELLOW" 'Disk Health' 'SMART health check when smartctl exists'
-  uk_menu_line 4 '☁' "$UK_C_BRIGHT_CYAN" 'Weather' 'terminal forecast lookup with cache fallback'
-  uk_menu_line 5 '▥' "$UK_C_GREEN" 'Tmux Session' 'list, create, attach, or kill tmux sessions'
-  uk_menu_line 6 'A' "$UK_C_BRIGHT_BLUE" 'Font Inspector' 'check glyph support and list fonts'
-  uk_menu_line 7 '⚙' "$UK_C_YELLOW" 'Toolbox Audit' 'detect recommended CLI tools'
-  uk_menu_line 8 '' "$UK_C_MAGENTA" 'GitHub Helper' 'wrap common gh CLI tasks'
-  uk_menu_nav
-}
-uk_more_menu_page_5() {
-  printf '  %s❯ %sNew utilities%s — %sPage 5 of 5%s\n\n' "$UK_C_BOLD" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
-  uk_menu_line 1 '#' "$UK_C_CYAN" 'Hash Tools' 'create checksums for files and trees'
-  uk_menu_line 2 '▦' "$UK_C_GREEN" 'Archive Manager' 'list, create, and safely extract archives'
-  uk_menu_line 3 '◈' "$UK_C_YELLOW" 'System Snapshot' 'collect a compact diagnostic summary'
-  uk_menu_line 4 '◉' "$UK_C_MAGENTA" 'Open Files' 'find processes using paths or ports'
-  uk_menu_line 5 '▰' "$UK_C_BRIGHT_CYAN" 'Battery Doctor' 'show battery and power diagnostics'
-  uk_menu_line 6 '✦' "$UK_C_GREEN" 'Release Helper' 'run git release checks and optional tags'
-  uk_menu_line 7 '§' "$UK_C_BRIGHT_BLUE" 'License Helper' 'detect or generate simple license text'
-  uk_menu_line 8 '.*' "$UK_C_YELLOW" 'Regex Lab' 'test regex patterns against text/files'
-  uk_menu_line 9 '☑' "$UK_C_MAGENTA" 'Todo Manager' 'plain-text tasks with tags and search'
-  printf '\n    %sp)%s %sPrevious%s       %sb)%s %sBack home%s       %sq)%s %sQuit%s\n\n' \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_RED" "$UK_C_RESET"
-}
+
 run_apply_wizard() {
   uk_banner "apply-changes" "Directory sync with dry-run preview, backup, and rollback" ""
   local src dst apply mirror force include_runtime custom
@@ -816,8 +727,7 @@ run_new_utility_wizard() {
 }
 uk_menu_execute() {
   local status=0
-  run_tool "$@"
-  status=$?
+  run_tool "$@" || status=$?
   if ((status != 0)); then
     uk_warn "The selected tool exited with status $status."
   fi
@@ -1055,189 +965,186 @@ New utility commands:
 Use ./main.sh <command> --help for each tool's detailed options.
 EOF
 }
-home_menu_loop() {
-  local choice skip_pause=0
-  while true; do
-    skip_pause=0
-    uk_main_banner
-    uk_home_menu
-    echo ""
-    printf "  %sChoose an option [1-6/m/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    # printf '  %sChoose an option [1-6/m/q]: %s' "$UK_I_ARROW" "$UK_C_RESET"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute apply ;;
-    2) uk_menu_execute rename ;;
-    3) uk_menu_execute cacheclean ;;
-    4) uk_menu_execute symlink ;;
-    5) uk_menu_execute disk ;;
-    6 | s | setup) uk_menu_execute setup ;;
-    m | M | more)
-      more_menu_loop_page_1
-      skip_pause=1
-      ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-6, m, or q.' ;;
+
+# Keypress listener translating Arrows, Enter and Vim keys.
+uk_read_key() {
+  local key
+  IFS= read -rsn1 key 2>/dev/null || true
+  if [[ "$key" == $'\x1b' ]]; then
+    read -rsn2 -t 0.1 key 2>/dev/null || true
+    case "$key" in
+    '[A' | 'OA') echo "UP" ;;
+    '[B' | 'OB') echo "DOWN" ;;
+    *) echo "ESC" ;;
     esac
-    if ((skip_pause == 0)); then
-      printf '\n  %sPress Enter to return to the UtilityKit Dashboard...%s' "$UK_C_DIM" "$UK_C_RESET"
-      read -r
-    fi
-  done
+  elif [[ "$key" == "" ]]; then
+    echo "ENTER"
+  else
+    echo "$key"
+  fi
 }
-more_menu_loop_page_1() {
-  local choice
-  while true; do
-    uk_main_banner
-    uk_more_menu_page_1
-    printf "  %sChoose an option [1-7/n/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute env ;;
-    2) uk_menu_execute git ;;
-    3) uk_menu_execute scaffold ;;
-    4) uk_menu_execute dup ;;
-    5) uk_menu_execute proc ;;
-    6) uk_menu_execute port ;;
-    n | N | next)
-      more_menu_loop_page_2
-      return 0
-      ;;
-    b | B | back) return 0 ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-7, n, b, or q.' ;;
-    esac
-    printf '\n  %sPress Enter to stay in More Tools Page 1...%s' "$UK_C_DIM" "$UK_C_RESET"
-    read -r
-  done
-}
-more_menu_loop_page_2() {
-  local choice
-  while true; do
-    uk_main_banner
-    uk_more_menu_page_2
-    printf "  %sChoose an option [1-11/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute ssl ;;
-    2) uk_menu_execute api ;;
-    3) uk_menu_execute pass ;;
-    4) uk_menu_execute ssh ;;
-    5) uk_menu_execute shred ;;
-    6) uk_menu_execute media ;;
-    7) uk_menu_execute toc ;;
-    8) uk_menu_execute pomodoro ;;
-    9) uk_menu_execute cheat ;;
-    10) uk_menu_execute move ;;
-    11)
-      if [[ "$(uk_platform)" == 'termux' ]]; then
-        uk_warn 'Docker Janitor is disabled in the Termux dashboard.'
-      else
-        uk_menu_execute docker
+
+# Flat arrays for the master unified list
+declare -a M_ICONS=()
+declare -a M_COLORS=()
+declare -a M_NAMES=()
+declare -a M_DESCS=()
+declare -a M_ACTIONS=()
+
+load_all_tools() {
+  M_ICONS=("↻" "✎" "🗑" "►" "◆" "◎" "⑂" "▣" "◆" "✖" "◉" "🔒" "⇄" "✦" "⇢" "⌫" "▧" "☷" "◷" "☰" "⇥" "⬢" "⌁" "◍" "⑂" "{}" "🔗" "⇄" "⌕" "≡" "▤" "◷" "🔐" "◆" "☁" "▥" "A" "⚙" "" "#" "▦" "◈" "◉" "▰" "✦" "§" ".*" "☑" "⚙")
+  M_COLORS=("$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_BRIGHT_MAGENTA" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_MAGENTA" "$UK_C_RED" "$UK_C_BRIGHT_CYAN" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_BLUE" "$UK_C_RED" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_BRIGHT_BLUE" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_WHITE")
+  M_NAMES=("Apply Changes" "Batch Rename" "Cache Cleaner" "Symlink Manager" "Disk Analyzer" "Env Manager" "Git Sweep" "Project Scaffold" "Duplicate Finder" "Process Killer" "Port Inspector" "SSL Checker" "API Tester" "Password Gen" "SSH Assistant" "Shredder" "Media Convert" "Markdown TOC" "Pomodoro" "Cheat Sheet" "Move in Batch" "Docker Janitor" "Network Probe" "Service Watcher" "Git Stats" "JSON Explorer" "Link Checker" "Backup Sync" "Project Search" "Log Inspector" "CSV Toolkit" "Cron Manager" "Dotenv Vault" "Disk Health" "Weather" "Tmux Session" "Font Inspector" "Toolbox Audit" "GitHub Helper" "Hash Tools" "Archive Manager" "System Snapshot" "Open Files" "Battery Doctor" "Release Helper" "License Helper" "Regex Lab" "Todo Manager" "Setup / Install")
+  M_DESCS=("Robust Directory Synchronization" "Recursive File Renaming & Copying" "Intelligent System Cache Cleanup" "Dotfiles & System Config Management" "Storage Inspection & Quick Archiving" "compare, validate, and switch .env profiles" "clean merged branches, stashes, and artifacts" "generate starter projects from guided templates" "find exact duplicate files and reclaim space" "inspect memory pressure and terminate processes" "find which process owns a local port" "inspect certificate expiry, DNS, and TLS support" "send HTTP requests and save reusable profiles" "generate passphrases or random strings" "list SSH hosts and run connection helpers" "securely erase sensitive files with fallbacks" "batch convert images/videos when tools exist" "generate TOCs, check links, align tables" "run focused work/break cycles" "store, search, and show command snippets" "copy/move files safely with exclusions" "clean containers, images, and volumes" "ping, DNS, public IP, and route diagnostics" "check HTTP services and response times" "summarize authors, branches, and changed files" "pretty-print, inspect, and extract JSON paths" "validate Markdown local and HTTP links" "dry-run-first backup wrapper with fallbacks" "search files/text with rg/grep/find fallbacks" "summarize warnings, errors, repeated lines" "inspect CSV headers and preview rows" "list/add/remove crontab entries safely" "encrypt selected .env values with gpg" "SMART health check when smartctl exists" "terminal forecast lookup with cache fallback" "list, create, attach, or kill tmux sessions" "check glyph support and list fonts" "detect recommended CLI tools" "wrap common gh CLI tasks" "create checksums for files and trees" "list, create, and safely extract archives" "collect a compact diagnostic summary" "find processes using paths or ports" "show battery and power diagnostics" "run git release checks and optional tags" "detect or generate simple license text" "test regex patterns against text/files" "plain-text tasks with tags and search" "Launcher & Path Configuration")
+  M_ACTIONS=("apply" "rename" "cacheclean" "symlink" "disk" "env" "git" "scaffold" "dup" "proc" "port" "ssl" "api" "pass" "ssh" "shred" "media" "toc" "pomodoro" "cheat" "move" "docker" "network" "service" "git-stats" "json" "links" "backup" "search" "log-inspect" "csv" "cron" "dotenv" "disk-health" "weather" "tmux" "font" "toolbox" "github" "hash" "archive" "snapshot" "open-files" "battery" "release" "license" "regex" "todo" "setup")
+
+  # Hide Docker Janitor in Termux
+  if [[ "$(uk_platform)" == 'termux' ]]; then
+    local i
+    for ((i = 0; i < ${#M_ACTIONS[@]}; i++)); do
+      if [[ "${M_ACTIONS[$i]}" == "docker" ]]; then
+        M_COLORS[$i]="$UK_C_DIM"
+        M_DESCS[$i]="unavailable / usually not useful in Termux"
+        break
       fi
-      ;;
-    n | N | next)
-      more_menu_loop_page_3
-      return 0
-      ;;
-    p | P | prev | previous) return 0 ;;
-    b | B | back) return 0 ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-11, n, p, b, or q.' ;;
-    esac
-    printf '\n  %sPress Enter to stay in More Tools Page 2...%s' "$UK_C_DIM" "$UK_C_RESET"
-    read -r
-  done
+    done
+  fi
 }
-more_menu_loop_page_3() {
-  local choice
+
+interactive_menu_loop() {
+  load_all_tools
+
+  local TOTAL_ITEMS=${#M_ACTIONS[@]}
+  local SELECTED_INDEX=0
+  local WINDOW_START=0
+  local VISIBLE_COUNT=8 # Strictly sets the visible viewport item count
+
+  # Hide the cursor while the interactive menu is active, and make sure
+  # it gets restored no matter how the script exits (clean exit, Ctrl+C,
+  # SIGTERM, or any uncaught error from `set -e`).
+  uk_cursor_show() { tput cnorm 2>/dev/null || printf '\033[?25h'; }
+  uk_cursor_hide() { tput civis 2>/dev/null || printf '\033[?25l'; }
+  trap 'uk_cursor_show' EXIT INT TERM HUP
+  uk_cursor_hide
+
+  # Print banner ONCE to eliminate top-level screen flicker
+  uk_main_banner
+  # Save the cursor position right below the banner (ANSI standard)
+  printf '\033[s'
+
   while true; do
-    uk_main_banner
-    uk_more_menu_page_3
-    printf "  %sChoose an option [1-9/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute network ;;
-    2) uk_menu_execute service ;;
-    3) uk_menu_execute git-stats ;;
-    4) uk_menu_execute json ;;
-    5) uk_menu_execute links ;;
-    6) uk_menu_execute backup ;;
-    7) uk_menu_execute search ;;
-    8) uk_menu_execute log-inspect ;;
-    9) uk_menu_execute csv ;;
-    n | N | next)
-      more_menu_loop_page_4
-      return 0
+    # Boundary logic for looping array
+    if ((SELECTED_INDEX < 0)); then
+      SELECTED_INDEX=$((TOTAL_ITEMS - 1))
+    elif ((SELECTED_INDEX >= TOTAL_ITEMS)); then
+      SELECTED_INDEX=0
+    fi
+
+    # Viewport tracking: Moves the sliding window of visible items
+    if ((SELECTED_INDEX < WINDOW_START)); then
+      WINDOW_START=$SELECTED_INDEX
+    elif ((SELECTED_INDEX >= WINDOW_START + VISIBLE_COUNT)); then
+      WINDOW_START=$((SELECTED_INDEX - VISIBLE_COUNT + 1))
+    fi
+
+    # Restore cursor to below banner and clear everything downwards
+    printf '\033[u\033[0J'
+
+    printf '  %s❯ %sUtilityKit Master Suite%s — %sTool %d of %d%s\n\n' \
+      "$UK_C_BOLD" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET" \
+      "$UK_C_DIM" "$((SELECTED_INDEX + 1))" "$TOTAL_ITEMS" "$UK_C_RESET"
+
+    # Upwards scrolling indicator
+    if ((WINDOW_START > 0)); then
+      printf '     %s▲  (scroll up for more tools)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    else
+      printf '\n' # Maintain spacing consistency
+    fi
+
+    # Print the visible chunk of tools (The Viewport)
+    local i
+    for ((i = WINDOW_START; i < WINDOW_START + VISIBLE_COUNT; i++)); do
+      if ((i >= TOTAL_ITEMS)); then break; fi
+
+      local icon="${M_ICONS[$i]}"
+      local color="${M_COLORS[$i]}"
+      local name="${M_NAMES[$i]}"
+      local desc="${M_DESCS[$i]}"
+
+      if ((i == SELECTED_INDEX)); then
+        printf '  %s➔%s  %s%s %-18s%s %s(%s)%s\n' \
+          "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
+          "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" \
+          "$UK_C_BOLD" "$desc" "$UK_C_RESET"
+      else
+        printf '     %s%s %-18s%s %s(%s)%s\n' \
+          "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" \
+          "$UK_C_DIM" "$desc" "$UK_C_RESET"
+      fi
+    done
+
+    # Downwards scrolling indicator
+    if ((WINDOW_START + VISIBLE_COUNT < TOTAL_ITEMS)); then
+      printf '     %s▼  (scroll down for more tools)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    else
+      printf '\n'
+    fi
+
+    # Static Footer Legend
+    printf '\n  %s──────────────────────────────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    printf '  %sNavigation Info:%s\n' "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
+    printf '    %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
+      "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
+      "$UK_C_BRIGHT_GREEN" "$UK_C_RESET"
+    printf '                                      %s[q]%s     : Exit UtilityKit\n' \
+      "$UK_C_RED" "$UK_C_RESET"
+    printf '\n'
+
+    local key_press
+    key_press=$(uk_read_key)
+
+    case "$key_press" in
+    UP | k | K)
+      SELECTED_INDEX=$((SELECTED_INDEX - 1))
       ;;
-    p | P | prev | previous) return 0 ;;
-    b | B | back) return 0 ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-9, n, p, b, or q.' ;;
-    esac
-    printf '\n  %sPress Enter to stay in New Utilities Page 3...%s' "$UK_C_DIM" "$UK_C_RESET"
-    read -r
-  done
-}
-more_menu_loop_page_4() {
-  local choice
-  while true; do
-    uk_main_banner
-    uk_more_menu_page_4
-    printf "  %sChoose an option [1-9/n/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute cron ;;
-    2) uk_menu_execute dotenv ;;
-    3) uk_menu_execute disk-health ;;
-    4) uk_menu_execute weather ;;
-    5) uk_menu_execute tmux ;;
-    6) uk_menu_execute font ;;
-    7) uk_menu_execute toolbox ;;
-    8) uk_menu_execute github ;;
-    n | N | next)
-      more_menu_loop_page_5
-      return 0
+    DOWN | j | J)
+      SELECTED_INDEX=$((SELECTED_INDEX + 1))
       ;;
-    p | P | prev | previous) return 0 ;;
-    b | B | back) return 0 ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-9, n, p, b, or q.' ;;
+    ENTER)
+      local act="${M_ACTIONS[$SELECTED_INDEX]}"
+
+      # Show the cursor while the tool runs and accepts input, then
+      # hide it again once we re-enter the menu.
+      uk_cursor_show
+
+      # We clear the screen right before executing the tool, so the tool's
+      # output takes over smoothly without crashing into the menu.
+      clear 2>/dev/null || printf '\n'
+
+      uk_menu_execute "$act"
+
+      printf '\n  %sPress Enter to return to the UtilityKit Dashboard...%s' "$UK_C_DIM" "$UK_C_RESET"
+      read -r 2>/dev/null || true
+
+      uk_cursor_hide
+
+      # When coming back from a tool, the screen is dirty.
+      # We MUST re-print the master banner and re-save the cursor position.
+      uk_main_banner
+      printf '\033[s'
+      ;;
+    q | Q)
+      uk_cursor_show
+      exit 0
+      ;;
     esac
-    printf '\n  %sPress Enter to stay in New Utilities Page 4...%s' "$UK_C_DIM" "$UK_C_RESET"
-    read -r
   done
 }
-more_menu_loop_page_5() {
-  local choice
-  while true; do
-    uk_main_banner
-    uk_more_menu_page_5
-    printf "  %sChoose an option [1-9/p/b/q]: %s" "${UK_C_BOLD}${UK_C_CYAN}${UK_I_ARROW} " "${UK_C_RESET}"
-    read -r choice
-    case "$choice" in
-    1) uk_menu_execute hash ;;
-    2) uk_menu_execute archive ;;
-    3) uk_menu_execute snapshot ;;
-    4) uk_menu_execute open-files ;;
-    5) uk_menu_execute battery ;;
-    6) uk_menu_execute release ;;
-    7) uk_menu_execute license ;;
-    8) uk_menu_execute regex ;;
-    9) uk_menu_execute todo ;;
-    p | P | prev | previous) return 0 ;;
-    b | B | back) return 0 ;;
-    q | Q | quit | exit) exit 0 ;;
-    *) uk_warn 'Invalid selection. Please enter 1-9, p, b, or q.' ;;
-    esac
-    printf '\n  %sPress Enter to stay in New Utilities Page 5...%s' "$UK_C_DIM" "$UK_C_RESET"
-    read -r
-  done
-}
+
 if [[ $# -gt 0 ]]; then
   subcmd="$1"
   shift
   run_tool "$subcmd" "$@"
 else
-  home_menu_loop
+  interactive_menu_loop
 fi

@@ -181,18 +181,32 @@ Each plugin follows a five-function contract (`*_plugin_info`, `*_detect`, `*_ge
 ```
 bash main.sh         ← opens the interactive dashboard
 
-Home
-  1) ↻ Apply Changes
-  2) ✎ Batch Rename
-  3) 🗑 Cache Cleaner
-  4) ► Symlink Manager
-  5) ◆ Disk Analyzer
-  6) ⚙ Setup / Install
-  m) ☰ More tools  ──→  Page 1 → Page 2 → Page 3 → Page 4 → Page 5
-  q) Exit
+UtilityKit Master Suite — Tool 1 of 49
 
-More tools pages use  n (next)  p (previous)  b (back home)
+  ➔  ↻ Apply Changes      (Robust Directory Synchronization)
+     ✎ Batch Rename       (Recursive File Renaming & Copying)
+     🗑 Cache Cleaner      (Intelligent System Cache Cleanup)
+     ► Symlink Manager    (Dotfiles & System Config Management)
+     ◆ Disk Analyzer      (Storage Inspection & Quick Archiving)
+     ◎ Env Manager        (compare, validate, switch .env profiles)
+     ⑂ Git Sweep          (clean merged branches, stashes, artifacts)
+     ▣ Project Scaffold   (generate starter projects from templates)
+     ▼  (scroll down for more tools)
+
+  ▲/▼ or j/k : Scroll Tools         [Enter] : Execute selected
+                                    [q]     : Exit UtilityKit
 ```
+
+All 49 tools live in a single unified scroll list — no nested "More tools"
+pages. Highlights:
+
+- **Arrow keys** (`▲`/`▼`) or **Vim keys** (`k`/`j`) move the selection.
+- **Enter** runs the highlighted tool's guided wizard.
+- **q** exits.
+- 8 tools are visible in the viewport; `▲`/`▼` indicators show when more
+  tools exist above or below the window.
+- The terminal cursor is hidden while the menu is active (via `tput civis`)
+  and automatically restored on exit, Ctrl+C, or SIGTERM via an `EXIT` trap.
 
 Every tool has a guided interactive wizard when launched from the dashboard or invoked without arguments. Direct CLI flags still work for scripting.
 
@@ -345,7 +359,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v4.1.2** — current  
+**v4.2.0** — current — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
+**v4.1.2** — previous  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  
 **v4.0.0** — initial unified suite: 18 roadmap tools + shared library + smoke suite  

@@ -61,7 +61,7 @@ Because the wiring is spread across several files, adding a tool means editing a
 
 1. `_<tool>/_<tool>.sh` with namespaced functions + BASH_SOURCE guard.
 2. `_<tool>/_<tool>_README.md` for standalone users.
-3. `main.sh`: add an entry to `UK_TOOL_PATHS`, a `case` branch routing the CLI command, a `run_<tool>_wizard()` for the dashboard, and a menu entry on the appropriate "More tools" page.
+3. `main.sh`: add an entry to `UK_TOOL_PATHS`, a `case` branch routing the CLI command, a `run_<tool>_wizard()` for the dashboard, and an entry in the four parallel arrays `M_ICONS` / `M_COLORS` / `M_NAMES` / `M_DESCS` / `M_ACTIONS` in `load_all_tools()` so the tool appears in the arrow-key scroll menu.
 4. `tests/smoke_test.sh`: append the CLI command to the `cmds=(...)` array inside `help_check` so `<cmd> --help` is exercised; add a behavioral smoke case if the tool has side effects.
 5. `setup.sh` requires no edit — its installer globs `_*/` directories, plus `lib`, `docs`, `tests`.
 

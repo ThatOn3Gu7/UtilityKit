@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Changed (Dashboard)
+- Replaced the paged "More tools" navigation with a single unified scroll list
+  driven by `▲`/`▼` arrow keys (or Vim `j`/`k`). 8 tools are visible at a time
+  and scroll indicators show when more tools exist above or below the viewport.
+- Hide the terminal cursor (`tput civis`) while the interactive dashboard is
+  active for a cleaner appearance, and restore it (`tput cnorm`) via a
+  `trap ... EXIT INT TERM HUP` so Ctrl+C, SIGTERM, or any uncaught error
+  from `set -e` still leaves the cursor visible.
+
+### Fixed (Dashboard)
+- Re-enabled `set -euo pipefail` in `main.sh` and resolved the only remaining
+  unbound-variable site: provide a fallback `UK_C_BRIGHT_GREEN := UK_C_GREEN`
+  for the legend, since `UK_C_BRIGHT_GREEN` is not defined in
+  `lib/uk_common.sh`.
 
 ### Fixed (Deep Review)
 - fix: guard sourced tool scripts from enabling strict shell options in the parent shell.
