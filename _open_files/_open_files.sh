@@ -6,7 +6,7 @@ of_main() {
   uk_banner "open-files" "Find processes using a path or port via lsof" "" "$@"
   local path='' port=''
   while [[ $# -gt 0 ]]; do
-    case "$1" in --path)
+    case "${1:-}" in --path)
       shift
       path="${1:-}"
       ;;

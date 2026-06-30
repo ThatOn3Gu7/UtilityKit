@@ -8,7 +8,7 @@ source "$UK_ROOT_DIR/lib/uk_common.sh"
 : "${UK_C_BRIGHT_GREEN:=$UK_C_GREEN}"
 
 uk_source_tool() {
-  local path="$1"
+  local path="${1:-}"
   [[ -f "$path" ]] || {
     uk_warn "Missing tool: $path"
     return 0
@@ -73,7 +73,7 @@ declare -A UK_TOOL_PATHS=(
 declare -A UK_TOOL_LOADED=()
 
 uk_load() {
-  local key="$1"
+  local key="${1:-}"
   # Already sourced — do nothing.
   [[ -n "${UK_TOOL_LOADED[$key]:-}" ]] && return 0
   local path="${UK_TOOL_PATHS[$key]:-}"
@@ -90,7 +90,7 @@ uk_load() {
   UK_TOOL_LOADED[$key]=1
 }
 uk_expand_path() {
-  local input="$1"
+  local input="${1:-}"
   if [[ "$input" == ~* ]]; then
     printf '%s\n' "${input/#\~/$HOME}"
   else
@@ -450,7 +450,7 @@ run_setup_wizard() {
   bash "$UK_ROOT_DIR/setup.sh"
 }
 uk_demo_file() {
-  local kind="$1" dir path
+  local kind="${1:-}" dir path
   dir="$(uk_state_dir)/demo-fixtures"
   mkdir -p "$dir"
   case "$kind" in
@@ -489,7 +489,7 @@ uk_demo_file() {
   printf '%s\n' "$path"
 }
 run_new_utility_wizard() {
-  local tool="$1"
+  local tool="${1:-}"
   case "$tool" in
   network)
     uk_banner "network-probe" "Ping, DNS lookup, public IP, and route tracing" ""
@@ -734,7 +734,7 @@ uk_menu_execute() {
   return 0
 }
 run_tool() {
-  local cmd="$1"
+  local cmd="${1:-}"
   shift || true
   case "$cmd" in
   apply | apply-changes)
@@ -1142,7 +1142,7 @@ interactive_menu_loop() {
 }
 
 if [[ $# -gt 0 ]]; then
-  subcmd="$1"
+  subcmd="${1:-}"
   shift
   run_tool "$subcmd" "$@"
 else

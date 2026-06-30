@@ -24,7 +24,7 @@ bs_main() {
 
   # Parse arguments
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --source | -s)
       shift
       src="${1:-}"
@@ -44,7 +44,7 @@ bs_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

@@ -17,7 +17,7 @@ Types:
 USAGE
 }
 ps_write_common() {
-  local dir="$1" title="$2"
+  local dir="${1:-}" title="${2:-}"
   mkdir -p "$dir/.github/workflows"
   cat >"$dir/README.md" <<__README__
 # $title
@@ -49,7 +49,7 @@ jobs:
 __CI__
 }
 ps_gen_bash() {
-  local dir="$1"
+  local dir="${1:-}"
   cat >"$dir/.gitignore" <<'__GI__'
 *.log
 .env
@@ -68,7 +68,7 @@ __BASH__
   chmod +x "$dir/main.sh"
 }
 ps_gen_python_flask() {
-  local dir="$1"
+  local dir="${1:-}"
   mkdir -p "$dir/app"
   cat >"$dir/.gitignore" <<'__GI__'
 __pycache__/
@@ -97,7 +97,7 @@ def index():
 __PYAPP__
 }
 ps_gen_node_cli() {
-  local dir="$1" slug
+  local dir="${1:-}" slug
   slug="$(uk_slugify "$PS_NAME")"
   cat >"$dir/.gitignore" <<'__GI__'
 node_modules/
@@ -131,7 +131,7 @@ __JS__
   chmod +x "$dir/index.js"
 }
 ps_gen_go_service() {
-  local dir="$1"
+  local dir="${1:-}"
   mkdir -p "$dir/cmd/service"
   cat >"$dir/.gitignore" <<'__GI__'
 bin/
@@ -164,7 +164,7 @@ __GO__
 ps_main() {
   uk_banner "project-scaffold" "Starter project generator for Bash, Python, Node, Go" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --type)
       shift
       PS_TYPE="${1:-}"
@@ -183,7 +183,7 @@ ps_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

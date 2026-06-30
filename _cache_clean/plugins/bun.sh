@@ -36,5 +36,5 @@ bun_scan_cache() {
   done
 }
 bun_clean_orphans() {
-  cc_clean_orphans_from_file "$1"
+  cc_clean_orphans_from_file "${1:-}"
 }

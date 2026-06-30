@@ -6,7 +6,7 @@ psrch_main() {
   uk_banner "project-search" "Text or filename search with rg → grep → find fallback" "" "$@"
   local text='' name='' dir='.'
   while [[ $# -gt 0 ]]; do
-    case "$1" in --text)
+    case "${1:-}" in --text)
       shift
       text="${1:-}"
       ;;
@@ -18,7 +18,7 @@ psrch_main() {
       psrch_usage
       return 0
       ;;
-    *) dir="$1" ;; esac
+    *) dir="${1:-}" ;; esac
     shift
   done
   [[ -n "$text" ]] && {

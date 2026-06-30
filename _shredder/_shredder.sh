@@ -13,7 +13,7 @@ Usage:
 USAGE
 }
 sd_secure_delete() {
-  local file="$1" size pass
+  local file="${1:-}" size pass
   [[ -f "$file" ]] || {
     uk_warn "Skipping missing file: $file"
     return 0
@@ -35,7 +35,7 @@ sd_main() {
   SD_PASSES=3
   SD_FILES=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --passes)
       shift
       SD_PASSES="${1:-3}"
@@ -45,7 +45,7 @@ sd_main() {
       sd_usage
       return 0
       ;;
-    *) SD_FILES+=("$1") ;;
+    *) SD_FILES+=("${1:-}") ;;
     esac
     shift
   done

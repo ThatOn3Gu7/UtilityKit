@@ -48,7 +48,7 @@ mc_require_tool() {
   esac
 }
 mc_fake_progress() {
-  local pid="$1" width=28 pct=0 fill empty
+  local pid="${1:-}" width=28 pct=0 fill empty
   local ch_fill ch_empty
   if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
     ch_fill='█'
@@ -113,7 +113,7 @@ mc_fake_progress() {
     "$UK_C_BOLD" "$UK_C_RESET" 12 ''
 }
 mc_convert_one() {
-  local src="$1" base out
+  local src="${1:-}" base out
   base="$(basename "${src%.*}")"
   out="$MC_OUTPUT/${base}.${MC_TO}"
 
@@ -168,7 +168,7 @@ mc_main() {
   MC_OUTPUT=''
   MC_PATHS=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --kind)
       shift
       MC_KIND="${1:-image}"
@@ -191,7 +191,7 @@ mc_main() {
       mc_usage
       return 0
       ;;
-    *) MC_PATHS+=("$1") ;;
+    *) MC_PATHS+=("${1:-}") ;;
     esac
     shift
   done

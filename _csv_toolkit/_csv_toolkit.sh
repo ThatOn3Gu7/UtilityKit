@@ -18,7 +18,7 @@ csvt_main() {
   local file='' cols=0 headn=10
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --columns) cols=1 ;;
     --head)
       shift
@@ -29,10 +29,10 @@ csvt_main() {
       return 0
       ;;
     --*)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
-    *) file="$1" ;;
+    *) file="${1:-}" ;;
     esac
     shift
   done

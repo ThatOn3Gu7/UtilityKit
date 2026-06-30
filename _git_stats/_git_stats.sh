@@ -21,7 +21,7 @@ if ! declare -f uk_abs_path >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*"; }; fi
-if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
+if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 if ! declare -f uk_section_title >/dev/null 2>&1; then uk_section_title() { printf "\n--- %s ---\n" "$*"; }; fi
 gst_usage() {
   echo 'Usage: _git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]'
@@ -35,7 +35,7 @@ gst_main() {
   local args=()
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --repo)
       if [[ $# -gt 1 ]]; then
         shift
@@ -105,8 +105,8 @@ gst_main() {
 
   while IFS= read -r line; do
     local count name
-    count=$(printf '%s' "$line" | awk '{print $1}')
-    name=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    count=$(printf '%s' "$line" | awk '{print ${1:-}}')
+    name=$(printf '%s' "$line" | awk '{${1:-}=""; sub(/^ /,""); print}')
     printf '  %s%6s%s  %s%s%s\n' \
       "$UK_C_YELLOW" "$count" "$UK_C_RESET" \
       "$UK_C_WHITE" "$name" "$UK_C_RESET"
@@ -118,8 +118,8 @@ gst_main() {
 
   while IFS= read -r line; do
     local count file
-    count=$(printf '%s' "$line" | awk '{print $1}')
-    file=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    count=$(printf '%s' "$line" | awk '{print ${1:-}}')
+    file=$(printf '%s' "$line" | awk '{${1:-}=""; sub(/^ /,""); print}')
     printf '  %s%6s%s  %s%s%s\n' \
       "$UK_C_CYAN" "$count" "$UK_C_RESET" \
       "$UK_C_DIM" "$file" "$UK_C_RESET"
@@ -132,8 +132,8 @@ gst_main() {
 
   while IFS= read -r line; do
     local date branch
-    date=$(printf '%s' "$line" | awk '{print $1}')
-    branch=$(printf '%s' "$line" | awk '{$1=""; sub(/^ /,""); print}')
+    date=$(printf '%s' "$line" | awk '{print ${1:-}}')
+    branch=$(printf '%s' "$line" | awk '{${1:-}=""; sub(/^ /,""); print}')
     printf '  %s%s%s  %s%s%s\n' \
       "$UK_C_DIM" "$date" "$UK_C_RESET" \
       "$UK_C_GREEN" "$branch" "$UK_C_RESET"

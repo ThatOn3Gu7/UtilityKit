@@ -12,7 +12,7 @@ DJ_ALL=0
 # Fallback uk_confirm if not defined in uk_common.sh
 if ! declare -f uk_confirm >/dev/null 2>&1; then
   uk_confirm() {
-    local prompt="$1" default="$2"
+    local prompt="${1:-}" default="${2:-}"
     local answer
     printf '%s [%s/%s]: ' "$prompt" "$([[ "$default" == "Y" ]] && echo "Y" || echo "y")" \
       "$([[ "$default" == "N" ]] && echo "N" || echo "n")" >&2
@@ -127,7 +127,7 @@ dj_interactive() {
 dj_main() {
   uk_banner "docker-janitor" "Prune stopped containers, dangling images, and orphan volumes" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --containers) DJ_CONTAINERS=1 ;;
     --images) DJ_IMAGES=1 ;;
     --volumes) DJ_VOLUMES=1 ;;
@@ -138,7 +138,7 @@ dj_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

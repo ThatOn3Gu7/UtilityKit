@@ -35,7 +35,7 @@ dh_main() {
   local dev='' action='show' test_short=0
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --list)
       action='list'
       dev='LIST'
@@ -50,10 +50,10 @@ dh_main() {
       return 0
       ;;
     --*)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
-    *) dev="$1" ;;
+    *) dev="${1:-}" ;;
     esac
     shift
   done
@@ -62,7 +62,7 @@ dh_main() {
   if [[ -z "$dev" && "$action" != 'list' ]]; then
     # Try to get first non‑removable disk
     local detected
-    detected=$(smartctl --scan 2>/dev/null | head -1 | awk '{print $1}')
+    detected=$(smartctl --scan 2>/dev/null | head -1 | awk '{print ${1:-}}')
     if [[ -n "$detected" ]]; then
       dev="$detected"
       uk_note "Auto‑detected device: $dev"

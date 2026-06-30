@@ -38,10 +38,10 @@ USAGE
 }
 # Utility functions
 cs_path() {
-  printf '%s/%s.md\n' "$(cs_dir)" "$(uk_slugify "$1")"
+  printf '%s/%s.md\n' "$(cs_dir)" "$(uk_slugify "${1:-}")"
 }
 cs_confirm_overwrite() {
-  local path="$1"
+  local path="${1:-}"
   if [[ -f "$path" && -t 0 ]]; then
     printf '%sSnippet "%s" already exists. Overwrite? [y/N] %s' \
       "${UK_C_YELLOW:-}" "$CS_NAME" "${UK_C_RESET:-}"
@@ -219,7 +219,7 @@ cs_main() {
   CS_TERM=''
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --add)
       shift
       CS_ACTION='add'
@@ -258,7 +258,7 @@ cs_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

@@ -10,7 +10,7 @@ fi
 
 # --- Fallback Utilities (Ensures standalone robustness) ---
 if ! declare -F uk_has_cmd &>/dev/null; then
-  uk_has_cmd() { command -v "$1" &>/dev/null; }
+  uk_has_cmd() { command -v "${1:-}" &>/dev/null; }
 fi
 
 # Modern Premium Color Palette
@@ -29,7 +29,7 @@ PROMPT_CHAR="❯"
 
 # Clean session name to prevent Tmux syntax issues
 sanitize_session_name() {
-  local name="$1"
+  local name="${1:-}"
   name="${name//[\.\: ]/-}"
   name="${name//--/-}"
   name="${name#-}"
@@ -38,7 +38,7 @@ sanitize_session_name() {
 }
 # Format helper for Unix Timestamps
 format_timestamp() {
-  local ts="$1"
+  local ts="${1:-}"
   if [[ "$ts" =~ ^[0-9]+$ ]]; then
     printf -v formatted '%(%Y-%m-%d %H:%M)T' "$ts" 2>/dev/null ||
       formatted=$(date -d "@$ts" +"%Y-%m-%d %H:%M" 2>/dev/null) ||
@@ -65,11 +65,11 @@ get_latest_active_session() {
 }
 # INTERACTIVE PROMPT ENGINE
 ask_user() {
-  local prompt="$1"
-  local default="$2"
-  local example="$3"
-  local desc="$4"
-  local result_var="$5"
+  local prompt="${1:-}"
+  local default="${2:-}"
+  local example="${3:-}"
+  local desc="${4:-}"
+  local result_var="${5:-}"
 
   echo -e "${C_WHITE}${PROMPT_CHAR} ${C_BOLD}${prompt}${C_RESET} ${C_DARK_GRAY}[default: ${default}]${C_RESET}"
   if [[ -n "$example" ]]; then
@@ -132,7 +132,7 @@ tms_list_pretty() {
 }
 tms_new() {
   local name
-  name=$(sanitize_session_name "$1")
+  name=$(sanitize_session_name "${1:-}")
 
   if tmux has-session -t "$name" 2>/dev/null; then
     echo -e "${C_DARK_GRAY}Session '${name}' already exists. Switching to it...${C_RESET}"
@@ -144,7 +144,7 @@ tms_new() {
   echo -e "${C_GREEN}✔ Created detached session '${name}' successfully!${C_RESET}"
 }
 tms_attach() {
-  local name="$1"
+  local name="${1:-}"
 
   if ! tmux has-session -t "$name" 2>/dev/null; then
     echo -e "${C_RED}✖ Error: Session '${name}' does not exist.${C_RESET}"
@@ -160,7 +160,7 @@ tms_attach() {
   fi
 }
 tms_kill() {
-  local name="$1"
+  local name="${1:-}"
 
   if ! tmux has-session -t "$name" 2>/dev/null; then
     echo -e "${C_RED}✖ Error: Session '${name}' does not exist.${C_RESET}"
@@ -257,7 +257,7 @@ tms_main() {
   local name=""
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     -l | --list) action="list" ;;
     -n | --new)
       action="new"

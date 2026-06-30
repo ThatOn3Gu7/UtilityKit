@@ -28,7 +28,7 @@ fi_main() {
   local glyphs=0
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --list)
       list=1
       shift

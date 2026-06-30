@@ -16,10 +16,10 @@ Usage:
 USAGE
 }
 pg_entropy_words() {
-  awk -v n="$1" -v k="$2" 'BEGIN { printf "%.2f", n*(log(k)/log(2)) }'
+  awk -v n="${1:-}" -v k="${2:-}" 'BEGIN { printf "%.2f", n*(log(k)/log(2)) }'
 }
 pg_entropy_string() {
-  awk -v n="$1" 'BEGIN { printf "%.2f", n*(log(72)/log(2)) }'
+  awk -v n="${1:-}" 'BEGIN { printf "%.2f", n*(log(72)/log(2)) }'
 }
 pg_passphrase() {
   local out='' idx i count=${#PG_WORDLIST[@]}
@@ -44,7 +44,7 @@ pg_main() {
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1
-    case "$1" in
+    case "${1:-}" in
     --mode)
       shift
       PG_MODE="${1:-passphrase}"
@@ -67,7 +67,7 @@ pg_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

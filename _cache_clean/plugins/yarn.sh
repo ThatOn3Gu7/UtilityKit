@@ -42,5 +42,5 @@ yarn_scan_cache() {
   done
 }
 yarn_clean_orphans() {
-  cc_clean_orphans_from_file "$1"
+  cc_clean_orphans_from_file "${1:-}"
 }

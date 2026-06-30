@@ -213,8 +213,8 @@ init_icons() {
 
 #  4.  HELPER FUNCTIONS
 colorize() {
-  local color="$1"
-  local text="$2"
+  local color="${1:-}"
+  local text="${2:-}"
   if [[ "$MIB_CAP_USE_COLOR" == true ]]; then
     printf "%s%s%s" "$color" "$text" "$MIB_C_RESET"
   else
@@ -230,7 +230,7 @@ msg_working() { printf "  %s %s\n" "$(colorize "$MIB_C_CYAN" "$MIB_I_WORKING")" 
 msg_arrow() { printf "  %s   %s\n" "$(colorize "$MIB_C_BLUE_BRIGHT" "$MIB_I_ARROW")" "$*"; }
 
 format_size() {
-  local size="$1"
+  local size="${1:-}"
   if ((size >= 1073741824)); then
     awk "BEGIN { printf \"%.1f GB\", $size/1073741824 }"
   elif ((size >= 1048576)); then
@@ -242,7 +242,7 @@ format_size() {
   fi
 }
 format_duration() {
-  local seconds=$1
+  local seconds=${1:-}
   local mins=$((seconds / 60))
   local secs=$((seconds % 60))
   if ((mins > 0)); then
@@ -253,9 +253,9 @@ format_duration() {
 }
 #  5.  PROGRESS BAR
 draw_progress() {
-  local current="$1"
-  local total="$2"
-  local label="$3"
+  local current="${1:-}"
+  local total="${2:-}"
+  local label="${3:-}"
 
   ((total == 0)) && return
   if [[ ! -t 1 ]]; then
@@ -313,7 +313,7 @@ draw_progress() {
 }
 #  6.  UTILITY:  tilde expansion
 _expand_tilde() {
-  local path="$1"
+  local path="${1:-}"
   if [[ "$path" == "~" || "$path" == "~/"* ]]; then
     path="${HOME}${path:1}"
   fi
@@ -369,7 +369,7 @@ show_version() {
 }
 #  8.  EXCLUSION CHECK & GROUPING
 _exclusion_group() {
-  local filepath="$1"
+  local filepath="${1:-}"
   local basename
   basename="${filepath##*/}"
   shift
@@ -391,7 +391,7 @@ _exclusion_group() {
   return 1
 }
 _is_excluded() {
-  local filepath="$1"
+  local filepath="${1:-}"
   local basename
   basename="${filepath##*/}"
   shift
@@ -423,19 +423,19 @@ move_in_batch() {
 
   # ---- parse flags ----
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     -t | --target)
-      target="$(_expand_tilde "$2")"
+      target="$(_expand_tilde "${2:-}")"
       shift 2
       ;;
     -o | --output)
-      output="$(_expand_tilde "$2")"
+      output="$(_expand_tilde "${2:-}")"
       shift 2
       ;;
     -e | --exclude)
       shift
-      while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
-        exclude+=("$1")
+      while [[ $# -gt 0 && ! "${1:-}" =~ ^- ]]; do
+        exclude+=("${1:-}")
         shift
       done
       ;;
@@ -448,7 +448,7 @@ move_in_batch() {
       shift
       ;;
     -m | --method)
-      MIB_METHOD="$2"
+      MIB_METHOD="${2:-}"
       shift 2
       ;;
     -h | --help)
@@ -460,7 +460,7 @@ move_in_batch() {
       return 0
       ;;
     *)
-      msg_error "Unknown option: $1"
+      msg_error "Unknown option: ${1:-}"
       msg_info "Use -h or --help for usage."
       return 1
       ;;

@@ -12,18 +12,18 @@ DF_APPLY=0
 if ! declare -f uk_abs_path >/dev/null 2>&1; then
   uk_abs_path() {
     if command -v realpath >/dev/null; then
-      realpath "$1"
+      realpath "${1:-}"
     else
       local dir file
-      dir="$(cd "$(dirname "$1")" && pwd -P)"
-      file="$(basename "$1")"
+      dir="$(cd "$(dirname "${1:-}")" && pwd -P)"
+      file="$(basename "${1:-}")"
       printf '%s/%s\n' "$dir" "$file"
     fi
   }
 fi
 if ! declare -f uk_confirm >/dev/null 2>&1; then
   uk_confirm() {
-    local prompt="$1" default="$2"
+    local prompt="${1:-}" default="${2:-}"
     local answer
     printf '%s [%s/%s]: ' "$prompt" \
       "$([[ "$default" == "Y" ]] && echo "Y" || echo "y")" \
@@ -40,16 +40,16 @@ fi
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*"; }; fi
 if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "Note: %s\n" "$*"; }; fi
 if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success: %s\n" "$*"; }; fi
-if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
+if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 _df_hash() {
   if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{print $1}'
+    sha256sum "${1:-}" | awk '{print ${1:-}}'
   elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$1" | awk '{print $1}'
+    shasum -a 256 "${1:-}" | awk '{print ${1:-}}'
   elif command -v md5sum >/dev/null 2>&1; then
-    md5sum "$1" | awk '{print $1}'
+    md5sum "${1:-}" | awk '{print ${1:-}}'
   elif command -v md5 >/dev/null 2>&1; then
-    md5 -q "$1" 2>/dev/null || md5 "$1" | awk '{print $NF}'
+    md5 -q "${1:-}" 2>/dev/null || md5 "${1:-}" | awk '{print $NF}'
   else
     uk_error "No hash command found (sha256sum, shasum, md5sum, or md5)."
     return 1
@@ -184,7 +184,7 @@ df_main() {
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1
-    case "$1" in
+    case "${1:-}" in
     --delete) DF_ACTION='delete' ;;
     --hardlink) DF_ACTION='hardlink' ;;
     --apply) DF_APPLY=1 ;;
@@ -192,7 +192,7 @@ df_main() {
       df_usage
       return 0
       ;;
-    *) DF_DIR="$1" ;;
+    *) DF_DIR="${1:-}" ;;
     esac
     shift
   done

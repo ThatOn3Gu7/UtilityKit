@@ -6,7 +6,7 @@ ssn_main() {
   uk_banner "system-snapshot" "Compact diagnostic summary of OS, platform, disk" "" "$@"
   local out=''
   while [[ $# -gt 0 ]]; do
-    case "$1" in --output)
+    case "${1:-}" in --output)
       shift
       out="${1:-}"
       ;;

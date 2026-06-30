@@ -17,7 +17,7 @@ Usage:
 USAGE
 }
 mt_anchor() {
-  local text="$1"
+  local text="${1:-}"
   text=$(printf '%s' "$text" | tr '[:upper:]' '[:lower:]')
   text=$(printf '%s' "$text" | sed 's/[^a-z0-9 _-]//g; s/[[:space:]]\+/-/g; s/--\+/-/g; s/^-//; s/-$//')
   printf '%s\n' "$text"
@@ -188,7 +188,7 @@ mt_main() {
   MT_ALIGN_TABLES=0
   MT_TOC_COUNT=0
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --apply) MT_APPLY=1 ;;
     --check-links) MT_CHECK_LINKS=1 ;;
     --align-tables) MT_ALIGN_TABLES=1 ;;
@@ -196,7 +196,7 @@ mt_main() {
       mt_usage
       return 0
       ;;
-    *) MT_FILE="$1" ;;
+    *) MT_FILE="${1:-}" ;;
     esac
     shift
   done

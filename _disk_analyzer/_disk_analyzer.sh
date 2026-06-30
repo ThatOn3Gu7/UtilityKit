@@ -41,7 +41,7 @@ da_setup_colors() {
   fi
 }
 da_fake_progress() {
-  local pid="$1"
+  local pid="${1:-}"
   local width=28
   local pct=0
   local fill empty bar bar_fill bar_empty
@@ -144,14 +144,14 @@ da_main() {
   local positional=()
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     -n | --count)
       shift
-      [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]] || {
+      [[ $# -gt 0 && "${1:-}" =~ ^[0-9]+$ ]] || {
         printf "%s%s --count requires a positive number.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
         return 1
       }
-      DA_COUNT="$1"
+      DA_COUNT="${1:-}"
       ;;
     --count=*)
       local val="${1#--count=}"
@@ -168,16 +168,16 @@ da_main() {
     --)
       shift
       while [[ $# -gt 0 ]]; do
-        positional+=("$1")
+        positional+=("${1:-}")
         shift
       done
       break
       ;;
     --*)
-      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2
+      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "${1:-}" "$C_RESET" >&2
       return 1
       ;;
-    *) positional+=("$1") ;;
+    *) positional+=("${1:-}") ;;
     esac
     shift
   done

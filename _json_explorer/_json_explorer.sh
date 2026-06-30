@@ -33,7 +33,7 @@ jx_main() {
   local summary=0
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --path)
       shift
       path="${1:-}"
@@ -45,11 +45,11 @@ jx_main() {
       return 0
       ;;
     -*)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       jx_usage
       return 1
       ;;
-    *) file="$1" ;;
+    *) file="${1:-}" ;;
     esac
     shift
   done

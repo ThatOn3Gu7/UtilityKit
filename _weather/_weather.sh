@@ -10,7 +10,7 @@ fi
 
 # --- Fallback Utilities (Ensures standalone robustness) ---
 if ! declare -F uk_has_cmd &>/dev/null; then
-  uk_has_cmd() { command -v "$1" &>/dev/null; }
+  uk_has_cmd() { command -v "${1:-}" &>/dev/null; }
 fi
 
 if ! declare -F uk_state_dir &>/dev/null; then
@@ -35,11 +35,11 @@ PROMPT_CHAR="❯"
 
 # INTERACTIVE PROMPT ENGINE
 ask_user() {
-  local prompt="$1"
-  local default="$2"
-  local example="$3"
-  local desc="$4"
-  local result_var="$5"
+  local prompt="${1:-}"
+  local default="${2:-}"
+  local example="${3:-}"
+  local desc="${4:-}"
+  local result_var="${5:-}"
 
   echo -e "${C_WHITE}${PROMPT_CHAR} ${C_BOLD}${prompt}${C_RESET} ${C_DARK_GRAY}[default: ${default}]${C_RESET}"
   if [[ -n "$example" ]]; then
@@ -60,9 +60,9 @@ ask_user() {
 }
 # CORE WEATHER ENGINE
 wt_fetch() {
-  local loc="$1"
-  local units="$2"
-  local style="$3"
+  local loc="${1:-}"
+  local units="${2:-}"
+  local style="${3:-}"
 
   local cache_dir
   cache_dir="$(uk_state_dir)"
@@ -186,7 +186,7 @@ wt_main() {
 
   # Parse command line flags
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --units)
       shift
       units="${1:-metric}"
@@ -204,9 +204,9 @@ wt_main() {
     *)
       # Accumulate unquoted strings (e.g., New York -> New York)
       if [[ -z "$loc" ]]; then
-        loc="$1"
+        loc="${1:-}"
       else
-        loc="$loc $1"
+        loc="$loc ${1:-}"
       fi
       ;;
     esac

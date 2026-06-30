@@ -44,7 +44,7 @@ EOF
 }
 cc_parse_args() {
   while [ $# -gt 0 ]; do
-    case "$1" in
+    case "${1:-}" in
     -h | --help)
       cc_usage
       exit 0
@@ -83,7 +83,7 @@ cc_parse_args() {
       shift
       ;;
     --older-than)
-      CC_OLDER_THAN="$2"
+      CC_OLDER_THAN="${2:-}"
       shift 2
       ;;
     --force-root)
@@ -95,7 +95,7 @@ cc_parse_args() {
       break
       ;;
     -*)
-      printf 'Unknown option: %s\n' "$1" >&2
+      printf 'Unknown option: %s\n' "${1:-}" >&2
       exit 1
       ;;
     *) break ;;
@@ -191,7 +191,7 @@ cc_term_cols() {
   fi
   if command -v stty >/dev/null 2>&1; then
     local cols
-    cols=$(stty size 2>/dev/null | awk '{print $2}' || true)
+    cols=$(stty size 2>/dev/null | awk '{print ${2:-}}' || true)
     if [ -n "$cols" ]; then
       printf '%s\n' "$cols"
       return 0
@@ -207,12 +207,12 @@ cc_locale_is_utf8() {
 }
 
 cc_hbar() {
-  local width=$1 char=${2:-$B_H}
+  local width=${1:-} char=${2:-$B_H}
   printf '%*s' "$width" '' | tr ' ' "$char"
 }
 # SAFE VISUAL BAR — ONLY # and - (this fixes the garbage symbols)
 cc_progress_bar() {
-  local current=$1 max=$2 width=${3:-28}
+  local current=${1:-} max=${2:-} width=${3:-28}
   if [ "${max:-0}" -le 0 ]; then
     printf '%s%s%s' "$C_DIM" "$(printf '%*s' "$width" '' | tr ' ' '-')" "$C_RESET"
     return
@@ -223,7 +223,7 @@ cc_progress_bar() {
   printf '%s%s%s%s%s' "$C_LGREEN" "$(printf '%*s' "$filled" '' | tr ' ' '#')" "$C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$C_RESET"
 }
 cc_section_title() {
-  local title=$1 width=${2:-52}
+  local title=${1:-} width=${2:-52}
   local line=$(cc_hbar "$width" "$B_H")
   printf '\n%s%s %s %s %s%s\n' "$C_BG_ACCENT" "$C_WHITE$C_BOLD" "$I_BROOM" "$title" "$C_RESET" "$C_ACCENT"
   printf '%s%s%s\n' "$C_ACCENT" "$line" "$C_RESET"
@@ -258,8 +258,8 @@ cc_require_basic_tools() {
 }
 cc_get_script_dir() { (cd "$(dirname "${BASH_SOURCE[0]}")" && pwd); }
 cc_manager_for_binary() {
-  case "$1" in
-  npm | yarn | pnpm | bun | pip* | cargo | go | gem | composer | dotnet | conan | vcpkg | apt* | pacman | dnf | yum | brew | apk) printf '%s' "$1" | sed 's/3$//;s/-get$//' ;;
+  case "${1:-}" in
+  npm | yarn | pnpm | bun | pip* | cargo | go | gem | composer | dotnet | conan | vcpkg | apt* | pacman | dnf | yum | brew | apk) printf '%s' "${1:-}" | sed 's/3$//;s/-get$//' ;;
   *) printf '' ;;
   esac
 }
@@ -280,28 +280,28 @@ cc_cleanup_tmp() {
 }
 # (Trap registered in cc_main)
 cc_format_bytes() {
-  awk -v b="$1" 'BEGIN{
+  awk -v b="${1:-}" 'BEGIN{
     split("B KB MB GB TB",u);
     if(b<1024){printf "%d B",b;exit}
     n=b;i=1;while(n>=1024&&i<5){n/=1024;i++}
     printf "%.2f %s",n,u[i]
-  }' 2>/dev/null || echo "$1 B"
+  }' 2>/dev/null || echo "${1:-} B"
 }
 cc_file_size() {
   if command -v stat >/dev/null 2>&1; then
-    stat -c%s -- "$1" 2>/dev/null && return
-    stat -f%z -- "$1" 2>/dev/null && return
+    stat -c%s -- "${1:-}" 2>/dev/null && return
+    stat -f%z -- "${1:-}" 2>/dev/null && return
   fi
-  wc -c <"$1" 2>/dev/null || echo 0
+  wc -c <"${1:-}" 2>/dev/null || echo 0
 }
-cc_du_kb() { du -sk -- "$1" 2>/dev/null | awk '{print $1}' || echo 0; }
-cc_find_old() { find "$1" -type f -mtime +"$2" 2>/dev/null; }
-cc_find_partial() { find "$1" -type f \( -empty -o -name '*.tmp' -o -name '*.part' -o -name '*.download' -o -name '*.incomplete' \) 2>/dev/null; }
-cc_emit_tot() { printf 'TOT|%s|%s\n' "$1" "$2"; }
-cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "$1" "$2" "$(cc_file_size "$2")" "$3"; }
-cc_emit_err() { printf 'ERR|%s|%s\n' "$1" "$2"; }
+cc_du_kb() { du -sk -- "${1:-}" 2>/dev/null | awk '{print ${1:-}}' || echo 0; }
+cc_find_old() { find "${1:-}" -type f -mtime +"${2:-}" 2>/dev/null; }
+cc_find_partial() { find "${1:-}" -type f \( -empty -o -name '*.tmp' -o -name '*.part' -o -name '*.download' -o -name '*.incomplete' \) 2>/dev/null; }
+cc_emit_tot() { printf 'TOT|%s|%s\n' "${1:-}" "${2:-}"; }
+cc_emit_orphan() { printf 'ORPHAN|%s|%s|%s|%s\n' "${1:-}" "${2:-}" "$(cc_file_size "${2:-}")" "${3:-}"; }
+cc_emit_err() { printf 'ERR|%s|%s\n' "${1:-}" "${2:-}"; }
 cc_clean_orphans_from_file() {
-  local file=$1 deleted=0 failed=0 reclaimed=0
+  local file=${1:-} deleted=0 failed=0 reclaimed=0
   declare -A seen=()
   while IFS='|' read -r type dir path size reason; do
     [ "$type" = "ORPHAN" ] || continue
@@ -319,7 +319,7 @@ cc_clean_orphans_from_file() {
   printf '%d|%d|%d\n' "$deleted" "$failed" "$reclaimed"
 }
 cc_spinner() {
-  local pid=$1 msg=$2
+  local pid=${1:-} msg=${2:-}
   local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
   while kill -0 "$pid" 2>/dev/null; do
     printf '\r%s %s' "$C_LCYAN${spin:i%10:1}$C_RESET" "$msg"
@@ -374,7 +374,7 @@ cc_print_env_summary() {
   cc_print_divider 44
 }
 cc_scan_plugin() {
-  local prefix=$1 name=$2 icon=$3
+  local prefix=${1:-} name=${2:-} icon=${3:-}
   local sf="$CC_STATE_DIR/${prefix}.scan" ef="$CC_STATE_DIR/${prefix}.err"
   "${prefix}_scan_cache" >"$sf" 2>"$ef" &
   local pid=$!
@@ -548,7 +548,7 @@ cc_perform_deletion() {
   printf '%d|%d|%d\n' "$total_deleted" "$total_failed" "$total_reclaimed"
 }
 cc_print_final_summary() {
-  local result=$1
+  local result=${1:-}
   local deleted failed reclaimed
   IFS='|' read -r deleted failed reclaimed <<<"$result"
 
@@ -572,9 +572,9 @@ cc_print_final_summary() {
     printf '\n'
   fi
 }
-cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$C_RESET" "$1" >&2; }
-cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "$1" "$C_RESET" >&2; }
-cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "$1" "$C_RESET" >&2; }
+cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$C_RESET" "${1:-}" >&2; }
+cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "${1:-}" "$C_RESET" >&2; }
+cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "${1:-}" "$C_RESET" >&2; }
 cc_main() {
   uk_banner "cacheclean" "intelligent cache cleaner for devs" "" "$@"
   trap cc_cleanup_tmp EXIT

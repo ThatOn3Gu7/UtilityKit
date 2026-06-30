@@ -16,13 +16,13 @@ Options:
 USAGE
 }
 np_section() {
-  local title="$1" icon="${2:-$UK_I_INFO}"
+  local title="${1:-}" icon="${2:-$UK_I_INFO}"
   printf '\n  %s%s%s %s%s%s\n' \
     "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$icon" "$title" "$UK_C_RESET" ""
   printf '  %s%s%s\n' "$UK_C_DIM" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
 }
 np_ping() {
-  local host="$1" count="$2"
+  local host="${1:-}" count="${2:-}"
   np_section 'Ping' '◉'
 
   if ! uk_has_cmd ping; then
@@ -53,7 +53,7 @@ np_ping() {
   done <<<"$output"
 }
 np_dns() {
-  local domain="$1"
+  local domain="${1:-}"
   np_section 'DNS Resolution' '◈'
 
   if uk_has_cmd dig; then
@@ -114,7 +114,7 @@ np_public_ip() {
   fi
 }
 np_trace() {
-  local host="$1"
+  local host="${1:-}"
   np_section 'Route Trace' '⇢'
 
   local cmd=''
@@ -152,7 +152,7 @@ np_main() {
   local host='example.com' count=4 dns='' public=1 trace=1
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --count)
       shift
       count="${1:-4}"
@@ -167,7 +167,7 @@ np_main() {
       np_usage
       return 0
       ;;
-    *) host="$1" ;;
+    *) host="${1:-}" ;;
     esac
     shift
   done

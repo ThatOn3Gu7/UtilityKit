@@ -24,7 +24,7 @@ cm_main() {
   uk_banner "cron-manager" "List, add, and remove crontab entries with format validation" "" "$@"
   local action='list' line='' num='' apply=0
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --list) action='list' ;;
     --add)
       action='add'
@@ -42,7 +42,7 @@ cm_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

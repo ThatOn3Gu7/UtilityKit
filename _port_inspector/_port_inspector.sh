@@ -47,13 +47,13 @@ pi_extract_pid() {
 pi_main() {
   uk_banner "port-inspector" "Find which process owns a local TCP port" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --kill) PI_KILL=1 ;;
     -h | --help)
       pi_usage
       return 0
       ;;
-    *) PI_PORT="$1" ;;
+    *) PI_PORT="${1:-}" ;;
     esac
     shift
   done

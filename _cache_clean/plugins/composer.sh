@@ -44,5 +44,5 @@ composer_scan_cache() {
   done
 }
 composer_clean_orphans() {
-  cc_clean_orphans_from_file "$1"
+  cc_clean_orphans_from_file "${1:-}"
 }

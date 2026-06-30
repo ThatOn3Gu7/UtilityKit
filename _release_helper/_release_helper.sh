@@ -6,7 +6,7 @@ rel_main() {
   uk_banner "release-helper" "Git status, recent log, optional tag creation" "" "$@"
   local repo='.' tag='' apply=0
   while [[ $# -gt 0 ]]; do
-    case "$1" in --repo)
+    case "${1:-}" in --repo)
       shift
       repo="${1:-.}"
       ;;

@@ -156,7 +156,7 @@ EOF
 }
 # Colored + symbol-prefixed label for a change kind
 kind_label() {
-  case "$1" in
+  case "${1:-}" in
   CREATE) printf "${AC_BOLD}${AC_FG_BRIGHT_GREEN}✚ CREATE ${AC_R}" ;;
   UPDATE) printf "${AC_BOLD}${AC_FG_BRIGHT_CYAN}↻ UPDATE ${AC_R}" ;;
   REPLACE) printf "${AC_BOLD}${AC_FG_BRIGHT_YELLOW}⟳ REPLACE${AC_R}" ;;
@@ -164,14 +164,14 @@ kind_label() {
   MKDIR) printf "${AC_BOLD}${AC_FG_BRIGHT_BLUE}⊕ MKDIR  ${AC_R}" ;;
   SYMLINK) printf "${AC_BOLD}${AC_FG_BRIGHT_MAGENTA}⇢ SYMLINK${AC_R}" ;;
   CHMOD) printf "${AC_DIM}⌀ CHMOD  ${AC_R}" ;;
-  *) printf "${AC_DIM}%-9s${AC_R}" "$1" ;;
+  *) printf "${AC_DIM}%-9s${AC_R}" "${1:-}" ;;
   esac
 }
 abs_path() {
   if command -v realpath >/dev/null 2>&1; then
-    realpath "$1"
+    realpath "${1:-}"
   else
-    (cd "$(dirname "$1")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$1")")
+    (cd "$(dirname "${1:-}")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "${1:-}")")
   fi
 }
 # Non-fatal Graceful Concurrency Locking
@@ -180,7 +180,7 @@ acquire_lock() {
 
   local target_hash temp_base
   temp_base="$(get_temp_dir)"
-  target_hash=$(printf '%s' "$TARGET_DIR" | md5sum | awk '{print $1}' 2>/dev/null || echo "default")
+  target_hash=$(printf '%s' "$TARGET_DIR" | md5sum | awk '{print ${1:-}}' 2>/dev/null || echo "default")
   LOCK_DIR="$temp_base/.apply_sync_lock_${UID:-0}_${target_hash}"
 
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -216,22 +216,22 @@ release_lock() {
 }
 # Pre-flight Disk Space Safety Guard
 check_disk_space() {
-  local dst="$1" backup_dir="$2" src="$3"
+  local dst="${1:-}" backup_dir="${2:-}" src="${3:-}"
   info "Performing pre-flight disk space safety check..."
 
   local src_size_kb avail_dst_kb avail_bak_kb req_bak_kb req_dst_kb
-  src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}' || echo 0)
+  src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print ${1:-}}' || echo 0)
 
   local target_size_kb
-  target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print $1}' || echo 0)
+  target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print ${1:-}}' || echo 0)
 
   # Buffer: 1x target size + 20MB safety margin for backup archive
   req_bak_kb=$((target_size_kb + 20480))
   # Buffer: source changed size + 20MB safety margin for target copying
   req_dst_kb=$((src_size_kb + 20480))
 
-  avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
-  avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
+  avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print ${4:-}}' || echo 999999999)
+  avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print ${4:-}}' || echo 999999999)
 
   if [[ "$avail_bak_kb" =~ ^[0-9]+$ && "$avail_bak_kb" -lt "$req_bak_kb" ]]; then
     warn "Low available disk space on backup partition '$backup_dir'!"
@@ -249,7 +249,7 @@ check_disk_space() {
 }
 # Pre-flight Writable Permissions Safety Guard
 check_target_writable() {
-  local dst="$1"
+  local dst="${1:-}"
   if [[ ! -w "$dst" ]]; then
     warn "Target root directory '$dst' is not writable by the current user (${USER:-$UID})."
     warn "Synchronization may encounter permission denied errors during execution."
@@ -297,32 +297,32 @@ should_exclude_rel() {
   return 1
 }
 add_change() {
-  local kind="$1" rel="$2"
+  local kind="${1:-}" rel="${2:-}"
   printf '%s\t%s\n' "$kind" "$rel" >>"$CHANGES_FILE"
   CHANGE_COUNT=$((CHANGE_COUNT + 1))
 }
 path_exists_or_link() {
-  [[ -e "$1" || -L "$1" ]]
+  [[ -e "${1:-}" || -L "${1:-}" ]]
 }
 file_mode() {
-  stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null || true
+  stat -c '%a' "${1:-}" 2>/dev/null || stat -f '%Lp' "${1:-}" 2>/dev/null || true
 }
 modes_differ() {
   local left_mode right_mode
-  left_mode=$(file_mode "$1")
-  right_mode=$(file_mode "$2")
+  left_mode=$(file_mode "${1:-}")
+  right_mode=$(file_mode "${2:-}")
   [[ -n "$left_mode" && -n "$right_mode" && "$left_mode" != "$right_mode" ]]
 }
 # Permissive chmod ensures silent fallback on Android /sdcard, FAT, or SMB shares
 chmod_like_source() {
-  local source_path="$1" target_path="$2" mode
+  local source_path="${1:-}" target_path="${2:-}" mode
   chmod --reference="$source_path" "$target_path" 2>/dev/null && return 0
   mode=$(file_mode "$source_path")
   [[ -n "$mode" ]] || return 0
   chmod "$mode" "$target_path" 2>/dev/null || true
 }
 collect_changes() {
-  local src="$1" dst="$2" mirror="$3"
+  local src="${1:-}" dst="${2:-}" mirror="${3:-}"
   : >"$CHANGES_FILE"
   CHANGE_COUNT=0
 
@@ -476,7 +476,7 @@ print_change_summary() {
   info "Detected ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$CHANGE_COUNT${AC_R} change(s). Summary:"
   while IFS=$'\t' read -r kind cnt; do
     printf '  %s  %s\n' "$(kind_label "$kind")" "$cnt"
-  done < <(awk -F '\t' '{ count[$1]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
+  done < <(awk -F '\t' '{ count[${1:-}]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
   printf '\n'
   info "Change preview (first $MAX_PREVIEW line(s)):"
   while IFS=$'\t' read -r kind rel; do
@@ -489,7 +489,7 @@ print_change_summary() {
   fi
 }
 filtered_git_dirty() {
-  local dst="$1"
+  local dst="${1:-}"
   git -C "$dst" status --porcelain --untracked-files=normal 2>/dev/null | while IFS= read -r line; do
     local path="${line:3}"
     if should_exclude_rel "$path"; then
@@ -499,7 +499,7 @@ filtered_git_dirty() {
   done
 }
 check_git_safety() {
-  local dst="$1"
+  local dst="${1:-}"
   if git -C "$dst" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     local dirty
     dirty=$(filtered_git_dirty "$dst")
@@ -510,7 +510,7 @@ check_git_safety() {
   fi
 }
 create_backup() {
-  local dst="$1" timestamp parent base backup_dir backup_file temp_base
+  local dst="${1:-}" timestamp parent base backup_dir backup_file temp_base
   timestamp=$(date '+%Y%m%d_%H%M%S')
   parent=$(dirname "$dst")
   base=$(basename "$dst")
@@ -536,7 +536,7 @@ create_backup() {
   printf '%s\n' "$backup_file"
 }
 copy_one() {
-  local src="$1" dst="$2" rel="$3" source_path="$src/$rel" target_path="$dst/$rel" target_parent
+  local src="${1:-}" dst="${2:-}" rel="${3:-}" source_path="$src/$rel" target_path="$dst/$rel" target_parent
   target_parent=$(dirname "$target_path")
 
   if [[ -d "$source_path" && ! -L "$source_path" ]]; then
@@ -563,7 +563,7 @@ copy_one() {
   fi
 }
 handle_apply_failure() {
-  local kind="$1" rel="$2"
+  local kind="${1:-}" rel="${2:-}"
   APPLY_IN_PROGRESS=0
   printf "\n" >&2
   warn "${AC_FG_BRIGHT_RED}❌ CRITICAL ERROR: Execution failed while trying to apply '$kind' to '$rel'.${AC_R}"
@@ -604,7 +604,7 @@ execute_rollback() {
   fi
 }
 apply_changes() {
-  local src="$1" dst="$2" line kind rel target_path applied=0
+  local src="${1:-}" dst="${2:-}" line kind rel target_path applied=0
 
   APPLY_IN_PROGRESS=1
   log_action "Beginning active apply of $CHANGE_COUNT changes."
@@ -666,7 +666,7 @@ ac_main() {
 
   POSITIONAL=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --apply) MODE="apply" ;;
     --dry-run) MODE="dry-run" ;;
     --mirror) MIRROR=1 ;;
@@ -677,25 +677,25 @@ ac_main() {
     --exclude)
       shift
       [[ $# -gt 0 ]] || fail "--exclude requires a pattern argument."
-      EXCLUDES+=("$1")
+      EXCLUDES+=("${1:-}")
       ;;
     --exclude=*) EXCLUDES+=("${1#--exclude=}") ;;
     --log-file)
       shift
       [[ $# -gt 0 ]] || fail "--log-file requires a file argument."
-      LOG_FILE="$1"
+      LOG_FILE="${1:-}"
       ;;
     --log-file=*) LOG_FILE="${1#--log-file=}" ;;
     --backup-dir)
       shift
       [[ $# -gt 0 ]] || fail "--backup-dir requires a directory argument."
-      BACKUP_DIR="$1"
+      BACKUP_DIR="${1:-}"
       ;;
     --backup-dir=*) BACKUP_DIR="${1#--backup-dir=}" ;;
     --max-preview)
       shift
       [[ $# -gt 0 ]] || fail "--max-preview requires a number."
-      MAX_PREVIEW="$1"
+      MAX_PREVIEW="${1:-}"
       ;;
     --max-preview=*) MAX_PREVIEW="${1#--max-preview=}" ;;
     -h | --help)
@@ -705,13 +705,13 @@ ac_main() {
     --)
       shift
       while [[ $# -gt 0 ]]; do
-        POSITIONAL+=("$1")
+        POSITIONAL+=("${1:-}")
         shift
       done
       break
       ;;
-    --*) fail "Unknown option: $1" ;;
-    *) POSITIONAL+=("$1") ;;
+    --*) fail "Unknown option: ${1:-}" ;;
+    *) POSITIONAL+=("${1:-}") ;;
     esac
     shift
   done

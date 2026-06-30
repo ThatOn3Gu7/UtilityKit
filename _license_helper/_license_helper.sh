@@ -26,7 +26,7 @@ lic_main() {
   local gen='' name='' detect=0
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --detect) detect=1 ;;
     --generate)
       if [[ $# -gt 1 ]]; then
@@ -47,7 +47,7 @@ lic_main() {
       fi
       ;;
     -h|--help) lic_usage; return 0 ;;
-    *) uk_warn "Unknown option: $1"; return 1 ;;
+    *) uk_warn "Unknown option: ${1:-}"; return 1 ;;
     esac
     shift
   done

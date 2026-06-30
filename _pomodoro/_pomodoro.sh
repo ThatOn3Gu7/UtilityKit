@@ -16,13 +16,13 @@ USAGE
 }
 po_seconds() {
   if [[ "$PO_UNIT" == 'seconds' ]]; then
-    printf '%s\n' "$1"
+    printf '%s\n' "${1:-}"
   else
-    printf '%s\n' $(($1 * 60))
+    printf '%s\n' $((${1:-} * 60))
   fi
 }
 po_timer() {
-  local label="$1" total="$2" remaining="$2" icon='*' title='Session'
+  local label="${1:-}" total="${2:-}" remaining="${2:-}" icon='*' title='Session'
   case "$label" in
   work)
     icon='*'
@@ -102,7 +102,7 @@ po_main() {
   local seen_args=0
   while [[ $# -gt 0 ]]; do
     seen_args=1
-    case "$1" in
+    case "${1:-}" in
     --work)
       shift
       PO_WORK="${1:-25}"
@@ -125,7 +125,7 @@ po_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

@@ -7,7 +7,7 @@ PASS=0
 FAIL=0
 
 run_test() {
-  local name="$1"
+  local name="${1:-}"
   shift
   printf '== %s ==\n' "$name"
   if "$@"; then

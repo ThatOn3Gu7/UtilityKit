@@ -151,7 +151,7 @@ at_main() {
   AT_BODY_FILE=''
   AT_HEADERS=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --save)
       shift
       AT_ACTION='save'
@@ -193,7 +193,7 @@ at_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

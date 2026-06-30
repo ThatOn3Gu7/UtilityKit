@@ -26,7 +26,7 @@ dv_need_crypto() {
 dv_b64_encode() { base64 | tr -d '\n'; }
 dv_b64_decode() { base64 -d 2>/dev/null || base64 -D; }
 dv_encrypt_value() {
-  local value="$1" tmp out
+  local value="${1:-}" tmp out
   tmp=$(mktemp)
   out=$(mktemp)
   printf '%s' "$value" >"$tmp"
@@ -39,7 +39,7 @@ dv_encrypt_value() {
   rm -f "$tmp" "$out"
 }
 dv_decrypt_token() {
-  local token="$1" tmp
+  local token="${1:-}" tmp
   tmp=$(mktemp)
   printf '%s' "$token" | dv_b64_decode >"$tmp"
   gpg --quiet --decrypt "$tmp"
@@ -49,7 +49,7 @@ dv_main() {
   uk_banner "dotenv-vault" "Encrypt .env values to ENC:: tokens with gpg" "" "$@"
   local file='.env' key='' decrypt=0 apply=0 output=''
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --file)
       shift
       file="${1:-.env}"
@@ -69,7 +69,7 @@ dv_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

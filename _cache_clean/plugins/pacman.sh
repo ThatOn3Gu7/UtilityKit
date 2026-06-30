@@ -39,5 +39,5 @@ pacman_scan_cache() {
   done
 }
 pacman_clean_orphans() {
-  cc_clean_orphans_from_file "$1"
+  cc_clean_orphans_from_file "${1:-}"
 }

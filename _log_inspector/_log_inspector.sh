@@ -26,7 +26,7 @@ li_main() {
   local file='' pattern='error|warn|fail|exception'
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --pattern)
       if [[ $# -gt 1 ]]; then
         shift
@@ -41,11 +41,11 @@ li_main() {
       return 0
       ;;
     -*)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       li_usage
       return 1
       ;;
-    *) file="$1" ;;
+    *) file="${1:-}" ;;
     esac
     shift
   done

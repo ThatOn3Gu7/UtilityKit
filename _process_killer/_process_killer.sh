@@ -16,8 +16,8 @@ pk_memory_summary() {
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if uk_has_cmd free; then
     local total used swap_total swap_used
-    read -r _ total used _ < <(free -m | awk '/^Mem:/ {print $1, $2, $3, $4}')
-    read -r _ swap_total swap_used _ < <(free -m | awk '/^Swap:/ {print $1, $2, $3, $4}')
+    read -r _ total used _ < <(free -m | awk '/^Mem:/ {print ${1:-}, ${2:-}, ${3:-}, ${4:-}}')
+    read -r _ swap_total swap_used _ < <(free -m | awk '/^Swap:/ {print ${1:-}, ${2:-}, ${3:-}, ${4:-}}')
     printf '  %sRAM %s   %s%s MB%s / %s MB  %s\n' \
       "$UK_C_BOLD" "$UK_C_RESET" \
       "$UK_C_GREEN" "$used" "$UK_C_RESET" "$total" \
@@ -36,10 +36,10 @@ pk_top() {
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 |
     awk 'NR==1 {
-      printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", $1, $2, $3, $4, $5
+      printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", ${1:-}, ${2:-}, ${3:-}, ${4:-}, ${5:-}
       next
     }
-    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }' ||
+    { printf "  %-8s %-12s %-6s %-6s %s\n", ${1:-}, ${2:-}, ${3:-}, ${4:-}, ${5:-} }' ||
     ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 | sed 's/^/  /'
 }
 
@@ -65,7 +65,7 @@ pk_kill() {
 pk_main() {
   uk_banner "process-killer" "RAM/swap overview, top consumers, optional signal send" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --pid)
       shift
       PK_PID="${1:-}"
@@ -79,7 +79,7 @@ pk_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

@@ -18,7 +18,7 @@ Usage:
 USAGE
 }
 setup_expand_path() {
-  local input="$1"
+  local input="${1:-}"
   if [[ "$input" == ~* ]]; then
     printf '%s\n' "${input/#\~/$HOME}"
   else
@@ -26,7 +26,7 @@ setup_expand_path() {
   fi
 }
 while [[ $# -gt 0 ]]; do
-  case "$1" in
+  case "${1:-}" in
   --no-menu) INTERACTIVE=0 ;;
   --launcher-name)
     shift
@@ -46,7 +46,7 @@ while [[ $# -gt 0 ]]; do
     exit 0
     ;;
   *)
-    printf '%sUnknown option: %s%s\n' "$UK_C_RED" "$1" "$UK_C_RESET" >&2
+    printf '%sUnknown option: %s%s\n' "$UK_C_RED" "${1:-}" "$UK_C_RESET" >&2
     exit 1
     ;;
   esac

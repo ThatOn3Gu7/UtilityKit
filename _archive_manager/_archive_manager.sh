@@ -11,9 +11,9 @@ Usage:
 USAGE
 }
 am_check_archive_paths() {
-  local archive="$1" entries
+  local archive="${1:-}" entries
   case "$archive" in
-  *.zip) entries="$(unzip -Z1 "$archive" 2>/dev/null || unzip -l "$archive" 2>/dev/null | awk 'NR>3{print $4}')" ;;
+  *.zip) entries="$(unzip -Z1 "$archive" 2>/dev/null || unzip -l "$archive" 2>/dev/null | awk 'NR>3{print ${4:-}}')" ;;
   *) entries="$(tar -tf "$archive")" ;;
   esac
   printf '%s\n' "$entries" | awk 'length($0) && ($0 ~ /^\// || $0 ~ /^\.\.\// || $0 ~ /\.\.\//) {print; bad=1} END{exit bad?1:0}'
@@ -22,7 +22,7 @@ am_main() {
   uk_banner "archive-manager" "List, extract, and create tar.gz / zip archives safely" "" "$@"
   local action='' archive='' dest='.' out='' paths=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --list)
       action=list
       shift
@@ -46,7 +46,7 @@ am_main() {
       am_usage
       return 0
       ;;
-    *) paths+=("$1") ;;
+    *) paths+=("${1:-}") ;;
     esac
     shift
   done

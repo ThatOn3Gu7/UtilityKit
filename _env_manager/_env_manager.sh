@@ -29,13 +29,13 @@ if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n"
 if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "Warning: %s\n" "$*"; }; fi
 if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "Note: %s\n" "$*"; }; fi
 if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success: %s\n" "$*"; }; fi
-if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
+if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 if ! declare -f uk_prompt >/dev/null 2>&1; then
   uk_prompt() {
-    printf "%s\n%s\n[Default: %s] > " "$1" "$4" "$2" >&2
+    printf "%s\n%s\n[Default: %s] > " "${1:-}" "${4:-}" "${2:-}" >&2
     local ans
     read -r ans </dev/tty
-    echo "${ans:-$2}"
+    echo "${ans:-${2:-}}"
   }
 fi
 em_usage() {
@@ -250,7 +250,7 @@ em_main() {
   local positional=()
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --dir)
       shift
       EM_DIR="${1:-}"
@@ -266,7 +266,7 @@ em_main() {
         EM_VALIDATE='DEFAULT'
       else
         shift
-        EM_VALIDATE="$1"
+        EM_VALIDATE="${1:-}"
       fi
       ;;
     --encrypt)
@@ -292,12 +292,12 @@ em_main() {
     --)
       shift
       while [[ $# -gt 0 ]]; do
-        positional+=("$1")
+        positional+=("${1:-}")
         shift
       done
       break
       ;;
-    *) positional+=("$1") ;;
+    *) positional+=("${1:-}") ;;
     esac
     shift || true
   done

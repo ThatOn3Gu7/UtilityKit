@@ -28,7 +28,7 @@ lc_main() {
   local http=0 timeout=8 files=()
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --http) http=1 ;;
     --timeout)
       shift
@@ -39,11 +39,11 @@ lc_main() {
       return 0
       ;;
     -*)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       lc_usage
       return 1
       ;;
-    *) files+=("$1") ;;
+    *) files+=("${1:-}") ;;
     esac
     shift
   done

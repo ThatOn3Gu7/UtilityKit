@@ -5,27 +5,27 @@ PASS=0
 FAIL=0
 
 pass() {
-  printf 'PASS %s\n' "$1"
+  printf 'PASS %s\n' "${1:-}"
   PASS=$((PASS + 1))
 }
 fail() {
-  printf 'FAIL %s\n' "$1"
+  printf 'FAIL %s\n' "${1:-}"
   FAIL=$((FAIL + 1))
 }
 run_test() {
-  local name="$1"
+  local name="${1:-}"
   shift
   if "$@"; then pass "$name"; else fail "$name"; fi
 }
 all_sh_files() { (cd "$ROOT" && rg --files -g '*.sh' | sort); }
 t_syntax() {
-  (cd "$ROOT" && bash -n $(all_sh_files)) >/tmp/uk_deep_syntax.out 2>&1
+  (cd "$ROOT" && bash -n $(all_sh_files)) >uk_deep_syntax.out 2>&1
 }
 t_source_safety() {
   local f
   while IFS= read -r f; do
     case "$f" in tests/* | setup.sh | main.sh | lib/uk_common.sh | _cache_clean/plugins/*) continue ;; esac
-    (cd "$ROOT" && bash -c 'source lib/uk_common.sh; C_RESET="sentinel-reset"; C_GREEN="sentinel-green"; UK_C_RESET="sentinel-uk"; source "$1" >/dev/null; [[ "$C_RESET" == "sentinel-reset" && "$C_GREEN" == "sentinel-green" && "$UK_C_RESET" == "sentinel-uk" ]]' _ "$f") || return 1
+    (cd "$ROOT" && bash -c 'source lib/uk_common.sh; C_RESET="sentinel-reset"; C_GREEN="sentinel-green"; UK_C_RESET="sentinel-uk"; source "${1:-}" >/dev/null; [[ "$C_RESET" == "sentinel-reset" && "$C_GREEN" == "sentinel-green" && "$UK_C_RESET" == "sentinel-uk" ]]' _ "$f") || return 1
   done < <(all_sh_files)
 }
 t_password_entropy() {
@@ -79,7 +79,7 @@ t_stat_fallback() {
   local tmp out
   tmp="$(mktemp)" || return 1
   printf 'abcde' >"$tmp"
-  out="$(cd "$ROOT" && bash -c 'source _cache_clean/_cache_clean.sh; stat(){ return 1; }; cc_file_size "$1"' _ "$tmp")" || {
+  out="$(cd "$ROOT" && bash -c 'source _cache_clean/_cache_clean.sh; stat(){ return 1; }; cc_file_size "${1:-}"' _ "$tmp")" || {
     rm -f "$tmp"
     return 1
   }
@@ -106,21 +106,21 @@ with tarfile.open('$arc','w') as t:
     info.size=len(data)
     t.addfile(info, io.BytesIO(data))
 PY
-  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _archive_manager/_archive_manager.sh; am_main --extract "$1" --dest "$2"' _ "$arc" "$dest" 2>&1)"
+  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _archive_manager/_archive_manager.sh; am_main --extract "${1:-}" --dest "${2:-}"' _ "$arc" "$dest" 2>&1)"
   rc=$?
   rm -rf "$tmp"
   [[ $rc -ne 0 ]] && grep -q 'unsafe paths' <<<"$out"
 }
 t_cron_validation() {
   local out rc
-  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _cron_manager/_cron_manager.sh; crontab(){ if [[ "$1" == "-l" ]]; then return 1; fi; cat >/dev/null; }; cm_main --add "not a cron"' 2>&1)"
+  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _cron_manager/_cron_manager.sh; crontab(){ if [[ "${1:-}" == "-l" ]]; then return 1; fi; cat >/dev/null; }; cm_main --add "not a cron"' 2>&1)"
   rc=$?
   [[ $rc -ne 0 ]] && grep -q 'Expected five cron fields' <<<"$out"
 }
 t_duplicate_empty() {
   local tmp out rc
   tmp="$(mktemp -d)" || return 1
-  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _duplicate_finder/_duplicate_finder.sh; df_main "$1"' _ "$tmp" 2>&1)"
+  out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source _duplicate_finder/_duplicate_finder.sh; df_main "${1:-}"' _ "$tmp" 2>&1)"
   rc=$?
   rm -rf "$tmp"
   [[ $rc -eq 0 ]] && grep -qi 'No exact duplicates found' <<<"$out"

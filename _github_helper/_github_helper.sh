@@ -31,7 +31,7 @@ ghh_main() {
 
   # Argument Parsing
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --status) action='status' ;;
     --prs) action='prs' ;;
     --issues) action='issues' ;;
@@ -41,7 +41,7 @@ ghh_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       ghh_usage
       return 1
       ;;

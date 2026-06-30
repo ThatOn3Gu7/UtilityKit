@@ -55,7 +55,7 @@ uk_setup_visuals() {
 
 uk_setup_visuals
 
-uk_has_cmd() { command -v "$1" >/dev/null 2>&1; }
+uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
 uk_is_interactive() { [[ -t 0 && -t 1 ]]; }
 uk_platform() {
   if [[ -n "${TERMUX_VERSION:-}" ]]; then
@@ -70,16 +70,16 @@ uk_now() { date '+%Y-%m-%d %H:%M:%S'; }
 uk_stamp() { date '+%Y%m%d_%H%M%S'; }
 uk_abs_path() {
   if uk_has_cmd realpath; then
-    realpath "$1"
+    realpath "${1:-}"
   elif uk_has_cmd python3; then
-    python3 - "$1" <<'PY'
+    python3 - "${1:-}" <<'PY'
 import os,sys
 print(os.path.abspath(sys.argv[1]))
 PY
   else
-    case "$1" in
-    /*) printf '%s\n' "$1" ;;
-    *) printf '%s/%s\n' "$PWD" "$1" ;;
+    case "${1:-}" in
+    /*) printf '%s\n' "${1:-}" ;;
+    *) printf '%s/%s\n' "$PWD" "${1:-}" ;;
     esac
   fi
 }
@@ -103,7 +103,7 @@ uk_die() {
   return 1
 }
 uk_confirm() {
-  local prompt="$1" default="${2:-N}" reply=''
+  local prompt="${1:-}" default="${2:-N}" reply=''
   if ! uk_is_interactive; then
     [[ "$default" =~ ^[Yy]$ ]] && return 0 || return 1
   fi
@@ -128,7 +128,7 @@ uk_confirm() {
   [[ "$reply" =~ ^[Yy] ]]
 }
 uk_prompt() {
-  local label="$1"
+  local label="${1:-}"
   local default="${2:-}"
   local example="${3:-}"
   local note="${4:-}"
@@ -151,11 +151,11 @@ uk_prompt() {
   printf '%s\n' "${reply:-$default}"
 }
 uk_section_title() {
-  local title="$1"
+  local title="${1:-}"
   printf '\n%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$title" "$UK_C_RESET"
 }
 uk_print_list_or_none() {
-  local label="$1"
+  local label="${1:-}"
   shift || true
   uk_note "$label"
   if [[ $# -eq 0 ]]; then
@@ -168,11 +168,11 @@ uk_print_list_or_none() {
   done
 }
 uk_repeat() {
-  local char="$1" count="$2"
+  local char="${1:-}" count="${2:-}"
   printf '%*s' "$count" '' | tr ' ' "$char"
 }
 uk_bar() {
-  local value="$1" total="$2" width="${3:-24}"
+  local value="${1:-}" total="${2:-}" width="${3:-24}"
   local fill=0 empty=0
   if [[ "$total" -le 0 ]]; then
     fill=0
@@ -184,7 +184,7 @@ uk_bar() {
   printf '%s%s%s%s%s' "$UK_C_GREEN" "$(printf '%*s' "$fill" '' | tr ' ' '#')" "$UK_C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$UK_C_RESET"
 }
 uk_header() {
-  local title="$1" subtitle="${2:-}"
+  local title="${1:-}" subtitle="${2:-}"
   printf '\n%s%s%s\n' "$UK_C_BRIGHT_CYAN$UK_C_BOLD" "$title" "$UK_C_RESET"
   [[ -n "$subtitle" ]] && printf '%s%s%s\n' "$UK_C_DIM" "$subtitle" "$UK_C_RESET"
   printf '%s\n' "$(printf '%*s' 72 '' | tr ' ' '-')"
@@ -200,7 +200,7 @@ uk_pick_clipboard_cmd() {
   return 1
 }
 uk_copy_to_clipboard() {
-  local text="$1" cmd
+  local text="${1:-}" cmd
   cmd="$(uk_pick_clipboard_cmd 2>/dev/null || true)"
   [[ -n "$cmd" ]] || return 1
   case "$cmd" in
@@ -209,15 +209,15 @@ uk_copy_to_clipboard() {
   esac
 }
 uk_slugify() {
-  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr ' /' '--' | tr -cd 'a-z0-9._-'
+  printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | tr ' /' '--' | tr -cd 'a-z0-9._-'
 }
 uk_visible_len() {
   local s
-  s="$(printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')"
+  s="$(printf '%s' "${1:-}" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')"
   printf '%s' "${#s}"
 }
 uk_banner() {
-  local name="$1" tagline="$2" icon="${3:-}"
+  local name="${1:-}" tagline="${2:-}" icon="${3:-}"
   shift 3 2>/dev/null || true
 
   [[ -n "${UK_BANNER_PRINTED:-}" ]] && return 0

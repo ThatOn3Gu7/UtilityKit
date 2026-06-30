@@ -12,7 +12,7 @@ sw_dir() {
   printf '%s\n' "$d"
 }
 sw_check() {
-  local url="$1" expect="$2" out code time ok=1
+  local url="${1:-}" expect="${2:-}" out code time ok=1
   uk_has_cmd curl || {
     uk_error 'curl is required.'
     return 1
@@ -32,7 +32,7 @@ sw_main() {
   uk_banner "service-watcher" "HTTP endpoint status and response-time checks" "" "$@"
   local expect='2xx,3xx' interval=0 save='' profile='' urls=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in --expect)
+    case "${1:-}" in --expect)
       shift
       expect="${1:-$expect}"
       ;;
@@ -52,7 +52,7 @@ sw_main() {
       sw_usage
       return 0
       ;;
-    *) urls+=("$1") ;; esac
+    *) urls+=("${1:-}") ;; esac
     shift
   done
   if [[ -n "$profile" ]]; then

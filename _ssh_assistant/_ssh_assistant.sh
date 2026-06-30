@@ -20,7 +20,7 @@ sa_hosts() {
 }
 
 sa_maybe_explain_host_auth() {
-  local host="$1" code="$2"
+  local host="${1:-}" code="${2:-}"
   case "$host" in
   *gitlab* | *github* | *bitbucket*)
     if [[ "$code" -ne 0 ]]; then
@@ -32,7 +32,7 @@ sa_maybe_explain_host_auth() {
 }
 
 sa_run_ssh() {
-  local host="$1" code=0
+  local host="${1:-}" code=0
   ssh "$host" || code=$?
   sa_maybe_explain_host_auth "$host" "$code"
   return 0
@@ -40,7 +40,7 @@ sa_run_ssh() {
 
 # ----- Add new host -------------------------------------------------
 sa_add_host() {
-  local hostname="$1"
+  local hostname="${1:-}"
   local config_dir
   config_dir="$(dirname "$SA_CONFIG")"
   mkdir -p "$config_dir"
@@ -118,7 +118,7 @@ sa_add_host() {
 sa_main() {
   uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --connect)
       shift
       SA_CONNECT="${1:-}"
@@ -140,7 +140,7 @@ sa_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac
@@ -254,7 +254,7 @@ sa_hosts() {
   awk '/^Host[[:space:]]+/ {for (i=2; i<=NF; i++) if ($i !~ /[*?]/) print $i}' "$SA_CONFIG" | sort -u
 }
 sa_maybe_explain_host_auth() {
-  local host="$1" code="$2"
+  local host="${1:-}" code="${2:-}"
   case "$host" in
   *gitlab* | *github* | *bitbucket*)
     if [[ "$code" -ne 0 ]]; then
@@ -265,7 +265,7 @@ sa_maybe_explain_host_auth() {
   esac
 }
 sa_run_ssh() {
-  local host="$1" code=0
+  local host="${1:-}" code=0
   ssh "$host" || code=$?
   sa_maybe_explain_host_auth "$host" "$code"
   return 0
@@ -273,7 +273,7 @@ sa_run_ssh() {
 sa_main() {
   uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" "" "$@"
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --connect)
       shift
       SA_CONNECT="${1:-}"
@@ -291,7 +291,7 @@ sa_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac

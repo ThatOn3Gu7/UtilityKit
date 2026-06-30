@@ -75,7 +75,7 @@ sm_main() {
 
   local positional=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --apply) SM_MODE="apply" ;;
     --backup-dir)
       shift
@@ -83,7 +83,7 @@ sm_main() {
         printf "%s%s --backup-dir requires a directory argument.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
         return 1
       }
-      SM_BACKUP_DIR="$1"
+      SM_BACKUP_DIR="${1:-}"
       ;;
     --backup-dir=*) SM_BACKUP_DIR="${1#--backup-dir=}" ;;
     -y | --yes) SM_YES=1 ;;
@@ -94,16 +94,16 @@ sm_main() {
     --)
       shift
       while [[ $# -gt 0 ]]; do
-        positional+=("$1")
+        positional+=("${1:-}")
         shift
       done
       break
       ;;
     --*)
-      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "$1" "$C_RESET" >&2
+      printf "%s%s Unknown option: %s%s\n" "$C_RED" "$I_ERROR" "${1:-}" "$C_RESET" >&2
       return 1
       ;;
-    *) positional+=("$1") ;;
+    *) positional+=("${1:-}") ;;
     esac
     shift
   done

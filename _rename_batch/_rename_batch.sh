@@ -227,8 +227,8 @@ init_icons() {
 }
 #  4.  HELPER FUNCTIONS
 colorize() {
-  local color="$1"
-  local text="$2"
+  local color="${1:-}"
+  local text="${2:-}"
   if [[ "$RB_CAP_USE_COLOR" == true ]]; then
     printf "%s%s%s" "$color" "$text" "$RB_C_RESET"
   else
@@ -242,12 +242,12 @@ msg_warning() { printf "  %s  %s\n" "$(colorize "$RB_C_YELLOW" "$RB_I_WARNING")"
 msg_working() { printf "  %s %s\n" "$(colorize "$RB_C_CYAN" "$RB_I_WORKING")" "$*"; }
 msg_arrow() { printf "  %s   %s\n" "$(colorize "$RB_C_BLUE_BRIGHT" "$RB_I_ARROW")" "$*"; }
 box_line() {
-  local content="$1"
-  local width="$2"
+  local content="${1:-}"
+  local width="${2:-}"
   printf "  %s %-*s %s\n" "$RB_I_BOX_V" "$width" "$content" "$RB_I_BOX_V"
 }
 format_size() {
-  local size="$1"
+  local size="${1:-}"
   if ((size >= 1073741824)); then
     awk "BEGIN { printf \"%.1f GB\", $size/1073741824 }"
   elif ((size >= 1048576)); then
@@ -259,7 +259,7 @@ format_size() {
   fi
 }
 format_duration() {
-  local seconds=$1
+  local seconds=${1:-}
   local mins=$((seconds / 60))
   local secs=$((seconds % 60))
   if ((mins > 0)); then
@@ -270,9 +270,9 @@ format_duration() {
 }
 #  5.  PROGRESS BAR  (single-line, in-place, no cursor tricks)
 draw_progress() {
-  local current="$1"
-  local total="$2"
-  local label="$3"
+  local current="${1:-}"
+  local total="${2:-}"
+  local label="${3:-}"
 
   ((total == 0)) && return
 
@@ -336,7 +336,7 @@ draw_progress() {
 }
 #  6.  FILENAME COMPUTATION & EXTENSION NORMALISATION
 normalize_extension() {
-  local ext="$1"
+  local ext="${1:-}"
   ext="${ext#.}"
   printf "%s" "$ext"
 }
@@ -344,7 +344,7 @@ is_excluded_file() {
   # If the user forced the operation, nothing is excluded
   [[ "$OPT_ALLOW_EXCLUDED" == true ]] && return 1
 
-  local filepath="$1"
+  local filepath="${1:-}"
   local base_name
   base_name="${filepath##*/}"
 
@@ -372,9 +372,9 @@ is_excluded_file() {
   return 1 # 1 means "False/No Match"
 }
 compute_new_name() {
-  local filepath="$1"
-  local new_ext="$2"
-  local output_dir="$3"
+  local filepath="${1:-}"
+  local new_ext="${2:-}"
+  local output_dir="${3:-}"
   local basename
   basename="${filepath##*/}"
 
@@ -406,10 +406,10 @@ compute_new_name() {
   printf "%s\n" "$dest"
 }
 compute_copy_destination() {
-  local filepath="$1"
-  local new_ext="$2"
-  local source_dir="$3"
-  local output_dir="$4"
+  local filepath="${1:-}"
+  local new_ext="${2:-}"
+  local source_dir="${3:-}"
+  local output_dir="${4:-}"
   local rel_path rel_dir target_dir
 
   rel_path="${filepath#"$source_dir"/}"
@@ -423,8 +423,8 @@ compute_copy_destination() {
   compute_new_name "$filepath" "$new_ext" "$target_dir"
 }
 already_has_extension() {
-  local filepath="$1"
-  local new_ext="$2"
+  local filepath="${1:-}"
+  local new_ext="${2:-}"
   local basename
   basename="${filepath##*/}"
 
@@ -495,12 +495,12 @@ show_version() {
 }
 #  8.  MAIN
 rb_file_size() {
-  local path="$1"
+  local path="${1:-}"
   stat -c '%s' -- "$path" 2>/dev/null || stat -f '%z' -- "$path" 2>/dev/null || wc -c <"$path"
 }
 
 rb_scan_files() {
-  local source_dir="$1" filepath file_size
+  local source_dir="${1:-}" filepath file_size
   if find "$source_dir" -type f -printf '' >/dev/null 2>&1; then
     find "$source_dir" -type f ! -path '*/\.*' -printf '%p\t%s\0' 2>/dev/null | sort -z
   else
@@ -518,7 +518,7 @@ rb_main() {
   # 1. Parse incoming script flags and parameters
   local positional_args=()
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     -h | --help)
       show_help
       exit 0
@@ -532,7 +532,7 @@ rb_main() {
       shift
       ;;
     *)
-      positional_args+=("$1")
+      positional_args+=("${1:-}")
       shift
       ;;
     esac

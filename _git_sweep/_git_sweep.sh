@@ -26,7 +26,7 @@ UK_I_DOT=${UK_I_DOT:-'•'}
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*"; }; fi
 if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "Note: %s\n" "$*"; }; fi
 if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success: %s\n" "$*"; }; fi
-if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "$1" "$2"; }; fi
+if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 if ! declare -f uk_abs_path >/dev/null 2>&1; then
   uk_abs_path() {
     if command -v realpath >/dev/null; then
@@ -232,7 +232,7 @@ gs_main() {
   local base
 
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
     --repo)
       if [[ $# -gt 1 ]]; then
         shift
@@ -254,7 +254,7 @@ gs_main() {
       return 0
       ;;
     *)
-      uk_error "Unknown option: $1"
+      uk_error "Unknown option: ${1:-}"
       return 1
       ;;
     esac
