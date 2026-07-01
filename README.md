@@ -7,6 +7,7 @@
 ██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║
 ╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║
  ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝
+                                                   > C0ded by: ThatOn3Gu7
 ```
 
 **A modular Bash toolbox for Linux, macOS, and Termux — 48 tools, one dashboard.**
@@ -183,7 +184,7 @@ UtilityKit Master Suite — Tool 1 of 49
 
   ➔  ↻ Apply Changes      (Robust Directory Synchronization)
      ✎ Batch Rename       (Recursive File Renaming & Copying)
-     🗑 Cache Cleaner      (Intelligent System Cache Cleanup)
+     🗑 Cache Cleaner     (Intelligent System Cache Cleanup)
      ► Symlink Manager    (Dotfiles & System Config Management)
      ◆ Disk Analyzer      (Storage Inspection & Quick Archiving)
      ◎ Env Manager        (compare, validate, switch .env profiles)
@@ -191,8 +192,8 @@ UtilityKit Master Suite — Tool 1 of 49
      ▣ Project Scaffold   (generate starter projects from templates)
      ▼  (scroll down for more tools)
 
-  ▲/▼ or j/k : Scroll Tools         [Enter] : Execute selected
-                                    [q]     : Exit UtilityKit
+ Use ▲/▼ or j/k : Scroll Tools         [Enter] : Execute selected
+                                       [q]     : Exit UtilityKit
 ```
 
 All 48 tools live in a single unified scroll list — no nested "More tools"
