@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Added (Update Managers)
+- New tool `_update_managers` (command `update`, aliases `update-managers`,
+  `upgrade`): detects and updates 60+ system/app/language/toolchain package
+  managers from one place, with a live per-sub-command spinner, extracted
+  failure reasons, and isolated failures (one manager failing never aborts the
+  batch). Registered in the hub and shown on the dashboard.
+
+### Added (Registry & Doctor)
+- Introduced `UK_REGISTRY`, a single source of truth describing every tool. The
+  `UK_TOOL_PATHS` loader map and the dashboard menu arrays are now derived from
+  it, so they can no longer drift out of sync.
+- New `doctor` command (`./main.sh doctor`, alias `diagnostics`) that validates
+  the registry against the files on disk, the `run_tool` dispatch cases, menu
+  array alignment, orphan directories, and each tool's `--help`. Exits nonzero on
+  any hard problem, so it is CI-friendly. Two new checks were added to
+  `tests/smoke_test.sh` (Update Managers smoke + doctor integrity).
+
+### Removed (Cleanup)
+- Removed all references to the deleted tools `_log_rotator`, `_zen_mode`,
+  `_clipboard_manager`, and `_regex_lab`, plus the never-routed `logs` command,
+  from `main.sh`, the tests, `README.md`, `docs/ROADMAP_STATUS.md`, and
+  `docs/index.html`. Tool counts were corrected to 48. (Clipboard *helper*
+  functions used by `_password_gen` and `lib/uk_common.sh` were kept.)
+
 ### Changed (Dashboard)
 - Replaced the paged "More tools" navigation with a single unified scroll list
   driven by `▲`/`▼` arrow keys (or Vim `j`/`k`). 8 tools are visible at a time

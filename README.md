@@ -9,7 +9,7 @@
  ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝
 ```
 
-**A modular Bash toolbox for Linux, macOS, and Termux — 51 tools, one dashboard.**
+**A modular Bash toolbox for Linux, macOS, and Termux — 48 tools, one dashboard.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg?style=flat-square)](LICENSE)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
@@ -138,7 +138,6 @@ Each plugin follows a five-function contract (`*_plugin_info`, `*_detect`, `*_ge
 | `_markdown_toc` | `toc` | Insert or refresh TOC using `<!-- utilitykit:toc:start/end -->` markers. Relative link validation. Pipe-table column alignment via Python. |
 | `_pomodoro` | `pomodoro` | Work/break cycle timer with a live progress bar, session log at `~/.local/state/utilitykit/pomodoro.log`, and Termux vibration support. |
 | `_cheat_sheet` | `cheat` | Personal markdown snippet store with tagging, search, and a persistent interactive loop. Files at `~/.local/share/utilitykit/cheat_sheets/`. |
-| `_zen_mode` | `zen` | Full-screen terminal screensavers: matrix rain, Conway's Game of Life (Python), and ASCII wave animation. CLI-only; hidden from the dashboard menu. |
 
 ---
 
@@ -153,7 +152,6 @@ Each plugin follows a five-function contract (`*_plugin_info`, `*_detect`, `*_ge
 | `_service_watcher` | `service` | HTTP endpoint status and response-time checks. Saved URL profiles, looping interval mode, bell on failure. |
 | `_git_stats` | `git-stats` | Commit counts by author, most-changed files, branch activity sorted by committer date. `--since`/`--until`/`--author` filters. |
 | `_backup_sync` | `backup` | Dry-run-first backup wrapper around `rsync` (with `--delete` support) or `cp`/`find` fallback. Configurable excludes. |
-| `_clipboard_manager` | `clipboard` | Session/manual clipboard history helper using `wl-copy`/`xclip`/`pbcopy`/`termux-clipboard-set`. |
 | `_weather` | `weather` | Fetches current weather from `wttr.in`. Caches last result for offline fallback. Metric/imperial toggle. |
 | `_json_explorer` | `json` | Python-backed JSON pretty-print, dot-path extraction, key listing, and structure summary. Reads stdin or file. |
 | `_tmux_session` | `tmux` | Friendly wrapper for `tmux` list/new/attach/kill. Clear install hint for Termux. |
@@ -171,8 +169,8 @@ Each plugin follows a five-function contract (`*_plugin_info`, `*_detect`, `*_ge
 | `_battery_doctor` | `battery` | Battery status via `termux-battery-status` → `pmset` → `acpi`. Top CPU/memory process list. |
 | `_release_helper` | `release` | Git status, recent commit log, optional tag creation with `--apply` guard. |
 | `_license_helper` | `license` | Detects `LICENSE*`/`COPYING*` in current directory. Generates MIT or Apache 2.0 text. |
-| `_regex_lab` | `regex` | `grep -En` with color against inline text or a file. |
 | `_todo_manager` | `todo` | Plain-text TSV task tracker with tags, `--done` by line number, and `--search`. |
+| `_update_managers` | `update` | Detect and update 60+ package managers (apt, brew, npm, pip, cargo, winget, …) with a live per-command spinner and extracted failure reasons. Aliases: `update-managers`, `upgrade`. |
 
 ---
 
@@ -197,7 +195,7 @@ UtilityKit Master Suite — Tool 1 of 49
                                     [q]     : Exit UtilityKit
 ```
 
-All 49 tools live in a single unified scroll list — no nested "More tools"
+All 48 tools live in a single unified scroll list — no nested "More tools"
 pages. Highlights:
 
 - **Arrow keys** (`▲`/`▼`) or **Vim keys** (`k`/`j`) move the selection.
@@ -294,10 +292,22 @@ bash tests/smoke_test.sh
 The suite covers:
 
 - **Syntax check** — `bash -n` across every `.sh` file in the repository
-- **Help/routing** — `main.sh help`, `setup.sh --help`, and `main.sh <cmd> --help` for all 45+ routed commands
+- **Help/routing** — `main.sh help`, `setup.sh --help`, and `main.sh <cmd> --help` for all routed commands
 - **Core tool smoke** — apply changes mirror mode, rename copy mode, move with excludes, symlink backup/create, disk scan, cache cleaner entrypoint
-- **Roadmap tool smoke** — env compare/validate, git sweep branch detection, scaffold generation, duplicate deletion, log rotation, process kill, port inspect, API test, password gen, SSH config parse, shredder, media convert help, markdown TOC insertion, pomodoro short-duration, cheat sheet add/search, zen mode waves
-- **New utility smoke** — JSON path extraction, link checking, CSV column inspection, hash generation, git stats, backup sync, regex match, license generation, toolbox audit, font glyph check, system snapshot
+- **Roadmap tool smoke** — env compare/validate, git sweep branch detection, scaffold generation, duplicate deletion, process kill, port inspect, API test, password gen, SSH config parse, shredder, media convert help, markdown TOC insertion, pomodoro short-duration, cheat sheet add/search
+- **New utility smoke** — JSON path extraction, link checking, CSV column inspection, hash generation, git stats, backup sync, license generation, toolbox audit, font glyph check, system snapshot
+- **Update Managers smoke** — `update --list` and a full `update --yes --dry-run`
+- **Doctor / registry integrity** — `main.sh doctor --quick` validates the tool registry against the filesystem and dispatch
+
+### Registry & `doctor`
+
+All tools are registered once in `UK_REGISTRY` (in `main.sh`); the lazy-loader map
+and dashboard menu are derived from it. Run a health check any time with:
+
+```bash
+./main.sh doctor          # full check (includes per-tool --help)
+./main.sh doctor --quick  # skip the per-tool --help pass
+```
 
 ---
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="UtilityKit — A modular Bash toolbox for Linux, macOS, and Termux. 51 tools, one dashboard.">
+  <meta name="description" content="UtilityKit — A modular Bash toolbox for Linux, macOS, and Termux. 48 tools, one dashboard.">
   <meta name="theme-color" content="#0F172A">
   <title>UtilityKit — 51-Tool Bash Toolbox</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1323,7 +1323,7 @@
         <div class="tools-header">
           <div class="fade-in">
             <div class="section-label">The Toolbox</div>
-            <h2 class="section-title">51 tools. Zero friction.</h2>
+            <h2 class="section-title">48 tools. Zero friction.</h2>
             <p class="section-sub">Every tool is self-contained, namespaced, and independently runnable. Source it as a library or call it from the CLI.</p>
           </div>
           <div class="tools-controls fade-in" style="transition-delay:0.1s">
@@ -1341,7 +1341,7 @@
             </div>
           </div>
         </div>
-        <div class="tools-count" id="toolsCount">Showing all 50 tools</div>
+        <div class="tools-count" id="toolsCount">Showing all 48 tools</div>
         <div class="tools-grid" id="toolsGrid">
           <!-- Injected by JS -->
         </div>
@@ -1579,7 +1579,7 @@
       <div class="footer-inner">
         <div class="footer-brand">
           <div class="footer-logo">Utility<span class="kit">Kit</span></div>
-          <div class="footer-tagline">Built for developers who live in the terminal. 51 tools. One unified dashboard. Zero friction.</div>
+          <div class="footer-tagline">Built for developers who live in the terminal. 48 tools. One unified dashboard. Zero friction.</div>
         </div>
         <div class="footer-links-grid">
           <div class="footer-col">
@@ -1655,7 +1655,6 @@
       { id:'links',     cmd:'links',      name:'Link Checker',     cat:'dev', desc:'Python-backed Markdown link validator. Checks local relative links; optional HTTP/HTTPS live checks with configurable timeout.', example:'bash main.sh links README.md --http --timeout 5' },
       { id:'json',      cmd:'json',       name:'JSON Explorer',    cat:'dev', desc:'Python-backed JSON pretty-print, dot-path extraction, key listing, and structure summary. Reads stdin or file.', example:'bash main.sh json package.json --path dependencies.react' },
       { id:'csv',       cmd:'csv',        name:'CSV Toolkit',      cat:'dev', desc:'Python-backed CSV column header print and row preview with configurable head count. Supports stdin.', example:'bash main.sh csv data.csv --head 10' },
-      { id:'regex',     cmd:'regex',      name:'Regex Lab',        cat:'dev', desc:'grep -En with color against inline text or a file. Interactive pattern testing with context lines and match count.', example:'bash main.sh regex --pattern "v[0-9]+\\.[0-9]+" --file CHANGES.md' },
 
       /* System & Network */
       { id:'port',       cmd:'port',       name:'Port Inspector',   cat:'system', desc:'Find which process owns a local TCP port via lsof or ss. Interface summary, optional SIGTERM of the owning process.', example:'bash main.sh port 3000 --kill' },
@@ -1678,13 +1677,12 @@
       { id:'shred',     cmd:'shred',     name:'Shredder',          cat:'files', desc:'Multi-pass overwrite using shred or /dev/urandom fallback. Configurable passes (default 3). Dry-run preview with method/passes display.', example:'bash main.sh shred --file secret.txt --passes 7' },
       { id:'hash',      cmd:'hash',      name:'Hash Tools',        cat:'files', desc:'sha256sum (or shasum/md5sum fallback) over files and directory trees. Verify checksums against a manifest file.', example:'bash main.sh hash --dir ./dist --algo sha256' },
       { id:'dotenv',    cmd:'dotenv',    name:'Dotenv Vault',      cat:'files', desc:'Encrypt individual KEY=value pairs in a .env file to ENC:: tokens using GPG symmetric encryption. Backup on apply.', example:'bash main.sh dotenv --encrypt .env --key SECRET_TOKEN' },
-      { id:'clipboard', cmd:'clipboard', name:'Clipboard Manager', cat:'files', desc:'Session/manual clipboard history helper using wl-copy/xclip/pbcopy/termux-clipboard-set. Multi-platform clipboard cascade.', example:'bash main.sh clipboard --list' },
 
       /* Productivity */
       { id:'cheat',      cmd:'cheat',      name:'Cheat Sheet',      cat:'productivity', desc:'Personal markdown snippet store with tagging, search, and a persistent interactive loop. Files stored at ~/.local/share/utilitykit/cheat_sheets/.', example:'bash main.sh cheat --add --tag git "git log --oneline -10"' },
       { id:'todo',       cmd:'todo',       name:'Todo Manager',     cat:'productivity', desc:'Plain-text TSV task tracker with tags, --done by line number, and --search. Tasks persist in ~/.local/share/utilitykit/.', example:'bash main.sh todo --add "Fix auth bug" --tag backend' },
+      { id:'update',    cmd:'update',     name:'Update Managers',  cat:'system', desc:'Detect and update 60+ package managers (apt, brew, npm, pip, cargo, winget, ...) with a live per-command spinner and extracted failure reasons.', example:'bash main.sh update --list' },
       { id:'pomodoro',   cmd:'pomodoro',   name:'Pomodoro Timer',   cat:'productivity', desc:'Work/break cycle timer with a live progress bar, session log at ~/.local/state/utilitykit/pomodoro.log, and Termux vibration support.', example:'bash main.sh pomodoro --work 25 --break 5' },
-      { id:'zen',        cmd:'zen',        name:'Zen Mode',         cat:'productivity', desc:'Full-screen terminal screensavers: matrix rain, Conway\'s Game of Life (Python), and ASCII wave animation. CLI-only; hidden from dashboard menu.', example:'bash main.sh zen --mode matrix' },
       { id:'pass',       cmd:'pass',       name:'Password Gen',     cat:'productivity', desc:'XKCD-style passphrases from a 37-word list, or random strings from a 72-char charset. Entropy display. Clipboard copy on all platforms.', example:'bash main.sh pass --mode passphrase --words 6' },
       { id:'search',     cmd:'search',     name:'Project Search',   cat:'productivity', desc:'Text or filename search with rg → grep -RIn → find fallback chain. Respects .gitignore by default.', example:'bash main.sh search --text "TODO" --dir ./src' },
       { id:'license',    cmd:'license',    name:'License Helper',   cat:'productivity', desc:'Detects LICENSE*/COPYING* in the current directory. Generates MIT or Apache 2.0 text with current year and author.', example:'bash main.sh license --generate mit --author "Jane Doe"' },

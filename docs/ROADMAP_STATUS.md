@@ -9,7 +9,6 @@ This document maps the uploaded `idea.md` roadmap into the implemented UtilityKi
 | Visual Container & Storage Eraser | `_docker_janitor/` | Implemented |
 | Instant Universal Project Starter | `_project_scaffold/` | Implemented |
 | Intelligent File Deduplicator | `_duplicate_finder/` | Implemented |
-| Configurable System & Dev Log Janitor | `_log_rotator/` | Implemented |
 | Visual RAM Hog & Process Terminator | `_process_killer/` | Implemented |
 | Local Network Detective & Service Evictor | `_port_inspector/` | Implemented |
 | Certificate & DNS Health Detective | `_ssl_checker/` | Implemented |
@@ -21,7 +20,6 @@ This document maps the uploaded `idea.md` roadmap into the implemented UtilityKi
 | Automated Markdown Document Polisher | `_markdown_toc/` | Implemented |
 | CLI Deep-Work Timer | `_pomodoro/` | Implemented |
 | Interactive Console Knowledge Base | `_cheat_sheet/` | Implemented |
-| Console Screensavers | `_zen_mode/` | Implemented |
 
 ## Expanded utility roadmap — implemented
 
@@ -34,7 +32,6 @@ This document maps the uploaded `idea.md` roadmap into the implemented UtilityKi
 | HTTP service watcher | `_service_watcher/` | Implemented |
 | Git repository stats | `_git_stats/` | Implemented |
 | Guided backup sync | `_backup_sync/` | Implemented with rsync/cp fallback |
-| Clipboard manager | `_clipboard_manager/` | Implemented as session/manual history helper |
 | Weather lookup | `_weather/` | Implemented with cached fallback |
 | JSON explorer | `_json_explorer/` | Implemented with Python backend |
 | Tmux session helper | `_tmux_session/` | Implemented; requires `tmux` |
@@ -52,5 +49,17 @@ This document maps the uploaded `idea.md` roadmap into the implemented UtilityKi
 | Battery doctor | `_battery_doctor/` | Implemented with Termux/Linux/macOS backend detection |
 | Release helper | `_release_helper/` | Implemented |
 | License helper | `_license_helper/` | Implemented |
-| Regex lab | `_regex_lab/` | Implemented |
 | Todo manager | `_todo_manager/` | Implemented |
+| Universal package-manager updater | `_update_managers/` | Implemented; live per-command spinner + failure-reason extraction |
+
+## Registry & maintenance
+
+The hub now keeps every tool in a single source of truth (`UK_REGISTRY` in
+`main.sh`). The lazy-loader path map and the interactive dashboard menu are both
+derived from it, so they cannot drift apart. Run `./main.sh doctor` to verify
+the registry against the files on disk, the dispatch cases, menu alignment, and
+each tool's `--help`.
+
+Note: the earlier `_log_rotator`, `_zen_mode`, `_clipboard_manager`, and
+`_regex_lab` tools were removed from the project; their references have been
+cleaned out of the hub, tests, and docs.

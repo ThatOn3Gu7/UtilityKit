@@ -162,7 +162,7 @@ kind_label() {
   REPLACE) printf "${AC_BOLD}${AC_FG_BRIGHT_YELLOW}⟳ REPLACE${AC_R}" ;;
   DELETE) printf "${AC_BOLD}${AC_FG_BRIGHT_RED}✖ DELETE ${AC_R}" ;;
   MKDIR) printf "${AC_BOLD}${AC_FG_BRIGHT_BLUE}⊕ MKDIR  ${AC_R}" ;;
-  SYMLINK) printf "${AC_BOLD}${AC_FG_BRIGHT_MAGENTA}⇢ SYMLINK${AC_R}" ;;
+  SYMLINK) printf "${AC_BOLD}${AC_FG_BRIGHT_MAGENTA}⑂ SYMLINK${AC_R}" ;;
   CHMOD) printf "${AC_DIM}⌀ CHMOD  ${AC_R}" ;;
   *) printf "${AC_DIM}%-9s${AC_R}" "${1:-}" ;;
   esac
