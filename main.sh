@@ -16,59 +16,85 @@ uk_source_tool() {
   # shellcheck disable=SC1090
   source "$path"
 }
-# Lazy-loader: sources a tool script the first time it is needed.
-declare -A UK_TOOL_PATHS=(
-  [apply_changes]="$UK_ROOT_DIR/_apply_changes/_apply_changes.sh"
-  [rename_batch]="$UK_ROOT_DIR/_rename_batch/_rename_batch.sh"
-  [move_in_batch]="$UK_ROOT_DIR/_move_in_batch/_move_in_batch.sh"
-  [cache_clean]="$UK_ROOT_DIR/_cache_clean/_cache_clean.sh"
-  [symlink_manager]="$UK_ROOT_DIR/_symlink_manager/_symlink_manager.sh"
-  [disk_analyzer]="$UK_ROOT_DIR/_disk_analyzer/_disk_analyzer.sh"
-  [env_manager]="$UK_ROOT_DIR/_env_manager/_env_manager.sh"
-  [git_sweep]="$UK_ROOT_DIR/_git_sweep/_git_sweep.sh"
-  [docker_janitor]="$UK_ROOT_DIR/_docker_janitor/_docker_janitor.sh"
-  [project_scaffold]="$UK_ROOT_DIR/_project_scaffold/_project_scaffold.sh"
-  [duplicate_finder]="$UK_ROOT_DIR/_duplicate_finder/_duplicate_finder.sh"
-  [process_killer]="$UK_ROOT_DIR/_process_killer/_process_killer.sh"
-  [port_inspector]="$UK_ROOT_DIR/_port_inspector/_port_inspector.sh"
-  [ssl_checker]="$UK_ROOT_DIR/_ssl_checker/_ssl_checker.sh"
-  [api_tester]="$UK_ROOT_DIR/_api_tester/_api_tester.sh"
-  [password_gen]="$UK_ROOT_DIR/_password_gen/_password_gen.sh"
-  [ssh_assistant]="$UK_ROOT_DIR/_ssh_assistant/_ssh_assistant.sh"
-  [shredder]="$UK_ROOT_DIR/_shredder/_shredder.sh"
-  [media_convert]="$UK_ROOT_DIR/_media_convert/_media_convert.sh"
-  [markdown_toc]="$UK_ROOT_DIR/_markdown_toc/_markdown_toc.sh"
-  [pomodoro]="$UK_ROOT_DIR/_pomodoro/_pomodoro.sh"
-  [cheat_sheet]="$UK_ROOT_DIR/_cheat_sheet/_cheat_sheet.sh"
-  [network_probe]="$UK_ROOT_DIR/_network_probe/_network_probe.sh"
-  [cron_manager]="$UK_ROOT_DIR/_cron_manager/_cron_manager.sh"
-  [dotenv_vault]="$UK_ROOT_DIR/_dotenv_vault/_dotenv_vault.sh"
-  [disk_health]="$UK_ROOT_DIR/_disk_health/_disk_health.sh"
-  [service_watcher]="$UK_ROOT_DIR/_service_watcher/_service_watcher.sh"
-  [git_stats]="$UK_ROOT_DIR/_git_stats/_git_stats.sh"
-  [backup_sync]="$UK_ROOT_DIR/_backup_sync/_backup_sync.sh"
-  [clipboard_manager]="$UK_ROOT_DIR/_clipboard_manager/_clipboard_manager.sh"
-  [weather]="$UK_ROOT_DIR/_weather/_weather.sh"
-  [json_explorer]="$UK_ROOT_DIR/_json_explorer/_json_explorer.sh"
-  [tmux_session]="$UK_ROOT_DIR/_tmux_session/_tmux_session.sh"
-  [font_inspector]="$UK_ROOT_DIR/_font_inspector/_font_inspector.sh"
-  [toolbox_bootstrap]="$UK_ROOT_DIR/_toolbox_bootstrap/_toolbox_bootstrap.sh"
-  [project_search]="$UK_ROOT_DIR/_project_search/_project_search.sh"
-  [github_helper]="$UK_ROOT_DIR/_github_helper/_github_helper.sh"
-  [link_checker]="$UK_ROOT_DIR/_link_checker/_link_checker.sh"
-  [log_inspector]="$UK_ROOT_DIR/_log_inspector/_log_inspector.sh"
-  [csv_toolkit]="$UK_ROOT_DIR/_csv_toolkit/_csv_toolkit.sh"
-  [hash_tools]="$UK_ROOT_DIR/_hash_tools/_hash_tools.sh"
-  [archive_manager]="$UK_ROOT_DIR/_archive_manager/_archive_manager.sh"
-  [system_snapshot]="$UK_ROOT_DIR/_system_snapshot/_system_snapshot.sh"
-  [open_files]="$UK_ROOT_DIR/_open_files/_open_files.sh"
-  [battery_doctor]="$UK_ROOT_DIR/_battery_doctor/_battery_doctor.sh"
-  [release_helper]="$UK_ROOT_DIR/_release_helper/_release_helper.sh"
-  [license_helper]="$UK_ROOT_DIR/_license_helper/_license_helper.sh"
-  [regex_lab]="$UK_ROOT_DIR/_regex_lab/_regex_lab.sh"
-  [todo_manager]="$UK_ROOT_DIR/_todo_manager/_todo_manager.sh"
-  [zen_mode]="$UK_ROOT_DIR/_zen_mode/_zen_mode.sh"
+# =============================================================================
+# UNIFIED TOOL REGISTRY  (single source of truth)
+# -----------------------------------------------------------------------------
+# Every tool is described ONCE here. The lazy-loader map (UK_TOOL_PATHS) and the
+# interactive dashboard menu (M_* arrays) are both DERIVED from this list, so
+# they can never drift out of sync again. `uk doctor` validates this registry
+# against the files on disk and against the run_tool dispatch cases.
+#
+# Record format (pipe-delimited, exactly 7 fields):
+#   key | action | icon | color | Display Name | description | menu
+#     key    : registry key + directory stem (dir is _<key>, script _<key>.sh)
+#     action : the command word passed to run_tool for this tool
+#     icon   : dashboard glyph
+#     color  : a UK_C_* color VARIABLE NAME (looked up indirectly)
+#     name   : dashboard display name
+#     desc   : one-line dashboard description
+#     menu   : 1 = show in the interactive dashboard, 0 = CLI-only / hidden
+# =============================================================================
+UK_REGISTRY=(
+  "apply_changes|apply|↻|UK_C_GREEN|Apply Changes|Robust Directory Synchronization|1"
+  "rename_batch|rename|✎|UK_C_BRIGHT_BLUE|Batch Rename|Recursive File Renaming & Copying|1"
+  "cache_clean|cacheclean|🗑|UK_C_BRIGHT_MAGENTA|Cache Cleaner|Intelligent System Cache Cleanup|1"
+  "symlink_manager|symlink|►|UK_C_YELLOW|Symlink Manager|Dotfiles & System Config Management|1"
+  "disk_analyzer|disk|◆|UK_C_BRIGHT_CYAN|Disk Analyzer|Storage Inspection & Quick Archiving|1"
+  "env_manager|env|◎|UK_C_CYAN|Env Manager|compare, validate, and switch .env profiles|1"
+  "git_sweep|git|⑂|UK_C_GREEN|Git Sweep|clean merged branches, stashes, and artifacts|1"
+  "project_scaffold|scaffold|▣|UK_C_BRIGHT_BLUE|Project Scaffold|generate starter projects from guided templates|1"
+  "duplicate_finder|dup|◆|UK_C_MAGENTA|Duplicate Finder|find exact duplicate files and reclaim space|1"
+  "process_killer|proc|✖|UK_C_RED|Process Killer|inspect memory pressure and terminate processes|1"
+  "port_inspector|port|◉|UK_C_BRIGHT_CYAN|Port Inspector|find which process owns a local port|1"
+  "ssl_checker|ssl|🔒|UK_C_CYAN|SSL Checker|inspect certificate expiry, DNS, and TLS support|1"
+  "api_tester|api|⇄|UK_C_GREEN|API Tester|send HTTP requests and save reusable profiles|1"
+  "password_gen|pass|✦|UK_C_YELLOW|Password Gen|generate passphrases or random strings|1"
+  "ssh_assistant|ssh|⇢|UK_C_BRIGHT_BLUE|SSH Assistant|list SSH hosts and run connection helpers|1"
+  "shredder|shred|⌫|UK_C_RED|Shredder|securely erase sensitive files with fallbacks|1"
+  "media_convert|media|▧|UK_C_MAGENTA|Media Convert|batch convert images/videos when tools exist|1"
+  "markdown_toc|toc|☷|UK_C_CYAN|Markdown TOC|generate TOCs, check links, align tables|1"
+  "pomodoro|pomodoro|◷|UK_C_GREEN|Pomodoro|run focused work/break cycles|1"
+  "cheat_sheet|cheat|☰|UK_C_YELLOW|Cheat Sheet|store, search, and show command snippets|1"
+  "move_in_batch|move|⇥|UK_C_BRIGHT_CYAN|Move in Batch|copy/move files safely with exclusions|1"
+  "docker_janitor|docker|⬢|UK_C_BRIGHT_BLUE|Docker Janitor|clean containers, images, and volumes|1"
+  "network_probe|network|⌁|UK_C_BRIGHT_CYAN|Network Probe|ping, DNS, public IP, and route diagnostics|1"
+  "service_watcher|service|◍|UK_C_GREEN|Service Watcher|check HTTP services and response times|1"
+  "git_stats|git-stats|⑂|UK_C_YELLOW|Git Stats|summarize authors, branches, and changed files|1"
+  "json_explorer|json|{}|UK_C_MAGENTA|JSON Explorer|pretty-print, inspect, and extract JSON paths|1"
+  "link_checker|links|🔗|UK_C_CYAN|Link Checker|validate Markdown local and HTTP links|1"
+  "backup_sync|backup|⇄|UK_C_GREEN|Backup Sync|dry-run-first backup wrapper with fallbacks|1"
+  "project_search|search|⌕|UK_C_BRIGHT_BLUE|Project Search|search files/text with rg/grep/find fallbacks|1"
+  "log_inspector|log-inspect|≡|UK_C_YELLOW|Log Inspector|summarize warnings, errors, repeated lines|1"
+  "csv_toolkit|csv|▤|UK_C_MAGENTA|CSV Toolkit|inspect CSV headers and preview rows|1"
+  "cron_manager|cron|◷|UK_C_CYAN|Cron Manager|list/add/remove crontab entries safely|1"
+  "dotenv_vault|dotenv|🔐|UK_C_GREEN|Dotenv Vault|encrypt selected .env values with gpg|1"
+  "disk_health|disk-health|◆|UK_C_YELLOW|Disk Health|SMART health check when smartctl exists|1"
+  "weather|weather|☁|UK_C_BRIGHT_CYAN|Weather|terminal forecast lookup with cache fallback|1"
+  "tmux_session|tmux|▥|UK_C_GREEN|Tmux Session|list, create, attach, or kill tmux sessions|1"
+  "font_inspector|font|A|UK_C_BRIGHT_BLUE|Font Inspector|check glyph support and list fonts|1"
+  "toolbox_bootstrap|toolbox|⚙|UK_C_YELLOW|Toolbox Audit|detect recommended CLI tools|1"
+  "github_helper|github|#|UK_C_CYAN|GitHub Helper|wrap common gh CLI tasks|1"
+  "hash_tools|hash|▦|UK_C_GREEN|Hash Tools|create checksums for files and trees|1"
+  "archive_manager|archive|◈|UK_C_YELLOW|Archive Manager|list, create, and safely extract archives|1"
+  "system_snapshot|snapshot|◉|UK_C_MAGENTA|System Snapshot|collect a compact diagnostic summary|1"
+  "open_files|open-files|▰|UK_C_CYAN|Open Files|find processes using paths or ports|1"
+  "battery_doctor|battery|✦|UK_C_GREEN|Battery Doctor|show battery and power diagnostics|1"
+  "release_helper|release|§|UK_C_YELLOW|Release Helper|run git release checks and optional tags|1"
+  "license_helper|license|◆|UK_C_MAGENTA|License Helper|detect or generate simple license text|1"
+  "todo_manager|todo|☑|UK_C_BRIGHT_CYAN|Todo Manager|plain-text tasks with tags and search|1"
+  "update_managers|update|↥|UK_C_BRIGHT_GREEN|Update Managers|detect and update every package manager found|1"
 )
+
+# Derive the lazy-loader path map from the registry (never hand-maintained now).
+declare -A UK_TOOL_PATHS=()
+uk_registry_build_paths() {
+  local rec key
+  for rec in "${UK_REGISTRY[@]}"; do
+    key="${rec%%|*}"
+    UK_TOOL_PATHS["$key"]="$UK_ROOT_DIR/_${key}/_${key}.sh"
+  done
+}
+uk_registry_build_paths
 
 declare -A UK_TOOL_LOADED=()
 
@@ -925,19 +951,20 @@ run_tool() {
     uk_load license_helper
     ([[ $# -gt 0 ]] && lic_main "$@" || run_new_utility_wizard license)
     ;;
-  regex | regex-lab)
-    uk_load regex_lab
-    ([[ $# -gt 0 ]] && rx_main "$@" || run_new_utility_wizard regex)
-    ;;
   todo | todo-manager)
     uk_load todo_manager
     ([[ $# -gt 0 ]] && td_main "$@" || run_new_utility_wizard todo)
     ;;
+  update | update-managers | upgrade)
+    uk_load update_managers
+    # With args, pass straight through (e.g. --list, --dry-run, --only apt,brew).
+    # With no args, launch the tool's own rich interactive menu.
+    (um_main "$@")
+    ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
   help | --help | -h) uk_main_show_help ;;
-  zen | zen-mode)
-    uk_load zen_mode
-    (zm_main "$@")
+  doctor | diagnostics)
+    uk_doctor "$@"
     ;;
   *)
     uk_error "Unknown command: $cmd"
@@ -946,6 +973,127 @@ run_tool() {
     ;;
   esac
 }
+# =============================================================================
+# uk_doctor — installation & registry integrity checks
+# -----------------------------------------------------------------------------
+# Validates that the single-source-of-truth UK_REGISTRY agrees with reality:
+#   1. every registry tool has its directory + script on disk
+#   2. every registry action has a matching run_tool dispatch case
+#   3. the derived dashboard menu arrays are all the same length
+#   4. every tool answers `--help` (optional deep check, on by default)
+#   5. reports orphan tool directories not present in the registry
+# Exit status is nonzero if any hard problem is found, so it is CI-friendly.
+# Flags: --quick (skip the per-tool --help check), --no-color
+# =============================================================================
+uk_doctor() {
+  local quick=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+    --quick) quick=1 ;;
+    --no-color) UK_C_RESET='' ;;
+    esac
+  done
+
+  local problems=0 warnings=0 checked=0
+  local ok="${UK_C_GREEN}${UK_I_READY:-OK}${UK_C_RESET}"
+  local bad="${UK_C_RED}x${UK_C_RESET}"
+  local wrn="${UK_C_YELLOW}!${UK_C_RESET}"
+
+  printf '\n%s UtilityKit Doctor%s  %s(registry + installation integrity)%s\n\n' \
+    "$UK_C_BOLD$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+
+  # --- 1 & 2: registry vs disk vs dispatch -----------------------------------
+  printf '%sRegistry checks%s\n' "$UK_C_BOLD" "$UK_C_RESET"
+  local rec key action rest path dispatch_body
+  dispatch_body="$(declare -f run_tool 2>/dev/null || true)"
+
+  for rec in "${UK_REGISTRY[@]}"; do
+    key="${rec%%|*}"
+    rest="${rec#*|}"
+    action="${rest%%|*}"
+    checked=$((checked + 1))
+    path="${UK_TOOL_PATHS[$key]:-}"
+
+    # (a) path mapped?
+    if [[ -z "$path" ]]; then
+      printf '  %s %-20s no path derived for key\n' "$bad" "$key"
+      problems=$((problems + 1))
+      continue
+    fi
+    # (b) script exists?
+    if [[ ! -f "$path" ]]; then
+      printf '  %s %-20s missing script: %s\n' "$bad" "$key" "$path"
+      problems=$((problems + 1))
+      continue
+    fi
+    # (c) dispatch case exists for the action?
+    if [[ -n "$dispatch_body" ]] && ! printf '%s' "$dispatch_body" | grep -Eq "(^|[^A-Za-z0-9_-])$action([^A-Za-z0-9_-]|\))"; then
+      printf '  %s %-20s no run_tool case for action "%s"\n' "$wrn" "$key" "$action"
+      warnings=$((warnings + 1))
+      continue
+    fi
+    printf '  %s %-20s %s\n' "$ok" "$key" "${UK_C_DIM}ok${UK_C_RESET}"
+  done
+
+  # --- 3: menu array alignment ------------------------------------------------
+  printf '\n%sDashboard menu%s\n' "$UK_C_BOLD" "$UK_C_RESET"
+  load_all_tools
+  local ni=${#M_ICONS[@]} nc=${#M_COLORS[@]} nn=${#M_NAMES[@]} nd=${#M_DESCS[@]} na=${#M_ACTIONS[@]}
+  if [[ "$ni" == "$nc" && "$nc" == "$nn" && "$nn" == "$nd" && "$nd" == "$na" ]]; then
+    printf '  %s all 5 menu arrays aligned (%d entries)\n' "$ok" "$na"
+  else
+    printf '  %s menu arrays MISALIGNED: icons=%d colors=%d names=%d descs=%d actions=%d\n' \
+      "$bad" "$ni" "$nc" "$nn" "$nd" "$na"
+    problems=$((problems + 1))
+  fi
+
+  # --- 5: orphan directories --------------------------------------------------
+  printf '\n%sOrphan directories%s\n' "$UK_C_BOLD" "$UK_C_RESET"
+  local d dkey found orphans=0
+  for d in "$UK_ROOT_DIR"/_*/; do
+    [[ -d "$d" ]] || continue
+    dkey="$(basename "$d")"
+    dkey="${dkey#_}"
+    found=0
+    for rec in "${UK_REGISTRY[@]}"; do [[ "${rec%%|*}" == "$dkey" ]] && {
+      found=1
+      break
+    }; done
+    if [[ "$found" -eq 0 ]]; then
+      printf '  %s %-20s on disk but not in registry\n' "$wrn" "$dkey"
+      warnings=$((warnings + 1))
+      orphans=$((orphans + 1))
+    fi
+  done
+  [[ "$orphans" -eq 0 ]] && printf '  %s none\n' "$ok"
+
+  # --- 4: per-tool --help (deep) ---------------------------------------------
+  if [[ "$quick" -eq 0 ]]; then
+    printf '\n%sPer-tool --help%s %s(use --quick to skip)%s\n' \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
+    for rec in "${UK_REGISTRY[@]}"; do
+      key="${rec%%|*}"
+      rest="${rec#*|}"
+      action="${rest%%|*}"
+      if NO_COLOR=1 bash "$UK_ROOT_DIR/main.sh" "$action" --help >/dev/null 2>&1; then
+        printf '  %s %-20s\n' "$ok" "$action"
+      else
+        printf '  %s %-20s "%s --help" failed\n' "$bad" "$key" "$action"
+        problems=$((problems + 1))
+      fi
+    done
+  fi
+
+  # --- summary ----------------------------------------------------------------
+  printf '\n%s────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
+  printf '  Checked %d tools — %s%d problem(s)%s, %s%d warning(s)%s\n\n' \
+    "$checked" \
+    "$([[ $problems -gt 0 ]] && printf '%s' "$UK_C_RED" || printf '%s' "$UK_C_GREEN")" "$problems" "$UK_C_RESET" \
+    "$([[ $warnings -gt 0 ]] && printf '%s' "$UK_C_YELLOW" || printf '%s' "$UK_C_GREEN")" "$warnings" "$UK_C_RESET"
+
+  [[ "$problems" -eq 0 ]]
+}
+
 uk_main_show_help() {
   uk_main_banner
   cat <<'EOF'
@@ -953,14 +1101,18 @@ Usage:
   ./main.sh <command> [args]
 
 Core commands:
-  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup, logs,
+  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
   proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
-  cheat, setup, docker, zen
+  cheat, setup, docker
 
 New utility commands:
   network, cron, dotenv, disk-health, service, git-stats, backup,
-  clipboard, weather, json, tmux, font, toolbox, search, github, links, log-inspect,
-  csv, hash, archive, snapshot, open-files, battery, release, license, regex, todo
+  weather, json, tmux, font, toolbox, search, github, links, log-inspect,
+  csv, hash, archive, snapshot, open-files, battery, release, license, todo,
+  update
+
+Maintenance:
+  doctor     Run integrity checks on the tool registry and installation
 
 Use ./main.sh <command> --help for each tool's detailed options.
 EOF
@@ -992,11 +1144,35 @@ declare -a M_DESCS=()
 declare -a M_ACTIONS=()
 
 load_all_tools() {
-  M_ICONS=("↻" "✎" "🗑" "►" "◆" "◎" "⑂" "▣" "◆" "✖" "◉" "🔒" "⇄" "✦" "⇢" "⌫" "▧" "☷" "◷" "☰" "⇥" "⬢" "⌁" "◍" "⑂" "{}" "🔗" "⇄" "⌕" "≡" "▤" "◷" "🔐" "◆" "☁" "▥" "A" "⚙" "" "#" "▦" "◈" "◉" "▰" "✦" "§" ".*" "☑" "⚙")
-  M_COLORS=("$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_BRIGHT_MAGENTA" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_MAGENTA" "$UK_C_RED" "$UK_C_BRIGHT_CYAN" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_BLUE" "$UK_C_RED" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_BRIGHT_BLUE" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_CYAN" "$UK_C_GREEN" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_BRIGHT_CYAN" "$UK_C_GREEN" "$UK_C_BRIGHT_BLUE" "$UK_C_YELLOW" "$UK_C_MAGENTA" "$UK_C_WHITE")
-  M_NAMES=("Apply Changes" "Batch Rename" "Cache Cleaner" "Symlink Manager" "Disk Analyzer" "Env Manager" "Git Sweep" "Project Scaffold" "Duplicate Finder" "Process Killer" "Port Inspector" "SSL Checker" "API Tester" "Password Gen" "SSH Assistant" "Shredder" "Media Convert" "Markdown TOC" "Pomodoro" "Cheat Sheet" "Move in Batch" "Docker Janitor" "Network Probe" "Service Watcher" "Git Stats" "JSON Explorer" "Link Checker" "Backup Sync" "Project Search" "Log Inspector" "CSV Toolkit" "Cron Manager" "Dotenv Vault" "Disk Health" "Weather" "Tmux Session" "Font Inspector" "Toolbox Audit" "GitHub Helper" "Hash Tools" "Archive Manager" "System Snapshot" "Open Files" "Battery Doctor" "Release Helper" "License Helper" "Regex Lab" "Todo Manager" "Setup / Install")
-  M_DESCS=("Robust Directory Synchronization" "Recursive File Renaming & Copying" "Intelligent System Cache Cleanup" "Dotfiles & System Config Management" "Storage Inspection & Quick Archiving" "compare, validate, and switch .env profiles" "clean merged branches, stashes, and artifacts" "generate starter projects from guided templates" "find exact duplicate files and reclaim space" "inspect memory pressure and terminate processes" "find which process owns a local port" "inspect certificate expiry, DNS, and TLS support" "send HTTP requests and save reusable profiles" "generate passphrases or random strings" "list SSH hosts and run connection helpers" "securely erase sensitive files with fallbacks" "batch convert images/videos when tools exist" "generate TOCs, check links, align tables" "run focused work/break cycles" "store, search, and show command snippets" "copy/move files safely with exclusions" "clean containers, images, and volumes" "ping, DNS, public IP, and route diagnostics" "check HTTP services and response times" "summarize authors, branches, and changed files" "pretty-print, inspect, and extract JSON paths" "validate Markdown local and HTTP links" "dry-run-first backup wrapper with fallbacks" "search files/text with rg/grep/find fallbacks" "summarize warnings, errors, repeated lines" "inspect CSV headers and preview rows" "list/add/remove crontab entries safely" "encrypt selected .env values with gpg" "SMART health check when smartctl exists" "terminal forecast lookup with cache fallback" "list, create, attach, or kill tmux sessions" "check glyph support and list fonts" "detect recommended CLI tools" "wrap common gh CLI tasks" "create checksums for files and trees" "list, create, and safely extract archives" "collect a compact diagnostic summary" "find processes using paths or ports" "show battery and power diagnostics" "run git release checks and optional tags" "detect or generate simple license text" "test regex patterns against text/files" "plain-text tasks with tags and search" "Launcher & Path Configuration")
-  M_ACTIONS=("apply" "rename" "cacheclean" "symlink" "disk" "env" "git" "scaffold" "dup" "proc" "port" "ssl" "api" "pass" "ssh" "shred" "media" "toc" "pomodoro" "cheat" "move" "docker" "network" "service" "git-stats" "json" "links" "backup" "search" "log-inspect" "csv" "cron" "dotenv" "disk-health" "weather" "tmux" "font" "toolbox" "github" "hash" "archive" "snapshot" "open-files" "battery" "release" "license" "regex" "todo" "setup")
+  # The dashboard menu is now DERIVED from UK_REGISTRY (single source of truth),
+  # so it can never fall out of sync with the loader map again. Only tools with
+  # menu flag = 1 are shown here; the trailing "Setup / Install" pseudo-entry is
+  # appended because it is a launcher action, not a tool directory.
+  M_ICONS=()
+  M_COLORS=()
+  M_NAMES=()
+  M_DESCS=()
+  M_ACTIONS=()
+
+  local rec key action icon color_var name desc menu color
+  for rec in "${UK_REGISTRY[@]}"; do
+    IFS='|' read -r key action icon color_var name desc menu <<<"$rec"
+    [[ "$menu" == "1" ]] || continue
+    # Indirectly expand the color variable name (e.g. UK_C_GREEN) to its code.
+    color="${!color_var:-$UK_C_WHITE}"
+    M_ICONS+=("$icon")
+    M_COLORS+=("$color")
+    M_NAMES+=("$name")
+    M_DESCS+=("$desc")
+    M_ACTIONS+=("$action")
+  done
+
+  # Launcher / installer pseudo-tool (kept last, matches historical behavior).
+  M_ICONS+=("⚙")
+  M_COLORS+=("$UK_C_WHITE")
+  M_NAMES+=("Setup / Install")
+  M_DESCS+=("Launcher & Path Configuration")
+  M_ACTIONS+=("setup")
 
   # Hide Docker Janitor in Termux
   if [[ "$(uk_platform)" == 'termux' ]]; then
@@ -1093,10 +1269,10 @@ interactive_menu_loop() {
     # Static Footer Legend
     printf '\n  %s──────────────────────────────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
     printf '  %sNavigation Info:%s\n' "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
-    printf '    %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
+    printf '   Use %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
       "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
       "$UK_C_BRIGHT_GREEN" "$UK_C_RESET"
-    printf '                                      %s[q]%s     : Exit UtilityKit\n' \
+    printf '                                         %s[q]%s     : Exit UtilityKit\n' \
       "$UK_C_RED" "$UK_C_RESET"
     printf '\n'
 
