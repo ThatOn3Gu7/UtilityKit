@@ -1188,6 +1188,12 @@ load_all_tools() {
 }
 
 interactive_menu_loop() {
+  # Gate the dashboard on a 78-column terminal — the master banner ASCII art
+  # and the item viewport are both hand-tuned for that width. The check is a
+  # no-op on non-TTYs and when UK_NO_WIDTH_GATE=1, so smoke tests, pipes, and
+  # `main.sh <cmd>` CLI invocations are unaffected.
+  uk_require_width || { printf '\n'; return 0; }
+
   load_all_tools
 
   local TOTAL_ITEMS=${#M_ACTIONS[@]}
@@ -1268,7 +1274,7 @@ interactive_menu_loop() {
 
     # Static Footer Legend
     printf '\n  %s──────────────────────────────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
-    printf '  %sNavigation Info:%s\n' "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
+    printf '  %sNavigation Info:%s\n\n' "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
     printf '   Use %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
       "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
       "$UK_C_BRIGHT_GREEN" "$UK_C_RESET"
