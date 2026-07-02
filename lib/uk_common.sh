@@ -309,3 +309,266 @@ uk_banner() {
 
   UK_BANNER_PRINTED=1
 }
+
+# uk_term_size — write "$cols $rows" to stdout. Falls back through tput → stty
+# → $COLUMNS/$LINES → 80x24, matching the pattern already used by uk_banner.
+uk_term_size() {
+  local cols='' rows=''
+  if uk_has_cmd tput; then
+    cols="$(tput cols 2>/dev/null || true)"
+    rows="$(tput lines 2>/dev/null || true)"
+  fi
+  if [[ -z "$cols" || -z "$rows" ]] && uk_has_cmd stty; then
+    local size
+    size="$(stty size 2>/dev/null || true)"
+    if [[ -n "$size" ]]; then
+      rows="${size%% *}"
+      cols="${size##* }"
+    fi
+  fi
+  [[ "$cols" =~ ^[0-9]+$ ]] || cols="${COLUMNS:-80}"
+  [[ "$rows" =~ ^[0-9]+$ ]] || rows="${LINES:-24}"
+  printf '%s %s\n' "$cols" "$rows"
+}
+
+# uk_require_width — block until the terminal is exactly UK_REQUIRED_COLS wide
+# (default 78). Renders a horizontally + vertically centred notice box asking
+# the user to resize. Returns 0 when the width is correct, 130 if the user
+# bails with q / Ctrl-C.
+#
+# No-ops when:
+#   - stdout is not a TTY (piped, redirected, or under the smoke tests)
+#   - UK_NO_WIDTH_GATE is set (escape hatch for CI / power users)
+#   - the width is already exactly right
+uk_require_width() {
+  local required="${UK_REQUIRED_COLS:-78}"
+  [[ -t 1 ]] || return 0
+  [[ -n "${UK_NO_WIDTH_GATE:-}" ]] && return 0
+
+  local cols rows size
+  size="$(uk_term_size)"
+  cols="${size%% *}"
+  rows="${size##* }"
+  [[ "$cols" == "$required" ]] && return 0
+
+  # Box glyphs — respect NO_UNICODE just like uk_banner does.
+  local tl tr bl br h v
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    tl='╭' tr='╮' bl='╰' br='╯' h='─' v='│'
+  else
+    tl='+' tr='+' bl='+' br='+' h='-' v='|'
+  fi
+
+  # Hide the cursor while the gate is drawing; always restore on the way out.
+  # Note: interactive_menu_loop hides the cursor itself once we return, and
+  # its EXIT trap ensures the cursor is restored on abnormal exit — so we
+  # only need to be tidy about our own return paths here.
+  tput civis 2>/dev/null || printf '\033[?25l'
+
+  # Spinner frames — the ONLY thing that redraws every tick, so the rest of
+  # the box stays perfectly still and readable. NO_UNICODE users get an ASCII
+  # fallback so the frame widths stay equal (1 cell each).
+  local spinner
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  else
+    spinner=('|' '/' '-' '\')
+  fi
+  local sp_len=${#spinner[@]}
+
+  local key='' tick=0 prev_cols='' prev_rows=''
+  # Geometry cache populated by _uk_render_width_notice_full (screen-absolute,
+  # 1-indexed for \033[row;colH). Reused by _uk_render_width_notice_tick so
+  # we only ever rewrite a single line per poll.
+  _UK_WG_TOP=0 _UK_WG_LEFT=0 _UK_WG_INNER=0 _UK_WG_DYN_ROW=0
+
+  while :; do
+    size="$(uk_term_size)"
+    cols="${size%% *}"
+    rows="${size##* }"
+
+    if [[ "$cols" == "$required" ]]; then
+      tput cnorm 2>/dev/null || printf '\033[?25h'
+      clear 2>/dev/null || printf '\n'
+      return 0
+    fi
+
+    # Only do a full repaint when the terminal actually changed size (or on
+    # the very first frame). Otherwise the box stays exactly where it was
+    # and only the dynamic line ticks.
+    if [[ "$cols" != "$prev_cols" || "$rows" != "$prev_rows" ]]; then
+      _uk_render_width_notice_full "$cols" "$rows" "$required" \
+        "$tl" "$tr" "$bl" "$br" "$h" "$v"
+      prev_cols="$cols"
+      prev_rows="$rows"
+    fi
+
+    _uk_render_width_notice_tick "$cols" "$required" "$v" \
+      "${spinner[$((tick % sp_len))]}"
+    tick=$((tick + 1))
+
+    # Poll for input every 0.15 s — smooth spinner, still cheap. Any key
+    # other than q/Q is ignored so accidental taps don't skip the check.
+    key=''
+    if IFS= read -rsn1 -t 0.15 key 2>/dev/null; then
+      case "$key" in
+      q | Q)
+        tput cnorm 2>/dev/null || printf '\033[?25h'
+        clear 2>/dev/null || printf '\n'
+        return 130
+        ;;
+      esac
+    fi
+  done
+}
+
+# Internal — full one-shot paint of the centred resize notice. Called only
+# when the terminal size changes (or on the very first frame). Caches the
+# top-left corner + inner width + dynamic-line row into global geometry vars
+# so _uk_render_width_notice_tick can rewrite a single line without touching
+# the rest of the screen.
+_uk_render_width_notice_full() {
+  local cols="$1" rows="$2" required="$3"
+  local tl="$4" tr="$5" bl="$6" br="$7" h="$8" v="$9"
+
+  # Full-screen wipe — ONLY here, so the box no longer flickers between ticks.
+  clear 2>/dev/null || printf '\033[2J\033[H'
+
+  local diff verb
+  diff=$(( cols - required ))
+  if (( diff > 0 )); then
+    verb="Shrink the window (or zoom IN)"
+  else
+    verb="Widen the window (or zoom OUT)"
+  fi
+
+  local title="  ${UK_I_WARN} Terminal width mismatch  "
+  local l1="UtilityKit renders best at exactly ${required} columns."
+  # Static hint so the LIVE line is the only one that moves each tick.
+  local l3="${verb} until \`tput cols\` reports ${required}."
+  local l4="Then this notice will clear automatically."
+  local hint="[ q ] skip check     resize live-checked below"
+
+  # Reserve a width for the live line based on its widest possible layout:
+  #   "  ⣾  Current: 9999   Target: 9999   Off by: 9999  "
+  local live_template="  X  Current: 9999   Target: 9999   Off by: 9999  "
+
+  # Compute box inner width from the widest static/reserved line.
+  local inner=0 len line
+  for line in "$title" "$l1" "$l3" "$l4" "$hint" "$live_template"; do
+    len="$(uk_visible_len "$line")"
+    (( len > inner )) && inner=$len
+  done
+  inner=$(( inner + 4 ))
+
+  # Terminal too narrow — one-line fallback (no live tick, no cursor moves).
+  if (( cols < inner + 2 )); then
+    printf '\n%s%s%s Resize terminal to %s cols (current: %s). Press q to skip.%s\n' \
+      "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$required" "$cols" ""
+    _UK_WG_TOP=0 _UK_WG_LEFT=0 _UK_WG_INNER=0 _UK_WG_DYN_ROW=0
+    return 0
+  fi
+
+  local hbar='' i
+  for ((i = 0; i < inner; i++)); do hbar+="$h"; done
+
+  # 10 rows total. Index 4 is the LIVE line — kept as an empty inner row here
+  # so the tick can paint into it without disturbing anything else.
+  local blank_row="${v}$(printf '%*s' "$inner" '')${v}"
+  local rendered=()
+  rendered+=("${tl}${hbar}${tr}")
+  rendered+=("$(_uk_center_line "$title" "$inner" "$v" bold_cyan)")
+  rendered+=("$blank_row")
+  rendered+=("$(_uk_center_line "$l1" "$inner" "$v" bold)")
+  rendered+=("$blank_row")                                              # ← LIVE
+  rendered+=("$(_uk_center_line "$l3" "$inner" "$v" plain)")
+  rendered+=("$(_uk_center_line "$l4" "$inner" "$v" dim)")
+  rendered+=("$blank_row")
+  rendered+=("$(_uk_center_line "$hint" "$inner" "$v" arrow)")
+  rendered+=("${bl}${hbar}${br}")
+  local live_row_idx=4
+
+  # Vertical centring (screen rows are 1-indexed for cursor addressing).
+  local box_h=${#rendered[@]}
+  local top=$(( (rows - box_h) / 2 + 1 ))
+  (( top < 1 )) && top=1
+
+  # Horizontal centring — column of the box's leftmost cell (1-indexed).
+  local left=$(( (cols - inner - 2) / 2 + 1 ))
+  (( left < 1 )) && left=1
+
+  # Draw every row at an absolute (row,col) position — no reliance on the
+  # cursor being anywhere in particular.
+  local n
+  for ((n = 0; n < box_h; n++)); do
+    printf '\033[%d;%dH%s%s%s' \
+      "$(( top + n ))" "$left" \
+      "$UK_C_BRIGHT_CYAN" "${rendered[$n]}" "$UK_C_RESET"
+  done
+
+  # Cache geometry for the per-tick redraw.
+  _UK_WG_TOP="$top"
+  _UK_WG_LEFT="$left"
+  _UK_WG_INNER="$inner"
+  _UK_WG_DYN_ROW=$(( top + live_row_idx ))
+}
+
+# Internal — rewrites ONLY the live line (spinner + current cols + off-by).
+# Absolute cursor addressing means the rest of the box is never touched, so
+# there is no visible flicker even at high poll rates.
+_uk_render_width_notice_tick() {
+  local cols="$1" required="$2" v="$3" spin="$4"
+  # Full-paint mode did the drawing already; nothing to update.
+  (( _UK_WG_INNER > 0 )) || return 0
+
+  local diff abs_diff
+  diff=$(( cols - required ))
+  abs_diff=$diff
+  (( abs_diff < 0 )) && abs_diff=$(( -abs_diff ))
+
+  local text
+  text="$(printf '  %s  Current: %d   Target: %d   Off by: %d  ' \
+    "$spin" "$cols" "$required" "$abs_diff")"
+
+  local vis pad_l pad_r
+  vis="$(uk_visible_len "$text")"
+  (( vis > _UK_WG_INNER )) && vis=$_UK_WG_INNER
+  pad_l=$(( (_UK_WG_INNER - vis) / 2 ))
+  pad_r=$(( _UK_WG_INNER - vis - pad_l ))
+
+  # Jump to the reserved live row, redraw exactly one line's worth of cells.
+  # Order: [left bar] [pad_l] [styled text] [pad_r] [right bar] [reset]
+  printf '\033[%d;%dH%s%s%*s%s%*s%s%s' \
+    "$_UK_WG_DYN_ROW" "$_UK_WG_LEFT" \
+    "$UK_C_BRIGHT_CYAN" "$v" \
+    "$pad_l" '' \
+    "${UK_C_YELLOW}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" \
+    "$pad_r" '' \
+    "$v" \
+    "$UK_C_RESET"
+
+  # Park the cursor safely below the box so any accidental echo stays out
+  # of the frame.
+  printf '\033[%d;1H' "$(( _UK_WG_TOP + 12 ))"
+}
+
+# Internal — pad `text` to `inner` visible columns and wrap it in the box's
+# vertical bars, applying the requested colour style.
+_uk_center_line() {
+  local text="$1" inner="$2" v="$3" style="$4"
+  local vis pad_l pad_r styled
+  vis="$(uk_visible_len "$text")"
+  (( vis > inner )) && vis=$inner
+  pad_l=$(( (inner - vis) / 2 ))
+  pad_r=$(( inner - vis - pad_l ))
+
+  case "$style" in
+  bold_cyan) styled="${UK_C_BOLD}${UK_C_BRIGHT_CYAN}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  bold)      styled="${UK_C_BOLD}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  dim)       styled="${UK_C_DIM}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  arrow)     styled="${UK_C_YELLOW}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  *)         styled="${text}" ;;
+  esac
+
+  printf '%s%*s%s%*s%s' "$v" "$pad_l" '' "$styled" "$pad_r" '' "$v"
+}
