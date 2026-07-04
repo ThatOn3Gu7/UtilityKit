@@ -1,0 +1,6 @@
+.env*
+config.js
+.claude/
+*.bak
+*.tmp
+*.swp
