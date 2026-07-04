@@ -83,6 +83,21 @@ UK_REGISTRY=(
   "license_helper|license|◆|UK_C_MAGENTA|License Helper|detect or generate simple license text|1"
   "todo_manager|todo|☑|UK_C_BRIGHT_CYAN|Todo Manager|plain-text tasks with tags and search|1"
   "update_managers|update|↥|UK_C_BRIGHT_GREEN|Update Managers|detect and update every package manager found|1"
+  "qr_tool|qr|▦|UK_C_BRIGHT_MAGENTA|QR Tool|encode text/URL/Wi-Fi/vCard, decode images|1"
+  "clipboard_history|clipboard|✂|UK_C_BRIGHT_CYAN|Clipboard History|persistent clipboard log with pins & search|1"
+  "secret_scan|secret|⚑|UK_C_RED|Secret Scan|find leaked credentials via regex + entropy|1"
+  "dns_probe|dns|◈|UK_C_BRIGHT_BLUE|DNS Probe|multi-resolver DNS queries & propagation checks|1"
+  "ip_info|ipinfo|◉|UK_C_YELLOW|IP Info|public/local IP, ASN, GeoIP, WHOIS lookup|1"
+  "regex_lab|regex|⚑|UK_C_BRIGHT_MAGENTA|Regex Lab|live regex tester with match & substitution preview|1"
+  "uuid_gen|uuid|◈|UK_C_BRIGHT_BLUE|UUID Gen|generate UUID v4/v7, ULID, NanoID, short IDs|1"
+  "time_convert|time|◷|UK_C_GREEN|Time Convert|epoch ↔ ISO 8601 ↔ human, cron analyzer|1"
+  "http_bench|bench|▤|UK_C_YELLOW|HTTP Bench|HTTP benchmark with p50/p95/p99 & RPS stats|1"
+  "yaml_toolkit|yaml|▦|UK_C_CYAN|YAML Toolkit|lint, convert, query, and merge YAML files|1"
+  "pdf_toolkit|pdf|▣|UK_C_MAGENTA|PDF Toolkit|count pages, info, merge, split, extract text from PDFs|1"
+  "image_tool|image|▣|UK_C_BRIGHT_MAGENTA|Image Tool|resize, convert, strip EXIF, optimize images|1"
+  "file_watcher|fwatch|◉|UK_C_CYAN|File Watcher|run command on file change with glob patterns|1"
+  "ssh_tunnel|tunnel|⇄|UK_C_CYAN|SSH Tunnel|create, list, kill, restart persistent SSH port-forwards|1"
+  "git_hooks|hooks|⚙|UK_C_GREEN|Git Hooks|install, remove, list, show git hook templates|1"
 )
 
 # Derive the lazy-loader path map from the registry (never hand-maintained now).
@@ -915,7 +930,7 @@ run_tool() {
     uk_load link_checker
     ([[ $# -gt 0 ]] && lc_main "$@" || run_new_utility_wizard links)
     ;;
-  log-inspect | log-inspector)
+  logs | log-inspect | log-inspector)
     uk_load log_inspector
     ([[ $# -gt 0 ]] && li_main "$@" || run_new_utility_wizard log-inspect)
     ;;
@@ -960,6 +975,66 @@ run_tool() {
     # With args, pass straight through (e.g. --list, --dry-run, --only apt,brew).
     # With no args, launch the tool's own rich interactive menu.
     (um_main "$@")
+    ;;
+  qr | qr-tool)
+    uk_load qr_tool
+    ([[ $# -gt 0 ]] && qr_main "$@" || qr_wizard)
+    ;;
+  clipboard | clipboard-history | clip)
+    uk_load clipboard_history
+    ([[ $# -gt 0 ]] && ch_main "$@" || ch_wizard)
+    ;;
+  secret | secret-scan | secrets)
+    uk_load secret_scan
+    ([[ $# -gt 0 ]] && sec_main "$@" || sec_wizard)
+    ;;
+  dns | dns-probe)
+    uk_load dns_probe
+    ([[ $# -gt 0 ]] && dp_main "$@" || dp_wizard)
+    ;;
+  ipinfo | ip-info | ip)
+    uk_load ip_info
+    ([[ $# -gt 0 ]] && ii_main "$@" || ii_wizard)
+    ;;
+  regex | regex-lab)
+    uk_load regex_lab
+    ([[ $# -gt 0 ]] && rl_main "$@" || rl_wizard)
+    ;;
+  uuid | uuid-gen)
+    uk_load uuid_gen
+    ([[ $# -gt 0 ]] && ug_main "$@" || ug_wizard)
+    ;;
+  time | time-convert | epoch)
+    uk_load time_convert
+    ([[ $# -gt 0 ]] && tc_main "$@" || tc_wizard)
+    ;;
+  bench | http-bench)
+    uk_load http_bench
+    ([[ $# -gt 0 ]] && hb_main "$@" || hb_wizard)
+    ;;
+  yaml | yaml-toolkit)
+    uk_load yaml_toolkit
+    ([[ $# -gt 0 ]] && yt_main "$@" || yt_wizard)
+    ;;
+  pdf | pdf-toolkit)
+    uk_load pdf_toolkit
+    ([[ $# -gt 0 ]] && pt_main "$@" || pt_wizard)
+    ;;
+  image | image-tool)
+    uk_load image_tool
+    ([[ $# -gt 0 ]] && it_main "$@" || it_wizard)
+    ;;
+  fwatch | file-watcher)
+    uk_load file_watcher
+    ([[ $# -gt 0 ]] && fw_main "$@" || fw_wizard)
+    ;;
+  tunnel | ssh-tunnel)
+    uk_load ssh_tunnel
+    ([[ $# -gt 0 ]] && st_main "$@" || st_wizard)
+    ;;
+  hooks | git-hooks)
+    uk_load git_hooks
+    ([[ $# -gt 0 ]] && gh_main "$@" || gh_wizard)
     ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
   help | --help | -h) uk_main_show_help ;;
@@ -1109,7 +1184,8 @@ New utility commands:
   network, cron, dotenv, disk-health, service, git-stats, backup,
   weather, json, tmux, font, toolbox, search, github, links, log-inspect,
   csv, hash, archive, snapshot, open-files, battery, release, license, todo,
-  update
+  update, qr, clipboard, secret, dns, ipinfo, regex, uuid, time, bench, yaml,
+  pdf, image, fwatch, tunnel, hooks
 
 Maintenance:
   doctor     Run integrity checks on the tool registry and installation
