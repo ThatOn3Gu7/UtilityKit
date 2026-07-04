@@ -16,8 +16,8 @@ pk_memory_summary() {
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if uk_has_cmd free; then
     local total used swap_total swap_used
-    read -r _ total used _ < <(free -m | awk '/^Mem:/ {print ${1:-}, ${2:-}, ${3:-}, ${4:-}}')
-    read -r _ swap_total swap_used _ < <(free -m | awk '/^Swap:/ {print ${1:-}, ${2:-}, ${3:-}, ${4:-}}')
+    read -r _ total used _ < <(free -m | awk '/^Mem:/ {print $1, $2, $3, $4}')
+    read -r _ swap_total swap_used _ < <(free -m | awk '/^Swap:/ {print $1, $2, $3, $4}')
     printf '  %sRAM %s   %s%s MB%s / %s MB  %s\n' \
       "$UK_C_BOLD" "$UK_C_RESET" \
       "$UK_C_GREEN" "$used" "$UK_C_RESET" "$total" \

@@ -43,11 +43,11 @@ if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success:
 if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 _df_hash() {
   if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "${1:-}" | awk '{print ${1:-}}'
+    sha256sum "${1:-}" | awk '{print $1}'
   elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "${1:-}" | awk '{print ${1:-}}'
+    shasum -a 256 "${1:-}" | awk '{print $1}'
   elif command -v md5sum >/dev/null 2>&1; then
-    md5sum "${1:-}" | awk '{print ${1:-}}'
+    md5sum "${1:-}" | awk '{print $1}'
   elif command -v md5 >/dev/null 2>&1; then
     md5 -q "${1:-}" 2>/dev/null || md5 "${1:-}" | awk '{print $NF}'
   else

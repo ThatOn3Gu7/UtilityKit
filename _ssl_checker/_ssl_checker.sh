@@ -104,9 +104,9 @@ sc_main() {
     return 1
   }
   printf '%s\n' "$cert_info" | sed 's/^/  /'
-  expiry=$(printf '%s\n' "$cert_info" | awk -F= '/notAfter/ {print ${2:-}}')
-  subject=$(printf '%s\n' "$cert_info" | awk -F= '/subject=/ {${1:-}=""; sub(/^ /,""); print}')
-  issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {${1:-}=""; sub(/^ /,""); print}')
+  expiry=$(printf '%s\n' "$cert_info" | awk -F= '/notAfter/ {print $2}')
+  subject=$(printf '%s\n' "$cert_info" | awk -F= '/subject=/ {$1=""; sub(/^ /,""); print}')
+  issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {$1=""; sub(/^ /,""); print}')
   days=$(sc_days_left "$expiry")
   printf '\nSubject: %s\nIssuer : %s\nDays left: %s\n' "$subject" "$issuer" "$days"
   ((days < 0)) && uk_error 'Certificate is expired.' || ((days < 30)) && uk_warn 'Certificate expires in less than 30 days.' || uk_success 'Certificate lifetime looks healthy.'

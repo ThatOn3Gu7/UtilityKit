@@ -180,7 +180,7 @@ acquire_lock() {
 
   local target_hash temp_base
   temp_base="$(get_temp_dir)"
-  target_hash=$(printf '%s' "$TARGET_DIR" | md5sum | awk '{print ${1:-}}' 2>/dev/null || echo "default")
+  target_hash=$(printf '%s' "$TARGET_DIR" | md5sum | awk '{print $1}' 2>/dev/null || echo "default")
   LOCK_DIR="$temp_base/.apply_sync_lock_${UID:-0}_${target_hash}"
 
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -220,18 +220,18 @@ check_disk_space() {
   info "Performing pre-flight disk space safety check..."
 
   local src_size_kb avail_dst_kb avail_bak_kb req_bak_kb req_dst_kb
-  src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print ${1:-}}' || echo 0)
+  src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}' || echo 0)
 
   local target_size_kb
-  target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print ${1:-}}' || echo 0)
+  target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print $1}' || echo 0)
 
   # Buffer: 1x target size + 20MB safety margin for backup archive
   req_bak_kb=$((target_size_kb + 20480))
   # Buffer: source changed size + 20MB safety margin for target copying
   req_dst_kb=$((src_size_kb + 20480))
 
-  avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print ${4:-}}' || echo 999999999)
-  avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print ${4:-}}' || echo 999999999)
+  avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
+  avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
 
   if [[ "$avail_bak_kb" =~ ^[0-9]+$ && "$avail_bak_kb" -lt "$req_bak_kb" ]]; then
     warn "Low available disk space on backup partition '$backup_dir'!"
@@ -476,7 +476,7 @@ print_change_summary() {
   info "Detected ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$CHANGE_COUNT${AC_R} change(s). Summary:"
   while IFS=$'\t' read -r kind cnt; do
     printf '  %s  %s\n' "$(kind_label "$kind")" "$cnt"
-  done < <(awk -F '\t' '{ count[${1:-}]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
+  done < <(awk -F '\t' '{ count[$1]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
   printf '\n'
   info "Change preview (first $MAX_PREVIEW line(s)):"
   while IFS=$'\t' read -r kind rel; do
