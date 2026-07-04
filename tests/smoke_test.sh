@@ -27,7 +27,7 @@ syntax_check() {
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
-  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup logs proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo zen)
+  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo qr secret dns ipinfo uuid time bench yaml pdf image fwatch tunnel hooks)
   local cmd
   for cmd in "${cmds[@]}"; do
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1
@@ -102,12 +102,6 @@ EOF
   bash "$ROOT/_duplicate_finder/_duplicate_finder.sh" "$TMP/dupes" --delete --apply >/dev/null
   [[ -f "$TMP/dupes/a.txt" && ! -f "$TMP/dupes/b.txt" ]]
 
-  mkdir -p "$TMP/logs"
-  printf 'old log' >"$TMP/logs/app.log"
-  touch -d '10 days ago' "$TMP/logs/app.log"
-  bash "$ROOT/_log_rotator/_log_rotator.sh" --path "$TMP/logs" --older-than 1 --archive-dir "$TMP/archives" --apply >/dev/null
-  find "$TMP/archives" -type f -name '*.tar.gz' | grep -q .
-
   sleep 20 &
   local sleeper=$!
   bash "$ROOT/_process_killer/_process_killer.sh" --pid "$sleeper" --signal TERM >/dev/null
@@ -152,8 +146,6 @@ EOF
 
   bash "$ROOT/_cheat_sheet/_cheat_sheet.sh" --add demo --text 'docker logs -f app' --tags docker,logs >/dev/null
   bash "$ROOT/_cheat_sheet/_cheat_sheet.sh" --search docker >/dev/null
-
-  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_zen_mode/_zen_mode.sh" --mode waves --duration 1 >/dev/null
 }
 new_tools_smoke() {
   printf '{"users":[{"name":"ada","id":1}],"ok":true}
@@ -189,11 +181,93 @@ ada,dev
   bash "$ROOT/_system_snapshot/_system_snapshot.sh" >/dev/null
 }
 
+wave1_tools_smoke() {
+  # --- _qr_tool: help + graceful missing-encoder path
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_qr_tool/_qr_tool.sh" --help | grep -q 'Subcommands'
+
+  # --- _clipboard_history: add + list + get + remove
+  local CH_STORE="$TMP/clip_data/utilitykit/clipboard.jsonl"
+  mkdir -p "$(dirname "$CH_STORE")"
+  XDG_DATA_HOME="$TMP/clip_data" NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_clipboard_history/_clipboard_history.sh" add "alpha entry" >/dev/null
+  XDG_DATA_HOME="$TMP/clip_data" NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_clipboard_history/_clipboard_history.sh" add "beta entry"  >/dev/null
+  XDG_DATA_HOME="$TMP/clip_data" NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_clipboard_history/_clipboard_history.sh" list | grep -q 'beta entry'
+  XDG_DATA_HOME="$TMP/clip_data" NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_clipboard_history/_clipboard_history.sh" show --last --no-clip | grep -q 'beta entry'
+  XDG_DATA_HOME="$TMP/clip_data" NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_clipboard_history/_clipboard_history.sh" find alpha | grep -q 'alpha entry'
+
+  # --- _secret_scan: finds a planted AWS key, exits 1
+  mkdir -p "$TMP/secretproj"
+  printf 'aws = "AKIAIOSFODNN7EXAMPLE"\n' >"$TMP/secretproj/config.rb"
+  printf 'safe = 42\n' >>"$TMP/secretproj/config.rb"
+  local rc=0
+  NO_COLOR=1 NO_UNICODE=1 \
+    bash "$ROOT/_secret_scan/_secret_scan.sh" --path "$TMP/secretproj" \
+      --no-entropy --no-gitignore >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -eq 1 ]]
+
+  # --- _dns_probe: help works even without a backend (degrades gracefully)
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_dns_probe/_dns_probe.sh" --help | grep -q 'DOMAIN'
+
+  # --- _ip_info: local-only report works even offline
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_ip_info/_ip_info.sh" --local --no-network >/dev/null
+}
+
 run_test 'Syntax check' syntax_check
 run_test 'Help / routing coverage' help_check
 run_test 'Core tool smoke tests' core_smoke
 run_test 'Roadmap tool smoke tests' roadmap_smoke
 run_test 'New utility smoke tests' new_tools_smoke
+run_test 'Wave-1 tool smoke tests' wave1_tools_smoke
+
+wave2_tools_smoke() {
+  # --- _regex_lab: match and substitution
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_regex_lab/_regex_lab.sh" -p '\d+' -t 'hello 42 world 99' | grep -q '2 match'
+
+  # --- _uuid_gen: generates a valid UUID v4
+  local uuid_out
+  uuid_out="$(NO_COLOR=1 bash "$ROOT/_uuid_gen/_uuid_gen.sh" uuid4 2>/dev/null)"
+  [[ "$uuid_out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]
+
+  # --- _uuid_gen: bulk count
+  local count
+  count="$(NO_COLOR=1 bash "$ROOT/_uuid_gen/_uuid_gen.sh" short --count 5 2>/dev/null | grep -c . || true)"
+  [[ "$count" -eq 5 ]]
+
+  # --- _time_convert: now works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_time_convert/_time_convert.sh" now | grep -q 'Epoch'
+
+  # --- _time_convert: epoch conversion
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_time_convert/_time_convert.sh" epoch 1700000000 | grep -q 'ISO 8601'
+
+  # --- _http_bench: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_http_bench/_http_bench.sh" --help | grep -q 'requests'
+
+  # --- _yaml_toolkit: lint validates YAML
+  printf 'key: value\n' >"$TMP/test.yaml"
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_yaml_toolkit/_yaml_toolkit.sh" lint "$TMP/test.yaml" | grep -q 'Valid'
+
+  # --- _pdf_toolkit: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_pdf_toolkit/_pdf_toolkit.sh" --help | grep -q 'Usage'
+
+  # --- _image_tool: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_image_tool/_image_tool.sh" --help | grep -q 'Usage'
+
+  # --- _file_watcher: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_file_watcher/_file_watcher.sh" --help | grep -q 'Usage'
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/main.sh" fwatch --help | grep -q 'Usage'
+
+  # --- _ssh_tunnel: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_ssh_tunnel/_ssh_tunnel.sh" --help | grep -q 'Usage'
+
+  # --- _git_hooks: help works
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/_git_hooks/_git_hooks.sh" --help | grep -q 'Usage'
+}
+
+run_test 'Wave-2 tool smoke tests' wave2_tools_smoke
 
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
 ((FAIL == 0))

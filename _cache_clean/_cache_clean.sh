@@ -191,7 +191,7 @@ cc_term_cols() {
   fi
   if command -v stty >/dev/null 2>&1; then
     local cols
-    cols=$(stty size 2>/dev/null | awk '{print ${2:-}}' || true)
+    cols=$(stty size 2>/dev/null | awk '{print $2}' || true)
     if [ -n "$cols" ]; then
       printf '%s\n' "$cols"
       return 0
@@ -294,7 +294,7 @@ cc_file_size() {
   fi
   wc -c <"${1:-}" 2>/dev/null || echo 0
 }
-cc_du_kb() { du -sk -- "${1:-}" 2>/dev/null | awk '{print ${1:-}}' || echo 0; }
+cc_du_kb() { du -sk -- "${1:-}" 2>/dev/null | awk '{print $1}' || echo 0; }
 cc_find_old() { find "${1:-}" -type f -mtime +"${2:-}" 2>/dev/null; }
 cc_find_partial() { find "${1:-}" -type f \( -empty -o -name '*.tmp' -o -name '*.part' -o -name '*.download' -o -name '*.incomplete' \) 2>/dev/null; }
 cc_emit_tot() { printf 'TOT|%s|%s\n' "${1:-}" "${2:-}"; }

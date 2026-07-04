@@ -13,7 +13,7 @@ USAGE
 am_check_archive_paths() {
   local archive="${1:-}" entries
   case "$archive" in
-  *.zip) entries="$(unzip -Z1 "$archive" 2>/dev/null || unzip -l "$archive" 2>/dev/null | awk 'NR>3{print ${4:-}}')" ;;
+  *.zip) entries="$(unzip -Z1 "$archive" 2>/dev/null || unzip -l "$archive" 2>/dev/null | awk 'NR>3{print $4}')" ;;
   *) entries="$(tar -tf "$archive")" ;;
   esac
   printf '%s\n' "$entries" | awk 'length($0) && ($0 ~ /^\// || $0 ~ /^\.\.\// || $0 ~ /\.\.\//) {print; bad=1} END{exit bad?1:0}'

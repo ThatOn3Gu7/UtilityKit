@@ -62,7 +62,7 @@ dh_main() {
   if [[ -z "$dev" && "$action" != 'list' ]]; then
     # Try to get first non‑removable disk
     local detected
-    detected=$(smartctl --scan 2>/dev/null | head -1 | awk '{print ${1:-}}')
+    detected=$(smartctl --scan 2>/dev/null | head -1 | awk '{print $1}')
     if [[ -n "$detected" ]]; then
       dev="$detected"
       uk_note "Auto‑detected device: $dev"

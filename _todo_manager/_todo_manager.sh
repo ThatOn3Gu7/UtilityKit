@@ -55,7 +55,7 @@ td_main() {
       uk_error 'Todo ID must be a positive integer.'
       return 1
     fi
-    awk -v n="$id" 'BEGIN{FS=OFS="\t"} NR==n{${1:-}="done"} {print}' "$f" >"$f.tmp" \
+    awk -v n="$id" 'BEGIN{FS=OFS="\t"} NR==n{$1="done"} {print}' "$f" >"$f.tmp" \
       && mv "$f.tmp" "$f" || { rm -f "$f.tmp"; return 1; }
     uk_success "Marked item $id as done."
     ;;
