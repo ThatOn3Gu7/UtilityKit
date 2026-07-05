@@ -370,8 +370,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v4.2.0** — current — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
-**v4.1.2** — previous  
+**v4.2.1** — current — fix awk field expansion in process_killer, fix ssh_tunnel wizard routing, color-var inheritance for tmux/weather/update_managers  
+**v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  
 **v4.0.0** — initial unified suite: 18 roadmap tools + shared library + smoke suite  
