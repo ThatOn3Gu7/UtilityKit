@@ -1,0 +1,287 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NO_COLOR: "1"
+  NO_UNICODE: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Static analysis: shellcheck (error severity), portability grep
+  # ---------------------------------------------------------------------------
+  lint:
+    name: ShellCheck (errors)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: shellcheck --version
+        run: shellcheck --version
+
+      - name: Run shellcheck (severity=error) on every *.sh
+        shell: bash
+        run: |
+          set -e
+          fail=0
+          total=0
+          while IFS= read -r -d '' f; do
+            total=$((total + 1))
+            if ! shellcheck -S error -e SC1091 "$f"; then
+              fail=$((fail + 1))
+            fi
+          done < <(find . -type f -name '*.sh' -not -path './.git/*' -print0)
+          printf 'shellcheck: checked=%d failures=%d\n' "$total" "$fail"
+          exit "$fail"
+
+  # ---------------------------------------------------------------------------
+  # 2. bash -n syntax verification across Linux + macOS
+  # ---------------------------------------------------------------------------
+  syntax:
+    name: Syntax (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install modern bash (macOS)
+        if: runner.os == 'macOS'
+        run: brew install bash
+
+      - name: Report bash version
+        shell: bash
+        run: bash --version | head -1
+
+      - name: bash -n on every *.sh
+        shell: bash
+        run: |
+          set -e
+          count=0
+          while IFS= read -r -d '' f; do
+            bash -n "$f"
+            count=$((count + 1))
+          done < <(find . -type f -name '*.sh' -not -path './.git/*' -print0)
+          printf 'syntax-checked=%d\n' "$count"
+
+  # ---------------------------------------------------------------------------
+  # 3. Smoke suite on Linux + macOS
+  # ---------------------------------------------------------------------------
+  smoke:
+    name: Smoke (${{ matrix.os }})
+    needs: [syntax]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep python3 curl jq zip unzip file
+
+      - name: Install prereqs (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install bash ripgrep coreutils gnu-sed jq
+
+      - name: Run tests/smoke_test.sh
+        shell: bash
+        run: bash tests/smoke_test.sh
+
+  # ---------------------------------------------------------------------------
+  # 4. Deep review test suite (behavioral audits)
+  # ---------------------------------------------------------------------------
+  deep-review:
+    name: Deep review
+    needs: [syntax]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: sudo apt-get update && sudo apt-get install -y ripgrep python3 curl
+
+      - name: Run tests/deep_review_test.sh
+        shell: bash
+        run: bash tests/deep_review_test.sh
+
+  # ---------------------------------------------------------------------------
+  # 5. Router route coverage (every case-branch reachable via --help)
+  # ---------------------------------------------------------------------------
+  route-coverage:
+    name: Route --help coverage
+    needs: [syntax]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: main.sh help
+        shell: bash
+        run: bash main.sh help >/dev/null
+
+      - name: Every registered route responds to --help
+        shell: bash
+        run: |
+          set -e
+          # Same list as tests/smoke_test.sh's help_check
+          cmds=(apply rename move cacheclean symlink disk env git docker scaffold
+                dup proc port ssl api pass ssh shred media toc pomodoro cheat
+                network cron dotenv disk-health service git-stats backup clipboard
+                weather json tmux font toolbox search github links log-inspect csv
+                hash archive snapshot open-files battery release license regex todo
+                qr secret dns ipinfo uuid time bench yaml pdf image fwatch tunnel
+                hooks)
+          for cmd in "${cmds[@]}"; do
+            printf '== %s --help ==\n' "$cmd"
+            bash main.sh "$cmd" --help >/dev/null
+          done
+          printf 'route-coverage: %d routes verified\n' "${#cmds[@]}"
+
+  # ---------------------------------------------------------------------------
+  # 6. Every standalone tool responds to --help (BASH_SOURCE guard sanity)
+  # ---------------------------------------------------------------------------
+  standalone-tools:
+    name: Standalone tool --help
+    needs: [syntax]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Every _<tool>/_<tool>.sh --help
+        shell: bash
+        run: |
+          set -e
+          fail=0
+          ok=0
+          for d in _*/; do
+            tool="${d%/}"
+            f="$d${tool}.sh"
+            [[ -f "$f" ]] || continue
+            if bash "$f" --help >/dev/null 2>&1; then
+              ok=$((ok + 1))
+            else
+              printf 'FAIL: %s --help\n' "$tool" >&2
+              fail=$((fail + 1))
+            fi
+          done
+          printf 'standalone: ok=%d fail=%d\n' "$ok" "$fail"
+          exit "$fail"
+
+  # ---------------------------------------------------------------------------
+  # 7. NO_COLOR / NO_UNICODE audit — smoke tests must still pass stripped down
+  # ---------------------------------------------------------------------------
+  no-color:
+    name: NO_COLOR + NO_UNICODE smoke
+    needs: [syntax]
+    runs-on: ubuntu-latest
+    env:
+      NO_COLOR: "1"
+      NO_UNICODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: sudo apt-get update && sudo apt-get install -y ripgrep python3 curl jq zip unzip file
+
+      - name: Smoke suite (color/unicode disabled)
+        shell: bash
+        run: bash tests/smoke_test.sh
+
+  # ---------------------------------------------------------------------------
+  # 8. Installer smoke — setup.sh --no-menu installs a launcher that works
+  # ---------------------------------------------------------------------------
+  installer:
+    name: Installer smoke
+    needs: [syntax]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup.sh --no-menu writes a launcher
+        shell: bash
+        run: |
+          set -e
+          bash setup.sh --no-menu \
+            --install-dir "$RUNNER_TEMP/uk" \
+            --bin-dir "$RUNNER_TEMP/uk-bin" \
+            --launcher-name utility \
+            --no-path
+          test -x "$RUNNER_TEMP/uk-bin/utility"
+
+      - name: Launcher can list all routes
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/uk-bin/utility" help >/dev/null
+
+  # ---------------------------------------------------------------------------
+  # 9. Secret scan (gitleaks)
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # 10. Summary gate — fails the workflow if any dependency failed
+  # ---------------------------------------------------------------------------
+  ci-summary:
+    name: CI Summary
+    if: always()
+    needs:
+      - lint
+      - syntax
+      - smoke
+      - deep-review
+      - route-coverage
+      - standalone-tools
+      - no-color
+      - installer
+      - secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any prior job failed or was cancelled
+        shell: bash
+        run: |
+          set -e
+          results='${{ toJSON(needs) }}'
+          printf '%s\n' "$results"
+          if printf '%s' "$results" | grep -Eq '"result":[[:space:]]*"(failure|cancelled)"'; then
+            printf 'CI Summary: at least one job did not succeed\n' >&2
+            exit 1
+          fi
+          printf 'CI Summary: all jobs succeeded\n'

@@ -1,0 +1,47 @@
+name: Bug report
+description: A tool or the router misbehaves
+labels: [bug]
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Affected tool
+      description: Which tool key (e.g. port-inspector, cacheclean, weather)?
+      placeholder: cacheclean
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Termux (Android)
+        - Linux
+        - macOS
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Exact commands and expected vs. actual behavior.
+      render: shell
+      placeholder: |
+        bash main.sh <cmd> ...
+        # expected: ...
+        # got: ...
+    validations:
+      required: true
+  - type: textarea
+    id: smoke
+    attributes:
+      label: Smoke suite output
+      description: Paste the final `PASS=N FAIL=M` line from `bash tests/smoke_test.sh`.
+      render: text
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: bash --version, OS, relevant tool versions.
+      render: text

@@ -1,0 +1,33 @@
+name: Feature request
+description: A new tool or an enhancement to an existing one
+labels: [enhancement]
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      description: Existing tool key, or "new" for a proposal.
+      placeholder: new
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this solve? Who benefits?
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Sketch
+      description: CLI shape, wizard flow, or example commands.
+      render: shell
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Cross-platform (Termux + Linux + macOS)
+        - label: Read-only / no destructive default
+        - label: Respects NO_COLOR and NO_UNICODE

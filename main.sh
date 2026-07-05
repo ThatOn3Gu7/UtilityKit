@@ -689,7 +689,8 @@ run_new_utility_wizard() {
   github) (ghh_main --status) ;;
   hash)
     local paths
-    paths="$(uk_prompt 'Files/directories to hash, separated by spaces' 'README.md' './README.md' 'Directories are traversed recursively.')" # shellcheck disable=SC2206
+    paths="$(uk_prompt 'Files/directories to hash, separated by spaces' 'README.md' './README.md' 'Directories are traversed recursively.')"
+    # shellcheck disable=SC2206
     local arr=($paths)
     (ht_main "${arr[@]}")
     ;;
@@ -703,7 +704,8 @@ run_new_utility_wizard() {
       ;;
     create)
       out="$(uk_prompt 'Output archive path' './archive.tar.gz' './backup.tar.gz' 'Use .zip only if zip is installed.')"
-      paths="$(uk_prompt 'Input paths separated by spaces' '.' './src README.md' 'These paths are added to the archive.')" # shellcheck disable=SC2206
+      paths="$(uk_prompt 'Input paths separated by spaces' '.' './src README.md' 'These paths are added to the archive.')"
+      # shellcheck disable=SC2206
       local arr=($paths)
       (am_main --create "$(uk_expand_path "$out")" "${arr[@]}")
       ;;
