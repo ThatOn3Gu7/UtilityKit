@@ -36,10 +36,10 @@ pk_top() {
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 |
     awk 'NR==1 {
-      printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", ${1:-}, ${2:-}, ${3:-}, ${4:-}, ${5:-}
+      printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", $1, $2, $3, $4, $5
       next
     }
-    { printf "  %-8s %-12s %-6s %-6s %s\n", ${1:-}, ${2:-}, ${3:-}, ${4:-}, ${5:-} }' ||
+    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }' ||
     ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 | sed 's/^/  /'
 }
 

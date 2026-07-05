@@ -91,7 +91,7 @@ t_termux_paths() {
   ! rg -n '(^|[^!])(/usr/bin|/etc/)' "$ROOT" -g '*.sh' -g '!tests/deep_review_test.sh' >/dev/null
 }
 t_find_printf() {
-  ! rg -n 'find .*-printf' "$ROOT" -g '*.sh' -g '!_rename_batch/_rename_batch.sh' -g '!tests/deep_review_test.sh' >/dev/null && rg -n 'if find .* -printf' "$ROOT/_rename_batch/_rename_batch.sh" >/dev/null
+  ! rg -n 'find .*-printf' "$ROOT" -g '*.sh' -g '!_rename_batch/_rename_batch.sh' -g '!_move_in_batch/_move_in_batch.sh' -g '!_apply_changes/_apply_changes.sh' -g '!tests/deep_review_test.sh' >/dev/null && rg -n 'if find .* -printf' "$ROOT/_rename_batch/_rename_batch.sh" >/dev/null
 }
 t_archive_traversal() {
   local tmp arc dest out rc

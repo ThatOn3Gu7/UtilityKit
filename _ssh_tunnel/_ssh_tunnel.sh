@@ -149,7 +149,8 @@ st_wizard() {
       uk_confirm 'Use autossh?' 'N' && aa+=(--autossh)
       st_main "${aa[@]}" ;;
     list) st_main list ${1:+--json} ;;
-    kill|restart) st_main list; local n; n="$(uk_prompt 'Name or index' '1' '' '')"; st_main "$a" "$n" ;;
+    kill) st_main list; local n; n="$(uk_prompt 'Name or index' '1' '' '')"; st_main kill "$n" ;;
+    restart) st_main list; local n; n="$(uk_prompt 'Name or index' '1' '' '')"; st_main restart "$n" ;;
   esac
 }
 
