@@ -74,6 +74,18 @@
 
 All notable changes to UtilityKit are documented here.
 
+## [4.2.1] - 2026-07-05
+
+### Fixed
+- **process_killer**: Replace `${1:-}` with `$1` in awk printf to fix field
+  expansion producing empty columns in the top-process table.
+- **ssh_tunnel**: Fix the interactive wizard so `kill` and `restart` correctly
+  pass the subcommand to the backend instead of a shared `case` branch.
+- **tmux_session**, **update_managers**, **weather**: Use `${VAR:=value}` default
+  syntax for color variables so parent-shell values are not clobbered.
+- **deep_review_test**: Add `_move_in_batch` and `_apply_changes` exclusions to
+  the `find -printf` portability check.
+
 ## [4.1.1] - 2026-06-19
 
 ### Fixed
