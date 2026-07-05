@@ -32,7 +32,7 @@ TEMP_DIR=""
 # UI State
 USE_COLOR=0
 USE_UNICODE=0
-C_RESET="" C_BOLD="" C_DIM="" C_RED="" C_GREEN="" C_YELLOW="" C_BLUE="" C_MAGENTA="" C_CYAN="" C_GRAY=""
+: "${C_RESET:=}" "${C_BOLD:=}" "${C_DIM:=}" "${C_RED:=}" "${C_GREEN:=}" "${C_YELLOW:=}" "${C_BLUE:=}" "${C_MAGENTA:=}" "${C_CYAN:=}" "${C_GRAY:=}"
 SYM_OK="OK" SYM_FAIL="!!" SYM_WARN="!!" SYM_INFO="ii" SYM_RUN=">>" SYM_SKIP="--" SYM_PKG="[]" SYM_SPIN='|/-\\'
 
 # ----------------------------- Storage Arrays -------------------------------

@@ -13,14 +13,9 @@ if ! declare -F uk_has_cmd &>/dev/null; then
   uk_has_cmd() { command -v "${1:-}" &>/dev/null; }
 fi
 
-# Modern Premium Color Palette
-C_DARK_GRAY="\033[90m"
-C_CYAN="\033[38;5;81m"
-C_GREEN="\033[38;5;120m"
-C_RED="\033[38;5;203m"
-C_WHITE="\033[97m"
-C_BOLD="\033[1m"
-C_RESET="\033[0m"
+# Modern Premium Color Palette (only set if not already provided by a parent shell)
+: "${C_DARK_GRAY:=\033[90m}" "${C_CYAN:=\033[38;5;81m}" "${C_GREEN:=\033[38;5;120m}" \
+  "${C_RED:=\033[38;5;203m}" "${C_WHITE:=\033[97m}" "${C_BOLD:=\033[1m}" "${C_RESET:=\033[0m}"
 
 # Aesthetic UI Glyphs
 GLYPH_ACTIVE="●"
