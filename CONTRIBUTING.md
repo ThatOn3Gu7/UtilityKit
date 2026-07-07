@@ -66,5 +66,15 @@ Always implement plain ASCII fallbacks for non-Unicode compatible environments o
    - Add an interactive wizard helper (`run_tool_name_wizard()`).
    - Add an option to the interactive dashboard menu loop and direct CLI routing.
 5. **Update `setup.sh`** to ensure your new subdirectory is included in the installation loop.
-6. **Commit beautifully** with semantic commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`).
-7. **Submit your Pull Request!** 🚀
+6. **Verify locally before pushing:**
+   ```bash
+   bash tests/smoke_test.sh        # PASS=N FAIL=0
+   bash tests/deep_review_test.sh  # PASS=N FAIL=0
+   shellcheck -S error _<tool>/_<tool>.sh
+   ```
+7. **Commit beautifully** with semantic commit prefixes (`feat(tool):`, `fix(tool):`, `docs:`, `refactor:`).
+8. **Submit your Pull Request!** The `.github/workflows/ci.yml` pipeline
+   runs ten jobs (shellcheck, syntax on Ubuntu + macOS, smoke on Ubuntu +
+   macOS, deep review, route coverage, standalone `--help` sweep, NO_COLOR
+   audit, installer smoke, gitleaks). Any red job blocks merge — fix locally
+   and push again rather than skipping checks.

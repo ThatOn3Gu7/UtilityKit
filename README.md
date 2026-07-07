@@ -15,6 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg?style=flat-square)](LICENSE)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
+[![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%204%2F4-brightgreen?style=flat-square)](#testing)
 [![Version](https://img.shields.io/badge/Version-2.0.2-orange?style=flat-square)](CHANGES.md)
 
@@ -299,6 +300,32 @@ The suite covers:
 - **New utility smoke** — JSON path extraction, link checking, CSV column inspection, hash generation, git stats, backup sync, license generation, toolbox audit, font glyph check, system snapshot
 - **Update Managers smoke** — `update --list` and a full `update --yes --dry-run`
 - **Doctor / registry integrity** — `main.sh doctor --quick` validates the tool registry against the filesystem and dispatch
+
+A deeper behavioral audit lives in `tests/deep_review_test.sh` (password
+entropy, weather URL encoding, license detection, todo state, archive
+traversal rejection, cron validation, duplicate scan, portability audits).
+
+### Continuous Integration
+
+Every push and pull request against `master`/`main` runs
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), which gates ten
+independent jobs before merge:
+
+| Job | What it checks |
+|---|---|
+| `lint` | `shellcheck -S error` across every `*.sh` |
+| `syntax` | `bash -n` matrix on Ubuntu and macOS |
+| `smoke` | `tests/smoke_test.sh` matrix on Ubuntu and macOS |
+| `deep-review` | `tests/deep_review_test.sh` behavioral audits |
+| `route-coverage` | `bash main.sh <cmd> --help` for every routed command |
+| `standalone-tools` | `bash _<tool>/_<tool>.sh --help` for every tool |
+| `no-color` | Smoke suite with `NO_COLOR=1 NO_UNICODE=1` |
+| `installer` | `bash setup.sh --no-menu` produces a working launcher |
+| `secret-scan` | `gitleaks` on the full history |
+| `ci-summary` | Fails the workflow if any prior job did not succeed |
+
+Dependabot keeps GitHub Actions versions current; PRs are guided by the
+touchpoints/verification checklist in `.github/PULL_REQUEST_TEMPLATE.md`.
 
 ### Registry & `doctor`
 

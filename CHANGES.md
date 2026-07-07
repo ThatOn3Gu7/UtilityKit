@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Added (CI/CD)
+- New `.github/workflows/ci.yml` runs on every push and pull request against
+  `master`/`main`. Ten jobs: `shellcheck -S error` lint, `bash -n` syntax
+  matrix (Ubuntu + macOS), smoke suite matrix (Ubuntu + macOS),
+  `deep_review_test.sh`, router `--help` coverage across all registered
+  commands, standalone `--help` sweep of every `_<tool>/_<tool>.sh`,
+  `NO_COLOR=1 NO_UNICODE=1` smoke pass, installer smoke via
+  `setup.sh --no-menu`, `gitleaks` secret scan, and a summary gate that
+  fails if any upstream job did not succeed.
+- `.github/dependabot.yml` keeps GitHub Actions versions current
+  (weekly, `chore(ci)` commit prefix).
+- `.github/PULL_REQUEST_TEMPLATE.md` bakes in the touchpoints + verification
+  checklist so contributors self-audit before requesting review.
+- `.github/ISSUE_TEMPLATE/bug_report.yml` and `feature_request.yml` give
+  bug reports and feature proposals a consistent structured form.
+
+### Fixed
+- `main.sh`: relocate two misplaced `# shellcheck disable=SC2206` directives
+  above their `local arr=($paths)` statements so the new lint job passes
+  (SC1126: directives must precede the command).
+
 ### Added (Update Managers)
 - New tool `_update_managers` (command `update`, aliases `update-managers`,
   `upgrade`): detects and updates 60+ system/app/language/toolchain package
