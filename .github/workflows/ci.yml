@@ -26,7 +26,7 @@ jobs:
     name: ShellCheck (errors)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
@@ -60,7 +60,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install modern bash (macOS)
         if: runner.os == 'macOS'
@@ -93,7 +93,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install prereqs (Ubuntu)
         if: runner.os == 'Linux'
@@ -118,7 +118,7 @@ jobs:
     needs: [syntax]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install prereqs
         run: sudo apt-get update && sudo apt-get install -y ripgrep python3 curl
@@ -135,7 +135,7 @@ jobs:
     needs: [syntax]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install prereqs
         run: sudo apt-get update && sudo apt-get install -y ripgrep
@@ -170,7 +170,7 @@ jobs:
     needs: [syntax]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install prereqs
         run: sudo apt-get update && sudo apt-get install -y ripgrep
@@ -206,7 +206,7 @@ jobs:
       NO_COLOR: "1"
       NO_UNICODE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install prereqs
         run: sudo apt-get update && sudo apt-get install -y ripgrep python3 curl jq zip unzip file
@@ -223,7 +223,7 @@ jobs:
     needs: [syntax]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: setup.sh --no-menu writes a launcher
         shell: bash
@@ -248,7 +248,7 @@ jobs:
     name: Gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
