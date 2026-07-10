@@ -73,9 +73,9 @@ setup_run_with_spinner() {
   local pid=$!
 
   if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
-    local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
+    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏') i=0
     while kill -0 "$pid" 2>/dev/null; do
-      printf '\r   %s%s%s %s' "$UK_C_CYAN" "${frames:i%${#frames}:1}" "$UK_C_RESET" "$label"
+      printf '\r   %s%s%s %s' "$UK_C_CYAN" "${frames[i%${#frames[@]}]}" "$UK_C_RESET" "$label"
       i=$((i + 1))
       sleep 0.08
     done
@@ -98,9 +98,9 @@ setup_run_with_spinner() {
   fi
 
   if ((status == 0)); then
-    printf '%s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$label"
+    printf '   %s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$label"
   else
-    printf '%s%s%s %s %s(failed, see below)%s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$label" "$UK_C_DIM" "$UK_C_RESET"
+    printf '   %s%s%s %s %s(failed, see below)%s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$label" "$UK_C_DIM" "$UK_C_RESET"
     cat "$logfile" >&2
   fi
   rm -f "$logfile"
