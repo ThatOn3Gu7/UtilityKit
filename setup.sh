@@ -45,7 +45,8 @@ SETUP_STEP_NUM=0
 setup_step() {
   ((INTERACTIVE == 1)) && return 0
   SETUP_STEP_NUM=$((SETUP_STEP_NUM + 1))
-  printf '\n%s[%d/%d]%s %s%s%s\n' \
+  printf '\n  %s%s%s %s[%d/%d]%s %s%s%s\n' \
+    "$UK_C_YELLOW" "$UK_I_STAR" "$UK_C_RESET" \
     "$UK_C_BOLD$UK_C_CYAN" "$SETUP_STEP_NUM" "$SETUP_TOTAL_STEPS" "$UK_C_RESET" \
     "$UK_C_BOLD" "$1" "$UK_C_RESET"
 }
@@ -144,6 +145,7 @@ if ((INTERACTIVE == 0)); then
   setup_detail "Install dir   : $INSTALL_DIR"
   setup_detail "Bin dir       : $BIN_DIR"
   setup_detail "Add to PATH   : $([[ $ADD_TO_PATH -eq 1 ]] && echo yes || echo no)"
+  printf '  %s···%s\n' "$UK_C_DIM" "$UK_C_RESET"
 fi
 
 if ((INTERACTIVE == 1)); then
@@ -240,7 +242,7 @@ fi
 [[ -n "$TEMP_CLONE" ]] && rm -rf "$TEMP_CLONE"
 
 if ((INTERACTIVE == 0)); then
-  printf '\n%s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
+  printf '\n  %s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$(printf '%*s' 52 '' | tr ' ' '═')" "$UK_C_RESET"
 fi
 uk_success "Installed UtilityKit to $INSTALL_DIR"
-printf 'Run: %s%s%s\n' "$UK_C_BOLD" "$LAUNCHER_NAME" "$UK_C_RESET"
+printf '  %s%s %s%s%s\n' "$UK_C_CYAN" "$UK_I_ARROW" "$UK_C_BOLD" "$LAUNCHER_NAME" "$UK_C_RESET"
