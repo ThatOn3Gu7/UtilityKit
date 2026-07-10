@@ -10,21 +10,14 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
 fi
 
 # --- Fallback Functions ---
-if ! declare -f uk_has_cmd >/dev/null 2>&1; then # uk_has_cmd checks whether a command is available in the current environment.
-uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
-if ! declare -f uk_error >/dev/null 2>&1; then # uk_error prints an error message to standard error with an error prefix.
-uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_warn >/dev/null 2>&1; then # uk_warn writes a warning message to standard error.
-uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_info >/dev/null 2>&1; then # uk_info prints an informational message with an `[INF]` prefix.
-uk_info() { printf "[INF] %s\n" "$*"; }; fi
-if ! declare -f uk_success >/dev/null 2>&1; then # uk_success prints a success message prefixed with `[OK]`.
-uk_success() { printf "[OK]  %s\n" "$*"; }; fi
-if ! declare -f uk_note >/dev/null 2>&1; then # uk_note prints a note message prefixed with an arrow.
-uk_note() { printf "-> %s\n" "$*"; }; fi
+if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_info >/dev/null 2>&1; then uk_info() { printf "[INF] %s\n" "$*"; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "[OK]  %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "-> %s\n" "$*"; }; fi
 if ! declare -f uk_banner >/dev/null 2>&1; then uk_banner() { :; }; fi
 if ! declare -f uk_prompt >/dev/null 2>&1; then
-  # uk_prompt prompts for a value and outputs the entered response or its default.
   uk_prompt() {
     local label="${1:-}" default="${2:-}" reply=''
     printf '> %s%s: ' "$label" "${default:+ [$default]}" >&2
@@ -33,7 +26,6 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_confirm >/dev/null 2>&1; then
-  # uk_confirm prompts for confirmation and succeeds when the response begins with “y” or “Y”.
   uk_confirm() {
     local reply=''
     printf '> %s [y/N]: ' "${1:-Confirm?}" >&2
@@ -42,7 +34,6 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_platform >/dev/null 2>&1; then
-  # uk_platform identifies the current operating platform as termux, macos, or linux.
   uk_platform() {
     if [[ -n "${TERMUX_VERSION:-}" ]]; then
       echo termux
@@ -97,7 +88,6 @@ tc_section() {
   tc_hr
 }
 
-# tc_json_escape escapes a string for safe inclusion as a JSON string value.
 tc_json_escape() {
   local s="${1:-}"
   if uk_has_cmd python3; then
@@ -219,13 +209,7 @@ except Exception as e:
   fi
 }
 
-# tc_cmd_epoch formats an epoch value as ISO 8601, RFC 3339, RFC 2822, or human-readable output.
-
-# @param val The epoch value to format; an empty value uses the current epoch time.
-# @param tz The timezone used for formatted output.
-# @param fmt The requested output format.
-# @param as_json Outputs all formats as a JSON object when nonzero.
-# @return 0 on success, or 2 when the epoch value or requested format is invalid.
+# ---- Epoch subcommand ------------------------------------------------------
 
 tc_cmd_epoch() {
   local val="$1" tz="$2" fmt="$3" as_json="$4"
@@ -293,11 +277,7 @@ tc_cmd_epoch() {
   done
 }
 
-# tc_cmd_parse formats a timestamp as Unix epoch seconds and ISO 8601 output, using either human-readable or JSON output. 
-# @param ts The timestamp to parse.
-# @param tz The timezone to apply when parsing the timestamp.
-# @param as_json Whether to emit JSON output.
-# @return 0 on success; 2 if the timestamp cannot be parsed.
+# ---- Parse subcommand ------------------------------------------------------
 
 tc_cmd_parse() {
   local ts="$1" tz="$2" as_json="$3"
@@ -332,7 +312,7 @@ tc_cmd_now() {
   tc_cmd_epoch "$epoch" "$tz" "all" "$as_json"
 }
 
-# tc_cmd_cron calculates upcoming execution times for a cron expression. Outputs the next requested number of fires as formatted text or JSON; requires Python 3 and the `croniter` module.
+# ---- Cron subcommand -------------------------------------------------------
 
 tc_cmd_cron() {
   local expr="$1" count="$2" as_json="$3"
@@ -398,10 +378,7 @@ except Exception as e:
   fi
 }
 
-# tc_cmd_tz lists available timezones or displays information for a specified timezone.
-
-# @param zone The timezone to inspect; an empty value lists available timezones.
-# @param as_json Outputs JSON when nonzero and formatted text otherwise.
+# ---- TZ subcommand ---------------------------------------------------------
 
 tc_cmd_tz() {
   local zone="$1" as_json="$2"
@@ -482,7 +459,7 @@ except Exception as e:
   fi
 }
 
-# tc_cmd_diff computes the absolute difference between two timestamps and outputs the result in human-readable or JSON format.
+# ---- Diff subcommand -------------------------------------------------------
 
 tc_cmd_diff() {
   local ts1="$1" ts2="$2" as_json="$3"
@@ -568,7 +545,7 @@ PYDIFF
   fi
 }
 
-# tc_main parses command-line arguments and dispatches the requested time conversion operation.
+# ---- Main ------------------------------------------------------------------
 
 tc_main() {
   uk_banner "time-convert" "Epoch ↔ ISO 8601 ↔ human; cron schedule analyzer" "" "$@"
@@ -663,7 +640,6 @@ tc_main() {
   esac
 }
 
-# tc_wizard interactively collects time-conversion options and runs the selected operation.
 tc_wizard() {
   uk_banner "time-convert" "Epoch ↔ ISO 8601 ↔ human; cron schedule analyzer" ""
   local sub tz jsonf count

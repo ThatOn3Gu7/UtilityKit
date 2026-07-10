@@ -9,16 +9,11 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
 fi
 
 # --- Fallback functions (standalone use) ---
-if ! declare -f uk_has_cmd >/dev/null 2>&1; then # uk_has_cmd checks whether a command is available on the system.
-uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
-if ! declare -f uk_error >/dev/null 2>&1; then # uk_error reports an error message to standard error.
-uk_error() { printf "\033[31m[ERR]\033[0m %s\n" "$*" >&2; }; fi
-if ! declare -f uk_warn >/dev/null 2>&1; then # uk_warn prints a warning message to standard error.
-uk_warn() { printf "\033[33m[WRN]\033[0m %s\n" "$*" >&2; }; fi
-if ! declare -f uk_success >/dev/null 2>&1; then # uk_success prints a green success message prefixed with "[OK]".
-uk_success() { printf "\033[32m[OK]\033[0m %s\n" "$*"; }; fi
+if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "\033[31m[ERR]\033[0m %s\n" "$*" >&2; }; fi
+if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "\033[33m[WRN]\033[0m %s\n" "$*" >&2; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "\033[32m[OK]\033[0m %s\n" "$*"; }; fi
 if ! declare -f uk_confirm >/dev/null 2>&1; then
-  # uk_confirm prompts for confirmation and returns success when the response begins with `Y` or `y`.
   uk_confirm() {
     local prompt="${1:-Continue?}" default="${2:-N}" reply
     printf "  %s [%s]: " "$prompt" "$([[ "$default" =~ ^[Yy] ]] && echo 'Y/n' || echo 'y/N')" >&2
@@ -28,7 +23,6 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_prompt >/dev/null 2>&1; then
-  # uk_prompt reads a response from standard input using an optional label and default value, then prints the result.
   uk_prompt() {
     local label="${1:-}" default="${2:-}" reply
     printf "  %s" "$label" >&2
@@ -39,24 +33,20 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_section_title >/dev/null 2>&1; then
-  # uk_section_title prints a section heading surrounded by separator lines.
-uk_section_title() { printf "\n--- %s ---\n" "$1"; }
+  uk_section_title() { printf "\n--- %s ---\n" "$1"; }
 fi
 if ! declare -f uk_banner >/dev/null 2>&1; then
-  # uk_banner prints a centered banner heading with the provided title.
-uk_banner() { printf "\n=== %s ===\n" "$2"; }
+  uk_banner() { printf "\n=== %s ===\n" "$2"; }
 fi
-if ! declare -f uk_info >/dev/null 2>&1; then # uk_info prints an informational message.
-uk_info() { printf "\033[36m[i]\033[0m %s\n" "$*"; }; fi
-if ! declare -f uk_note >/dev/null 2>&1; then # uk_note prints an informational message in blue text.
-uk_note() { printf "\033[34m[i]\033[0m %s\n" "$*"; }; fi
+if ! declare -f uk_info >/dev/null 2>&1; then uk_info() { printf "\033[36m[i]\033[0m %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "\033[34m[i]\033[0m %s\n" "$*"; }; fi
 
 : "${UK_I_ARROW:=>}" "${UK_C_RED:=}" "${UK_C_GREEN:=}" "${UK_C_YELLOW:=}" "${UK_C_BLUE:=}" "${UK_C_CYAN:=}" "${UK_C_MAGENTA:=}" "${UK_C_DIM:=}" "${UK_C_BOLD:=}" "${UK_C_RESET:=}" "${UK_C_BRIGHT_CYAN:=}" "${UK_C_BRIGHT_BLUE:=}" "${UK_C_BRIGHT_MAGENTA:=}" "${UK_C_WHITE:=}"
 YD_DEFAULT_DIR="${HOME}/Downloads/YouTube"
 
 # =============================================================================
 # Help / Usage
-# yd_usage prints the command-line usage, subcommands, options, and examples for the downloader.
+# =============================================================================
 
 yd_usage() {
   cat <<'USAGE'
@@ -93,7 +83,6 @@ Examples:
 USAGE
 }
 
-# yd_dl_usage prints help for the download subcommand and its available options.
 yd_dl_usage() {
   cat <<'USAGE'
 Usage: ytdl download <URL> [options]
@@ -113,7 +102,7 @@ USAGE
 
 # =============================================================================
 # Helpers
-# yd_check_deps verifies that yt-dlp is available for use.
+# =============================================================================
 
 yd_check_deps() {
   if ! uk_has_cmd yt-dlp; then
@@ -126,7 +115,6 @@ yd_check_deps() {
   fi
 }
 
-# yd_yesno prints "Yes" when the value begins with Y, y, or 1; otherwise, it prints "No".
 yd_yesno() {
   local val="${1:-}"
   if [[ "$val" =~ ^[Yy1] ]]; then
@@ -136,7 +124,6 @@ yd_yesno() {
   fi
 }
 
-# yd_spinner runs a command with a rotating progress indicator and writes its output after completion.
 yd_spinner() {
   local label="$1" tmpfile pid rc spin i
   shift
@@ -160,7 +147,7 @@ yd_spinner() {
 
 # =============================================================================
 # CLI Subcommands
-# yd_list lists the formats available for the specified URL and returns the downloader's status.
+# =============================================================================
 
 yd_list() {
   local url="${1:-}"
@@ -173,9 +160,6 @@ yd_list() {
   yt-dlp -F "$url"
 }
 
-# yd_info displays metadata for a video URL and reports unavailable fields when metadata cannot be retrieved.
-# @param url The video URL whose metadata should be displayed.
-# @return The function returns 1 when the URL is missing or yt-dlp is unavailable; otherwise, it returns the status of the final output command.
 yd_info() {
   local url="${1:-}"
   if [[ -z "$url" ]]; then
@@ -201,7 +185,6 @@ yd_info() {
   printf "  Likes:      %s\n" "$likes"
 }
 
-# yd_audio downloads audio from a URL using the selected audio format and embeds thumbnail and metadata.
 yd_audio() {
   local url="" audio_fmt="mp3"
 
@@ -241,9 +224,6 @@ yd_audio() {
     "$url"
 }
 
-# yd_download downloads a video or audio stream from a URL using configurable format, subtitle, metadata, thumbnail, playlist, and output options. 
-# @param url The video URL and optional download arguments.
-# @return The exit status from yt-dlp, or 1 when the URL or dependency is unavailable.
 yd_download() {
   local url="" format="bv*+ba/b" audio_only=0 audio_fmt="mp3"
   local subs=0 no_thumb=0 no_meta=0 playlist=0 output="$YD_DEFAULT_DIR"
@@ -347,8 +327,7 @@ yd_download() {
 
 # =============================================================================
 # Interactive Wizard
-# yd_wizard interactively configures and downloads a video, audio track, or playlist with yt-dlp.
-# Returns the download status, or 0 when the user cancels.
+# =============================================================================
 
 yd_wizard() {
   local url="${1:-}"
@@ -559,7 +538,7 @@ yd_wizard() {
 
 # =============================================================================
 # Entry Point
-# yd_main dispatches command-line arguments to the appropriate downloader operation or interactive wizard.
+# =============================================================================
 
 yd_main() {
   if [[ $# -eq 0 ]]; then

@@ -234,7 +234,7 @@ ii_get_public_v6() {
 }
 
 # Enrich an IP via ip-api.com (JSON, no key required for ~45 rpm).
-# The output includes an error field when the lookup response is empty or unsuccessful.
+# Returns key=value lines (one per field) to stdout.
 ii_enrich() {
   local ip="$1" timeout="$2" body
   body="$(ii_curl "http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query,reverse" "$timeout")"
@@ -345,7 +345,6 @@ ii_report_geo() {
   done <<<"$out"
 }
 
-# ii_report_whois displays a WHOIS summary for the specified target.
 ii_report_whois() {
   local target="$1"
   ii_section "WHOIS — $target"
@@ -364,7 +363,6 @@ ii_report_whois() {
   done <<<"$out"
 }
 
-# ii_valid_json_or_null validates JSON input and prints its normalized form, or `null` when validation is unavailable or fails.
 ii_valid_json_or_null() {
   if uk_has_cmd python3; then
     python3 -c 'import json,sys
@@ -377,8 +375,7 @@ except Exception:
   fi
 }
 
-# ii_report_json builds a JSON report for the requested network information sections.
-# Arguments control the target, enabled sections, network access, and HTTP timeout. Network-dependent sections are omitted when no_network is enabled.
+# ---- JSON mode -------------------------------------------------------------
 
 ii_report_json() {
   local target="$1" want_local="$2" want_public="$3" want_geo="$4" \
@@ -438,9 +435,7 @@ ii_report_json() {
   printf '}\n'
 }
 
-# ii_main parses command-line options and generates the requested local, public IP, GeoIP, ASN, or WHOIS report.
-# With no explicit section options, it reports local and public details for the local host, or GeoIP details for a specified target.
-# Supports text and JSON output, network disabling, request timeouts, and help or usage errors.
+# ---- Main ------------------------------------------------------------------
 
 ii_main() {
   uk_banner "ip-info" "Public/local IP, reverse DNS, ASN, GeoIP, WHOIS" "" "$@"

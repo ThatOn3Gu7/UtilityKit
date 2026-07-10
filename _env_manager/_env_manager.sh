@@ -61,8 +61,6 @@ em_keys() {
   [[ -f "$file" ]] || return 0
   grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$file" | sed 's/=.*$//' | sort -u
 }
-# em_validate_file checks an environment file for valid variable assignments and reports invalid lines.
-# Returns 0 when all non-comment lines are valid, or 1 when the file is missing or contains invalid lines.
 em_validate_file() {
   local file="${1:-}" invalid=0 line_no=0 line
   [[ -f "$file" ]] || {
@@ -92,10 +90,6 @@ em_validate_file() {
     return 1
   fi
 }
-# em_compare_files compares the keys in an active environment file with those in an example environment file and reports missing or extra keys.
-# @param active Path to the active environment file.
-# @param example Path to the example environment file.
-# @return 0 on success, or 1 if either file is missing or temporary files cannot be created.
 em_compare_files() {
   local active="${1:-}" example="${2:-}"
   [[ -f "$active" ]] || { uk_error "Missing active env file: $active"; return 1; }
@@ -117,7 +111,6 @@ em_compare_files() {
   rm -f "$tmp1" "$tmp2"
 }
 
-# em_list_profiles lists available environment profiles in the specified directory.
 em_list_profiles() {
   local dir="${1:-}"
   find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; 2>/dev/null | sed 's/^\.env\.//' | sort
@@ -244,7 +237,6 @@ em_interactive() {
   *) uk_warn 'No action selected.' ;;
   esac
 }
-# em_main parses command-line options and dispatches environment management operations or the interactive menu.
 em_main() {
   uk_banner "env-manager" ".env profile switching, validation, and encryption" "" "$@"
   EM_DIR='.'

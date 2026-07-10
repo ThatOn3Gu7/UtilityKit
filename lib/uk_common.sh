@@ -7,7 +7,6 @@ fi
 readonly UK_COMMON_SH_LOADED=1
 readonly UK_VERSION='2.1.0'
 
-# uk_setup_visuals configures terminal color and icon variables based on output capabilities and environment settings.
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     UK_C_RESET=$'\033[0m'
@@ -89,23 +88,16 @@ uk_data_dir() {
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-# uk_state_dir creates the UtilityKit state directory and prints its path.
 uk_state_dir() {
   local dir="${XDG_STATE_HOME:-$HOME/.local/state}/utilitykit"
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-# uk_note prints an informational message with the configured icon and color.
 uk_note() { printf ' %s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-# uk_info prints an informational message with the configured icon and styling.
 uk_info() { printf ' %s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-# uk_success prints a success message with the configured success icon and color.
 uk_success() { printf ' %s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
-# uk_warn prints a warning message to standard error.
 uk_warn() { printf ' %s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
-# uk_error prints an error message with the configured error icon and styling to standard error.
 uk_error() { printf ' %s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
-# uk_die reports an error message and returns failure.
 uk_die() {
   uk_error "$*"
   return 1
@@ -224,7 +216,6 @@ uk_visible_len() {
   s="$(printf '%s' "${1:-}" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')"
   printf '%s' "${#s}"
 }
-# uk_banner prints a centered utilitykit banner with an optional tagline and icon.
 uk_banner() {
   local name="${1:-}" tagline="${2:-}" icon="${3:-}"
   shift 3 2>/dev/null || true
@@ -319,7 +310,7 @@ uk_banner() {
   UK_BANNER_PRINTED=1
 }
 # uk_term_size — write "$cols $rows" to stdout. Falls back through tput → stty
-# uk_term_size prints the terminal width and height, using environment variable defaults when terminal queries are unavailable.
+# → $COLUMNS/$LINES → 80x24, matching the pattern already used by uk_banner.
 uk_term_size() {
   local cols='' rows=''
   if uk_has_cmd tput; then
@@ -434,7 +425,7 @@ uk_require_width() {
 # when the terminal size changes (or on the very first frame). Caches the
 # top-left corner + inner width + dynamic-line row into global geometry vars
 # so _uk_render_width_notice_tick can rewrite a single line without touching
-# _uk_render_width_notice_full renders the centered terminal-width notice and caches its geometry for live updates, using a compact fallback when the terminal is too narrow.
+# the rest of the screen.
 _uk_render_width_notice_full() {
   local cols="$1" rows="$2" required="$3"
   local tl="$4" tr="$5" bl="$6" br="$7" h="$8" v="$9"
@@ -523,7 +514,7 @@ _uk_render_width_notice_full() {
 
 # Internal — rewrites ONLY the live line (spinner + current cols + off-by).
 # Absolute cursor addressing means the rest of the box is never touched, so
-# _uk_render_width_notice_tick redraws the live status line of the terminal-width notice and parks the cursor below the frame.
+# there is no visible flicker even at high poll rates.
 _uk_render_width_notice_tick() {
   local cols="$1" required="$2" v="$3" spin="$4"
   # Full-paint mode did the drawing already; nothing to update.
@@ -561,7 +552,7 @@ _uk_render_width_notice_tick() {
 }
 
 # Internal — pad `text` to `inner` visible columns and wrap it in the box's
-# _uk_center_line centers text within a fixed-width line, applies the requested style, and surrounds it with vertical bars.
+# vertical bars, applying the requested colour style.
 _uk_center_line() {
   local text="$1" inner="$2" v="$3" style="$4"
   local vis pad_l pad_r styled

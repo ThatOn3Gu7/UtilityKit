@@ -31,7 +31,6 @@ sa_maybe_explain_host_auth() {
   esac
 }
 
-# sa_run_ssh connects to the specified SSH host and returns the connection's exit status.
 sa_run_ssh() {
   local host="${1:-}" code=0
   ssh "$host" || code=$?

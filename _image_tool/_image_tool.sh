@@ -43,7 +43,7 @@ fi
 if ! declare -f uk_expand_path >/dev/null 2>&1; then
   uk_expand_path() { local i="${1:-}"; printf '%s\n' "${i/#\~/$HOME}"; }
 fi
-# it_usage prints command usage information, available subcommands and options, supported backends, and examples.
+# --------------------------
 
 it_usage() {
   cat <<'USAGE'
@@ -102,12 +102,9 @@ it_json_escape() {
   fi
 }
 
-# it_has_convert reports whether ImageMagick is available through `convert` or `magick`.
 it_has_convert() { uk_has_cmd convert || uk_has_cmd magick; }
-# it_convert_cmd prints the available ImageMagick executable name, preferring `magick` over `convert`.
 it_convert_cmd() { uk_has_cmd magick && printf 'magick\n' || printf 'convert\n'; }
 
-# it_prepare_output ensures the directory for a specified output path exists.
 it_prepare_output() {
   local out="${1:-}"
   [[ -z "$out" ]] && return 0
@@ -116,7 +113,6 @@ it_prepare_output() {
   [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || { uk_error "Cannot create output directory: $dir"; return 1; }
 }
 
-# it_validate_int validates an optional integer value against minimum and maximum bounds.
 it_validate_int() {
   local name="$1" val="$2" min="${3:-1}" max="${4:-}"
   [[ -z "$val" ]] && return 0
@@ -125,7 +121,6 @@ it_validate_int() {
   [[ -z "$max" || "$val" -le "$max" ]] || { uk_error "$name must be <= $max"; return 2; }
 }
 
-# it_cmd_info displays an image's dimensions, format, and file size, optionally as JSON.
 it_cmd_info() {
   local file="$1" as_json="$2"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
@@ -158,12 +153,6 @@ it_cmd_info() {
   printf '  %s%-12s%s  %d bytes\n' "${UK_C_DIM:-}" "Size" "${UK_C_RESET:-}" "$size"
 }
 
-# it_cmd_resize resizes an image using the specified dimensions or percentage and writes the result to an output file.
-# @param file Input image path.
-# @param width Target width in pixels.
-# @param height Target height in pixels.
-# @param percent Resize percentage.
-# @param out Output image path; defaults to a filename with "_resized" appended before the extension.
 it_cmd_resize() {
   local file="$1" width="$2" height="$3" percent="$4" out="$5"
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
@@ -191,7 +180,6 @@ it_cmd_resize() {
   return "$rc"
 }
 
-# it_cmd_convert converts an image to the specified format and writes the result to the requested output path. Returns the conversion command's status.
 it_cmd_convert() {
   local file="$1" fmt="$2" quality="$3" out="$4"
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
@@ -210,9 +198,6 @@ it_cmd_convert() {
   return "$rc"
 }
 
-# it_cmd_strip removes EXIF and other metadata from an image and writes the result to an output file.
-# The output defaults to a `_clean`-suffixed filename when omitted.
-# Returns the backend command's status, or 2 when no supported metadata-stripping backend is available.
 it_cmd_strip() {
   local file="$1" out="$2"
   [[ -z "$out" ]] && out="${file%.*}_clean.${file##*.}"
@@ -286,8 +271,6 @@ it_cmd_optimize() {
   esac
 }
 
-# it_cmd_thumb generates a centered, cropped thumbnail from an image.
-# Requires ImageMagick and accepts an optional thumbnail size and output path.
 it_cmd_thumb() {
   local file="$1" size="$2" out="$3"
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
@@ -304,7 +287,6 @@ it_cmd_thumb() {
   return "$rc"
 }
 
-# it_main parses command-line options, validates input, and dispatches the requested image operation.
 it_main() {
   uk_banner "image-tool" "Resize, convert, strip, optimize images" "" "$@"
 

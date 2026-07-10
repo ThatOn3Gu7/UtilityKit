@@ -126,8 +126,7 @@ yt_require_backend() {
   printf '%s\n' "$backend"
 }
 
-# yt_cmd_lint validates a YAML file and reports the result in human-readable or JSON format.
-# The second argument enables JSON output when nonzero.
+# ---- Lint ------------------------------------------------------------------
 
 yt_cmd_lint() {
   local file="$1" as_json="$2"
@@ -394,7 +393,7 @@ yaml.dump(data, sys.stdout, indent=indent, allow_unicode=True, sort_keys=False, 
   esac
 }
 
-# yt_main parses command-line arguments, validates the requested YAML operation and its files, and dispatches the operation to the corresponding handler.
+# ---- Main ------------------------------------------------------------------
 
 yt_main() {
   uk_banner "yaml-toolkit" "Lint, convert, query, and merge YAML files" "" "$@"

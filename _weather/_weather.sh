@@ -14,7 +14,6 @@ if ! declare -F uk_has_cmd &>/dev/null; then
 fi
 
 if ! declare -F uk_state_dir &>/dev/null; then
-  # uk_state_dir creates the application state directory and prints its path.
   uk_state_dir() {
     local dir="${XDG_STATE_HOME:-$HOME/.local/state}/uk"
     mkdir -p "$dir"
@@ -34,7 +33,7 @@ fi
 
 if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then PROMPT_CHAR="❯"; else PROMPT_CHAR=">"; fi
 
-# ask_user displays an interactive prompt and assigns the user's input or the default value to the specified variable.
+# INTERACTIVE PROMPT ENGINE
 ask_user() {
   local prompt="${1:-}"
   local default="${2:-}"

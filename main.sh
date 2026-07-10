@@ -530,8 +530,6 @@ uk_demo_file() {
   esac
   printf '%s\n' "$path"
 }
-# run_new_utility_wizard launches the interactive wizard for the specified utility or displays its help when no wizard is available.
-# The tool parameter identifies the utility to configure and run.
 run_new_utility_wizard() {
   local tool="${1:-}"
   case "$tool" in
@@ -779,7 +777,6 @@ uk_menu_execute() {
   fi
   return 0
 }
-# run_tool dispatches a command to the corresponding UtilityKit tool or interactive wizard.
 run_tool() {
   local cmd="${1:-}"
   shift || true

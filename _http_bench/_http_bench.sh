@@ -19,7 +19,6 @@ if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "[OK]  %s
 if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "-> %s\n" "$*"; }; fi
 if ! declare -f uk_banner >/dev/null 2>&1; then uk_banner() { :; }; fi
 if ! declare -f uk_prompt >/dev/null 2>&1; then
-  # uk_prompt prompts for a value and prints the entered response or the provided default.
   uk_prompt() {
     local label="${1:-}" default="${2:-}" reply=''
     printf '> %s%s: ' "$label" "${default:+ [$default]}" >&2
@@ -28,7 +27,6 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_confirm >/dev/null 2>&1; then
-  # uk_confirm prompts for confirmation and returns success when the response begins with `y` or `Y`.
   uk_confirm() {
     local reply=''
     printf '> %s [y/N]: ' "${1:-Confirm?}" >&2
@@ -37,7 +35,6 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
   }
 fi
 if ! declare -f uk_platform >/dev/null 2>&1; then
-  # uk_platform identifies the current operating platform as `termux`, `macos`, or `linux`.
   uk_platform() {
     if [[ -n "${TERMUX_VERSION:-}" ]]; then
       echo termux
@@ -89,7 +86,6 @@ hb_section() {
   hb_hr
 }
 
-# hb_json_escape converts a string to a JSON-safe quoted representation.
 hb_json_escape() {
   local s="${1:-}"
   if uk_has_cmd python3; then
@@ -104,9 +100,7 @@ hb_json_escape() {
   fi
 }
 
-# hb_run_native benchmarks a URL with concurrent curl requests and reports timing and error metrics.
-# It supports custom headers, an optional request body, keep-alive control, and JSON output.
-# Returns an error if curl or the temporary results file cannot be used.
+# ---- Native curl bench (built-in) -----------------------------------------
 
 hb_run_native() {
   local url="$1" requests="$2" concurrency="$3" method="$4" timeout="$5"
@@ -208,8 +202,7 @@ hb_run_native() {
   hb_report "$url" "$requests" "$completed" "$errors" "$elapsed_ms" "$sorted" "curl" "$as_json"
 }
 
-# hb_report formats benchmark results as human-readable statistics or a JSON object.
-# sorted contains latency samples in seconds, and as_json selects the output format.
+# ---- Report generator ------------------------------------------------------
 
 hb_report() {
   local url="$1" requests="$2" completed="$3" errors="$4" elapsed_ms="$5" sorted="$6" backend="$7" as_json="$8"
@@ -262,8 +255,7 @@ print(f"{pct(50)*1000:.1f} {pct(95)*1000:.1f} {pct(99)*1000:.1f} {vals[0]*1000:.
   printf '  %s%-14s%s  %s\n\n' "${UK_C_DIM:-}" "backend" "${UK_C_RESET:-}" "$backend"
 }
 
-# hb_run_hey runs an HTTP benchmark using the `hey` backend and reports text or JSON results.
-# Headers and request body are forwarded when provided; keep-alive is disabled unless enabled by the caller.
+# ---- External backends (hey / wrk) -----------------------------------------
 
 hb_run_hey() {
   local url="$1" requests="$2" concurrency="$3" method="$4" timeout="$5" json="$6"
@@ -296,14 +288,6 @@ hb_run_hey() {
   fi
 }
 
-# hb_run_wrk runs a duration-based HTTP benchmark with wrk and reports text or JSON results. 
-# @param url The URL to benchmark.
-# @param requests The requested request count, which is not used because wrk runs for a duration.
-# @param concurrency The number of threads and connections to use.
-# @param timeout The benchmark duration in seconds.
-# @param json Whether to emit machine-readable JSON output.
-# @param keep_alive Whether to preserve HTTP keep-alive connections.
-# @returns 0 on completion, or 2 if wrk is unavailable.
 hb_run_wrk() {
   local url="$1" requests="$2" concurrency="$3" timeout="$4" json="$5"
   local keep_alive="$6"
@@ -326,7 +310,7 @@ hb_run_wrk() {
   fi
 }
 
-# hb_main parses benchmark options, validates inputs, selects an available backend, and runs the HTTP benchmark.
+# ---- Main ------------------------------------------------------------------
 
 hb_main() {
   uk_banner "http-bench" "HTTP benchmark with percentile stats" "" "$@"

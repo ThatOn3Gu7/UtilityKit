@@ -510,9 +510,6 @@ rb_scan_files() {
     done < <(find "$source_dir" -type f ! -path '*/\.*' -print0 2>/dev/null | sort -z)
   fi
 }
-# rb_main interactively or non-interactively renames files in place or copies them with a new extension, then reports processing results.
-# It supports exclusion overrides, previews planned changes, and can roll back completed changes after an interrupt.
-# Returns 0 on success or cancellation, 1 when processing fails or required parameters are missing, and 2 for partial failures.
 rb_main() {
   init_terminal_caps
   init_colors

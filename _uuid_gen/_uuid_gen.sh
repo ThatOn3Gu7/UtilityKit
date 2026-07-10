@@ -40,7 +40,7 @@ if ! declare -f uk_platform >/dev/null 2>&1; then
     else echo linux; fi
   }
 fi
-# ug_usage prints the command-line usage, supported identifier types, options, and examples.
+# --------------------------
 
 ug_usage() {
   cat <<'USAGE'
@@ -127,8 +127,6 @@ for _ in range(n):
   fi
 }
 
-# ug_gen_ulid generates `n` ULIDs and writes one identifier per line.
-# When Python 3 is unavailable, it generates UUIDv4 identifiers instead.
 ug_gen_ulid() {
   local n="$1"
   if uk_has_cmd python3; then
@@ -154,7 +152,6 @@ for _ in range(n):
   fi
 }
 
-# ug_gen_nanoid generates NanoID strings using the specified alphabet.
 ug_gen_nanoid() {
   local n="$1" len="$2" alphabet="${3:-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-}"
   if uk_has_cmd python3; then
@@ -175,7 +172,6 @@ for _ in range(n):
   fi
 }
 
-# ug_gen_short generates short identifier strings using the specified length and alphabet.
 ug_gen_short() {
   local n="$1" len="$2" alphabet="${3:-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789}"
   if uk_has_cmd python3; then
@@ -196,7 +192,6 @@ for _ in range(n):
   fi
 }
 
-# ug_gen_hex generates `n` hexadecimal strings of the specified length.
 ug_gen_hex() {
   local n="$1" len="$2"
   if uk_has_cmd python3; then
@@ -243,7 +238,7 @@ for _ in range(n):
   fi
 }
 
-# ug_main parses command-line options, generates identifiers, formats the output, and optionally copies it to the clipboard.
+# ---- Main ------------------------------------------------------------------
 
 ug_main() {
   uk_banner "uuid-gen" "Generate UUID v4/v7, ULID, NanoID, short IDs" "" "$@"
