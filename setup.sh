@@ -17,6 +17,7 @@ Usage:
   bash setup.sh [--no-menu] [--launcher-name NAME] [--install-dir DIR] [--bin-dir DIR] [--no-path]
 USAGE
 }
+# setup_expand_path expands a leading tilde in a path to the user's home directory.
 setup_expand_path() {
   local input="${1:-}"
   if [[ "$input" == ~* ]]; then
@@ -26,6 +27,7 @@ setup_expand_path() {
   fi
 }
 
+# setup_validate_launcher validates a launcher name and exits with an error if it contains unsupported characters.
 setup_validate_launcher() {
   [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || {
     uk_error "Invalid launcher name: ${1:-}. Use letters, numbers, dot, underscore, dash."
@@ -42,6 +44,7 @@ setup_validate_launcher() {
 SETUP_TOTAL_STEPS=6
 SETUP_STEP_NUM=0
 
+# setup_step prints a numbered installation step heading in non-interactive mode.
 setup_step() {
   ((INTERACTIVE == 1)) && return 0
   SETUP_STEP_NUM=$((SETUP_STEP_NUM + 1))
@@ -51,6 +54,7 @@ setup_step() {
     "$UK_C_BOLD" "$1" "$UK_C_RESET"
 }
 
+# setup_detail prints an indented detail message in non-interactive mode.
 setup_detail() {
   ((INTERACTIVE == 1)) && return 0
   printf '   %s%s %s%s\n' "$UK_C_DIM" "$UK_I_ARROW" "$1" "$UK_C_RESET"
@@ -58,7 +62,11 @@ setup_detail() {
 
 # Runs "$@" in the background and shows a spinner (or a plain dot-tick in
 # NO_UNICODE/non-tty environments) until it finishes. Preserves the command's
-# exit status.
+# setup_run_with_spinner runs a command with mode-appropriate progress output and propagates its exit status.
+#
+# The first argument is used as the progress label in non-interactive mode; remaining arguments form the command.
+#
+# Returns the command's exit status.
 setup_run_with_spinner() {
   ((INTERACTIVE == 1)) && {
     "$@"
@@ -182,6 +190,7 @@ setup_detail "mkdir -p $BIN_DIR"
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"
 
 setup_step 'Copying tool directories and shared files'
+# setup_copy_dirs copies selected tool directories and root files into the install directory, then makes installed shell scripts executable.
 setup_copy_dirs() {
   while IFS= read -r dir_path; do
     [[ -n "$dir_path" ]] || continue

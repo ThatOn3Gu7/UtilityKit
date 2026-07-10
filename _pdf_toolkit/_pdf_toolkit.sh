@@ -97,6 +97,9 @@ pt_json_escape() {
   fi
 }
 
+# pt_cmd_info displays a PDF's page count, version, and encryption status.
+# The as_json argument selects machine-readable JSON output; otherwise, formatted text is displayed.
+# Returns 2 when the PDF does not exist and 0 after producing the requested output.
 pt_cmd_info() {
   local file="$1" as_json="$2"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
@@ -148,6 +151,7 @@ print(json.dumps(info, ensure_ascii=False))
   fi
 }
 
+# pt_cmd_count outputs the number of pages in a PDF file, optionally as JSON.
 pt_cmd_count() {
   local file="$1" as_json="$2"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
@@ -184,6 +188,10 @@ except Exception:
   fi
 }
 
+# pt_cmd_merge merges multiple PDF files into a specified output PDF. 
+
+# @param files Input PDF files to merge; at least two must exist.
+# @param out Destination path for the merged PDF.
 pt_cmd_merge() {
   local -a files=()
   local out=""
@@ -239,6 +247,7 @@ print('OK')
   fi
 }
 
+# pt_expand_pages expands a page range into unique page numbers within the specified maximum.
 pt_expand_pages() {
   local range="$1" max="$2" part a b i
   if [[ -z "$range" ]]; then
@@ -261,6 +270,8 @@ pt_expand_pages() {
   done | awk '!seen[$0]++'
 }
 
+# pt_cmd_split splits a PDF into individual page files in the specified directory, optionally restricted to a page range.
+# The pages argument accepts comma-separated page numbers and inclusive ranges such as "1,3-5".
 pt_cmd_split() {
   local file="$1" outdir="$2" pages="${3:-}"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
@@ -310,6 +321,10 @@ print(f'Split {len(reader.pages)} pages')
   fi
 }
 
+# pt_cmd_text extracts text from a PDF file and optionally formats the result as JSON.
+# @param file The PDF file to read.
+# @param as_json A non-zero value to format the output as JSON.
+# @returns 0 on success, 1 if text extraction fails, or 2 if the file or extraction backend is unavailable.
 pt_cmd_text() {
   local file="$1" as_json="$2"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
@@ -392,6 +407,7 @@ pt_cmd_rotate() {
   fi
 }
 
+# pt_main dispatches PDF toolkit subcommands and processes their command-line options.
 pt_main() {
   uk_banner "pdf-toolkit" "Merge, split, extract, compress PDFs" "" "$@"
 

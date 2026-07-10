@@ -47,7 +47,7 @@ if ! declare -f uk_platform >/dev/null 2>&1; then
     else echo linux; fi
   }
 fi
-# --------------------------
+# sec_usage prints command-line usage information, available options, exit statuses, and detected secret patterns.
 
 sec_usage() {
   cat <<'USAGE'
@@ -199,6 +199,7 @@ PY
 SEC_TOTAL=0
 SEC_REVEAL=0
 
+# sec_redact masks the middle of strings longer than 12 characters while preserving their first and last four characters.
 sec_redact() {
   local s="${1:-}" n=${#1}
   if (( n > 12 )); then
@@ -208,6 +209,13 @@ sec_redact() {
   fi
 }
 
+# sec_emit_finding records and outputs a detected secret finding in JSONL or formatted terminal output, redacting matches unless revelation is enabled.
+# Arguments:
+#   rule     Detector rule name.
+#   file     Path of the file containing the finding.
+#   lineno   Line number containing the finding.
+#   match    Detected secret value.
+#   context  Surrounding text for the finding.
 sec_emit_finding() {
   local rule="$1" file="$2" lineno="$3" match="$4" context="$5"
   SEC_TOTAL=$(( SEC_TOTAL + 1 ))
@@ -259,7 +267,7 @@ print(json.dumps({
   fi
 }
 
-# ---- Main scan loop --------------------------------------------------------
+# sec_scan_file_regex scans a file for configured secret patterns and live `.env` values, emitting any findings with their location and context.
 
 sec_scan_file_regex() {
   local file="$1" ctx_len="$2"
@@ -341,7 +349,10 @@ sec_scan_file_entropy() {
   done < <(sec_scan_entropy_py "$file" "$min_e" "$min_len")
 }
 
-# ---- Main ------------------------------------------------------------------
+# sec_main scans selected files for leaked credentials using regex and optional entropy detection, then reports findings in terminal or JSONL format.
+
+# @param options CLI options, paths, inclusion and exclusion globs, detection thresholds, output format, and redaction settings.
+# @returns 0 when no findings are detected or help is requested; 1 when findings are detected; 2 for invalid options, paths, or parameter values.
 
 sec_main() {
   uk_banner "secret-scan" "Regex + entropy scan for leaked credentials" "" "$@"

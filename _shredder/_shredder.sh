@@ -6,6 +6,7 @@ SD_APPLY=0
 SD_PASSES=3
 declare -a SD_FILES=()
 
+# sd_usage prints the command usage and warns that secure deletion may not remove retained copies.
 sd_usage() {
   cat <<'USAGE'
 Usage:
@@ -16,6 +17,7 @@ Warning:
   cloud sync, and backups may retain previous copies outside this tool's reach.
 USAGE
 }
+# sd_secure_delete securely overwrites and removes a regular file using the available deletion method; missing files are skipped, and unavailable overwrite resources cause failure.
 sd_secure_delete() {
   local file="${1:-}" size pass
   [[ -f "$file" ]] || {
@@ -34,6 +36,7 @@ sd_secure_delete() {
   : >"$file"
   rm -f "$file"
 }
+# sd_main parses options, optionally prompts for a file and overwrite settings, and previews or performs best-effort secure deletion.
 sd_main() {
   uk_banner "shredder" "Multi-pass overwrite using shred or /dev/urandom fallback" "" "$@"
   SD_APPLY=0

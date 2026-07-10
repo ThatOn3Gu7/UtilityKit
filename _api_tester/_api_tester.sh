@@ -11,11 +11,13 @@ AT_BODY_FILE=''
 AT_EXPECT='2xx,3xx'
 declare -a AT_HEADERS=()
 
+# at_profiles_dir ensures the API profiles directory exists and prints its path.
 at_profiles_dir() {
   local dir="$(uk_data_dir)/api_profiles"
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
+# at_usage prints the command-line usage information for the API tester.
 at_usage() {
   cat <<'USAGE'
 Usage:
@@ -24,10 +26,13 @@ Usage:
   _api_tester.sh --run NAME | --show NAME | --list
 USAGE
 }
+# at_validate_profile_name validates a profile name against the allowed letters, numbers, dot, underscore, and dash characters.
 at_validate_profile_name() {
   [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || { uk_error "Invalid profile name: ${1:-}. Use letters, numbers, dot, underscore, dash."; return 1; }
 }
+# at_profile_file returns the JSON file path for the current API profile name.
 at_profile_file() { printf '%s/%s.json\n' "$(at_profiles_dir)" "$AT_NAME"; }
+# at_save_profile saves the current API request configuration as a JSON profile.
 at_save_profile() {
   at_validate_profile_name "$AT_NAME" || return 1
   uk_has_cmd python3 || { uk_error 'python3 is required for safe JSON profile storage.'; return 1; }
@@ -44,6 +49,7 @@ with open(file, 'w', encoding='utf-8') as f:
 PYAPI_SAVE
   uk_success "Saved API profile: $file"
 }
+# at_load_profile loads the named JSON API profile into the request configuration variables, returning 1 if validation, dependency, or file checks fail.
 at_load_profile() {
   at_validate_profile_name "$AT_NAME" || return 1
   uk_has_cmd python3 || { uk_error 'python3 is required to load JSON profiles.'; return 1; }
@@ -72,9 +78,11 @@ PYAPI_LOAD
   AT_EXPECT="${loaded[4]:-2xx,3xx}"
   AT_HEADERS=("${loaded[@]:5}")
 }
+# at_list_profiles lists the available API profile names in sorted order.
 at_list_profiles() {
   find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.json' -exec basename {} .json \; | sort
 }
+# at_show_profile prints the JSON contents of the named API profile and reports an error if the profile does not exist.
 at_show_profile() {
   at_validate_profile_name "$AT_NAME" || return 1
   local file="$(at_profile_file)"
@@ -84,6 +92,7 @@ at_show_profile() {
   }
   cat "$file"
 }
+# at_redact_header redacts sensitive HTTP header values while preserving other headers unchanged.
 at_redact_header() {
   local hdr="${1:-}"
   case "${hdr%%:*}" in
@@ -91,6 +100,10 @@ at_redact_header() {
     *) printf '%s\n' "$hdr" ;;
   esac
 }
+# at_status_expected determines whether an HTTP status code matches any entry in a comma-separated expectation specification. 
+# `code` is the three-digit HTTP status code to evaluate.
+# `spec_csv` may contain status-class patterns, exact codes, or inclusive code ranges; it defaults to `2xx,3xx`.
+# The function returns success when the code matches an entry and failure otherwise.
 at_status_expected() {
   local code="$1" spec_csv="${2:-2xx,3xx}" spec start end
   [[ "$code" =~ ^[0-9][0-9][0-9]$ ]] || return 1
@@ -109,6 +122,7 @@ at_status_expected() {
   done
   return 1
 }
+# at_run_request executes the configured HTTP request, displays its request details, timing, response, and warnings, and validates the response status against the expected status specification.
 at_run_request() {
   uk_has_cmd curl || {
     uk_error 'curl is required.'
@@ -198,6 +212,7 @@ at_run_request() {
   fi
   return 0
 }
+# at_main parses command-line options and runs, saves, loads, displays, or lists API request profiles.
 at_main() {
   uk_banner "api-tester" "One-off HTTP requests or saved/replayable profiles" "" "$@"
   AT_ACTION='run'

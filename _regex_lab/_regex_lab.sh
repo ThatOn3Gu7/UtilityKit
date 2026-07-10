@@ -291,7 +291,9 @@ print(result)
 ' "$pattern" "$sub" "$text" "$multiline" "$case_insensitive" 2>/dev/null || printf '%s' "$text"
 }
 
-# ---- Main match driver ----------------------------------------------------
+# rl_run_match finds regex matches in text and displays match details or JSON output.
+# It supports multiline, case-insensitive, and colorized matching.
+# Returns 0 when matches are found, 1 when none are found, or 2 when matching cannot be performed.
 
 rl_run_match() {
   local pattern="$1" text="$2" multiline="$3" case_insensitive="$4" colorize="$5" as_json="$6"
@@ -387,6 +389,10 @@ PYREGEX
   return 0
 }
 
+# rl_run_sub previews regex substitutions, supporting Perl-like expressions, optional flags, and JSON output.
+# pattern is the regular expression used when sub is a raw replacement.
+# sub may be a replacement string or an s<delimiter>pattern<delimiter>replacement<delimiter><flags> expression; g enables global replacement and i enables case-insensitive matching.
+# Returns 0 on success, 1? and 2 when Python is unavailable or regex/substitution processing fails.
 rl_run_sub() {
   local pattern="$1" sub="$2" text="$3" multiline="$4" case_insensitive="$5" as_json="$6"
 

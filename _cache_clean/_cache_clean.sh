@@ -42,6 +42,7 @@ Options:
       --debug
 EOF
 }
+# cc_parse_args parses command-line options and updates the cacheclean configuration; returns failure for unknown options.
 cc_parse_args() {
   while [ $# -gt 0 ]; do
     case "${1:-}" in
@@ -241,6 +242,7 @@ cc_detect_os() {
     CC_OS="linux"
   fi
 }
+# cc_root_check verifies that the script is not running as root unless root execution is explicitly allowed.
 cc_root_check() {
   if [ "$(id -u 2>/dev/null || echo 65534)" -eq 0 ] && [ "$CC_FORCE_ROOT" -eq 0 ]; then
     cc_log_error "Running as root is not allowed."
@@ -248,6 +250,7 @@ cc_root_check() {
   fi
   return 0
 }
+# cc_require_basic_tools verifies that all required system commands are available.
 cc_require_basic_tools() {
   for cmd in id du find wc awk rm mkdir basename dirname cut sleep date uname; do
     command -v "$cmd" >/dev/null 2>&1 || {
@@ -263,6 +266,7 @@ cc_manager_for_binary() {
   *) printf '' ;;
   esac
 }
+# cc_setup_tmp creates the cacheclean temporary and state directories, returning 1 if the state directory cannot be created.
 cc_setup_tmp() {
   CC_TMPDIR="${TMPDIR:-$HOME/.cache/cacheclean}"
   mkdir -p "$CC_TMPDIR" 2>/dev/null || true
@@ -272,6 +276,7 @@ cc_setup_tmp() {
     return 1
   }
 }
+# cc_cleanup_tmp removes the temporary cacheclean state directory when it exists.
 cc_cleanup_tmp() {
   if [ -n "${CC_STATE_DIR:-}" ] && [ -d "$CC_STATE_DIR" ]; then
     rm -rf "$CC_STATE_DIR" 2>/dev/null || true
@@ -574,7 +579,9 @@ cc_print_final_summary() {
 }
 cc_log_debug() { [ "$CC_DEBUG" -eq 1 ] && printf '%s[DEBUG]%s %s\n' "$C_CYAN" "$C_RESET" "${1:-}" >&2; }
 cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "${1:-}" "$C_RESET" >&2; }
+# cc_log_error logs an error message to standard error.
 cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "${1:-}" "$C_RESET" >&2; }
+# cc_main parses options, scans supported package-manager caches, reports orphaned files, and optionally deletes them after confirmation.
 cc_main() {
   uk_banner "cacheclean" "intelligent cache cleaner for devs" "" "$@"
   case " ${*:-} " in

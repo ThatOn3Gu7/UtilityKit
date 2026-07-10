@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/uk_common.sh"
+# td_usage prints the todo manager's command-line usage information.
 td_usage() { echo 'Usage: _todo_manager.sh --add TEXT [--tag TAG] | --list | --done ID | --search TERM'; }
+# td_file returns the full path to the todo data file.
 td_file() { printf '%s/todos.tsv\n' "$(uk_data_dir)"; }
+# td_sanitize_field replaces tabs and newline characters in a field with spaces and writes the result without a trailing newline.
 td_sanitize_field() {
   local v="${1:-}"
   v="${v//$'\t'/ }"
   v="${v//$'\n'/ }"
   printf '%s' "$v"
 }
+# td_main parses todo-manager commands and adds, lists, completes, or searches tasks in the TSV store.
 td_main() {
   uk_banner "todo-manager" "Plain-text TSV task tracker with tags and search" "" "$@"
   local action=list text='' tag='' term='' id=''

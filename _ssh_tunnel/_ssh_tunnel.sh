@@ -33,6 +33,7 @@ fi
 
 ST_CONFIG=""
 
+# st_usage prints command-line usage information for SSH tunnel management.
 st_usage() {
   cat <<'USAGE'
 Usage: _ssh_tunnel.sh <create|list|kill|restart> [OPTIONS]
@@ -48,8 +49,11 @@ restart ID|NAME   Restart tunnel.
 USAGE
 }
 
+# st_cfg ensures the tunnel configuration directory and file exist with restricted file permissions.
 st_cfg() { local d="${XDG_CONFIG_HOME:-$HOME/.config}/utilitykit"; mkdir -p "$d" 2>/dev/null || true; ST_CONFIG="$d/tunnels.conf"; [[ -f "$ST_CONFIG" ]] || : >"$ST_CONFIG"; chmod 600 "$ST_CONFIG" 2>/dev/null || true; }
+# st_valid_name validates a tunnel name against the allowed character pattern.
 st_valid_name() { [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]]; }
+# st_port_in_use checks whether a local TCP port has a listening service.
 st_port_in_use() {
   local port="${1:-}"
   if uk_has_cmd lsof; then lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1 && return 0; fi
@@ -57,6 +61,13 @@ st_port_in_use() {
   return 1
 }
 
+# st_create creates and starts an SSH local port-forward tunnel, then records its configuration and process ID.
+# @param remote Remote host and port in HOST:PORT format.
+# @param lp Local port to forward.
+# @param user Optional SSH username.
+# @param key Optional SSH private key file.
+# @param autossh Enables autossh when it is available.
+# @param name Tunnel name used for identification and persistence.
 st_create() {
   local remote="$1" lp="$2" user="$3" key="$4" autossh="$5" name="$6"
   uk_has_cmd ssh || { uk_error "ssh not found"; return 2; }
@@ -104,6 +115,7 @@ st_list() {
   fi
 }
 
+# st_kill terminates a stored tunnel selected by its numeric index or name and removes its metadata.
 st_kill() {
   local id="$1"; st_cfg
   local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep -F "${id}|" "$ST_CONFIG" 2>/dev/null | awk -F'|' -v n="$id" '$1==n{print; exit}')"
@@ -114,6 +126,7 @@ st_kill() {
   local tmp; tmp="$(mktemp)"; awk -F'|' -v n="$name" '$1 != n' "$ST_CONFIG" >"$tmp" 2>/dev/null && mv "$tmp" "$ST_CONFIG" || rm -f "$tmp"
 }
 
+# st_restart restarts the selected tunnel while preserving its stored connection settings.
 st_restart() {
   local id="$1"; st_cfg
   local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep -F "${id}|" "$ST_CONFIG" 2>/dev/null | awk -F'|' -v n="$id" '$1==n{print; exit}')"
