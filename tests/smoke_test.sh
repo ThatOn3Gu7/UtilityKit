@@ -27,7 +27,7 @@ syntax_check() {
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
-  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo qr secret dns ipinfo uuid time bench yaml pdf image fwatch tunnel hooks)
+  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo qr secret dns ipinfo uuid time bench yaml ytdl pdf image fwatch tunnel hooks)
   local cmd
   for cmd in "${cmds[@]}"; do
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1

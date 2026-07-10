@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- New `_yt_download` tool — interactive YouTube downloader wrapping `yt-dlp` with full format listing, audio extraction, subtitle support, thumbnail/metadata embedding, playlist handling, and a guided wizard. CLI subcommands: `list`, `info`, `audio`, `download`. (v2.1.0)
+
 ### Fixed (Stabilization)
 - Removed a duplicated `_ssh_assistant` implementation that caused help output and runtime paths to execute twice.
 - Fixed broken/invalid JSON output paths in `_http_bench`, `_regex_lab`, `_image_tool`, `_time_convert`, `_secret_scan`, `_pdf_toolkit`, and `_yaml_toolkit`.

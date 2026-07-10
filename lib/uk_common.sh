@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='2.0.4'
+readonly UK_VERSION='2.1.0'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -93,11 +93,11 @@ uk_state_dir() {
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-uk_note() { printf '%s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-uk_info() { printf '%s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-uk_success() { printf '%s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
-uk_warn() { printf '%s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
-uk_error() { printf '%s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
+uk_note() { printf ' %s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_info() { printf ' %s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_success() { printf ' %s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
+uk_warn() { printf ' %s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
+uk_error() { printf ' %s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
 uk_die() {
   uk_error "$*"
   return 1
@@ -309,7 +309,6 @@ uk_banner() {
 
   UK_BANNER_PRINTED=1
 }
-
 # uk_term_size — write "$cols $rows" to stdout. Falls back through tput → stty
 # → $COLUMNS/$LINES → 80x24, matching the pattern already used by uk_banner.
 uk_term_size() {
