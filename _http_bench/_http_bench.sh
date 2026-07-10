@@ -11,18 +11,12 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
 fi
 
 # --- Fallback Functions ---
-if ! declare -f uk_has_cmd >/dev/null 2>&1; then # uk_has_cmd checks whether a command is available in the current environment.
-uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
-if ! declare -f uk_error >/dev/null 2>&1; then # uk_error writes an error message to standard error with an error prefix.
-uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_warn >/dev/null 2>&1; then # uk_warn writes a warning message to standard error.
-uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_info >/dev/null 2>&1; then # uk_info prints an informational message with an `[INF]` prefix.
-uk_info() { printf "[INF] %s\n" "$*"; }; fi
-if ! declare -f uk_success >/dev/null 2>&1; then # uk_success prints a success message prefixed with an OK indicator.
-uk_success() { printf "[OK]  %s\n" "$*"; }; fi
-if ! declare -f uk_note >/dev/null 2>&1; then # uk_note prints a prefixed informational message.
-uk_note() { printf "-> %s\n" "$*"; }; fi
+if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_info >/dev/null 2>&1; then uk_info() { printf "[INF] %s\n" "$*"; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "[OK]  %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "-> %s\n" "$*"; }; fi
 if ! declare -f uk_banner >/dev/null 2>&1; then uk_banner() { :; }; fi
 if ! declare -f uk_prompt >/dev/null 2>&1; then
   # uk_prompt prompts for a value and prints the entered response or the provided default.
