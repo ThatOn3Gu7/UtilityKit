@@ -8,6 +8,7 @@ AT_METHOD='GET'
 AT_URL=''
 AT_BODY=''
 AT_BODY_FILE=''
+AT_EXPECT='2xx,3xx'
 declare -a AT_HEADERS=()
 
 at_profiles_dir() {
@@ -18,50 +19,95 @@ at_profiles_dir() {
 at_usage() {
   cat <<'USAGE'
 Usage:
-  _api_tester.sh [--method METHOD --url URL] [--header 'K: V'] [--body TEXT|--body-file FILE]
+  _api_tester.sh [--method METHOD --url URL] [--header 'K: V'] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]
   _api_tester.sh --save NAME --method METHOD --url URL [--header 'K: V'] [--body TEXT|--body-file FILE]
   _api_tester.sh --run NAME | --show NAME | --list
 USAGE
 }
+at_validate_profile_name() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || { uk_error "Invalid profile name: ${1:-}. Use letters, numbers, dot, underscore, dash."; return 1; }
+}
+at_profile_file() { printf '%s/%s.json\n' "$(at_profiles_dir)" "$AT_NAME"; }
 at_save_profile() {
-  local file="$(at_profiles_dir)/$AT_NAME.conf" hdr
-  {
-    printf 'API_METHOD=%q\n' "$AT_METHOD"
-    printf 'API_URL=%q\n' "$AT_URL"
-    printf 'API_BODY=%q\n' "$AT_BODY"
-    printf 'API_BODY_FILE=%q\n' "$AT_BODY_FILE"
-    printf 'API_HEADERS=(\n'
-    for hdr in "${AT_HEADERS[@]}"; do
-      printf '  %q\n' "$hdr"
-    done
-    printf ')\n'
-  } >"$file"
+  at_validate_profile_name "$AT_NAME" || return 1
+  uk_has_cmd python3 || { uk_error 'python3 is required for safe JSON profile storage.'; return 1; }
+  local file="$(at_profile_file)"
+  python3 - "$file" "$AT_METHOD" "$AT_URL" "$AT_BODY" "$AT_BODY_FILE" "$AT_EXPECT" "${AT_HEADERS[@]}" <<'PYAPI_SAVE'
+import json, sys, os
+file, method, url, body, body_file, expect = sys.argv[1:7]
+headers = sys.argv[7:]
+os.makedirs(os.path.dirname(file), exist_ok=True)
+with open(file, 'w', encoding='utf-8') as f:
+    json.dump({"method": method, "url": url, "body": body, "body_file": body_file,
+               "expect": expect, "headers": headers}, f, ensure_ascii=False, indent=2)
+    f.write('\n')
+PYAPI_SAVE
   uk_success "Saved API profile: $file"
 }
 at_load_profile() {
-  local file="$(at_profiles_dir)/$AT_NAME.conf"
+  at_validate_profile_name "$AT_NAME" || return 1
+  uk_has_cmd python3 || { uk_error 'python3 is required to load JSON profiles.'; return 1; }
+  local file="$(at_profile_file)"
   [[ -f "$file" ]] || {
     uk_error "Profile not found: $AT_NAME"
     return 1
   }
-  # shellcheck disable=SC1090
-  source "$file"
-  AT_METHOD="$API_METHOD"
-  AT_URL="$API_URL"
-  AT_BODY="$API_BODY"
-  AT_BODY_FILE="$API_BODY_FILE"
-  AT_HEADERS=("${API_HEADERS[@]:-}")
+  local -a loaded=()
+  mapfile -t loaded < <(python3 - "$file" <<'PYAPI_LOAD'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    d=json.load(f)
+print(d.get('method','GET'))
+print(d.get('url',''))
+print(d.get('body',''))
+print(d.get('body_file',''))
+print(d.get('expect','2xx,3xx'))
+for h in d.get('headers',[]): print(h)
+PYAPI_LOAD
+)
+  AT_METHOD="${loaded[0]:-GET}"
+  AT_URL="${loaded[1]:-}"
+  AT_BODY="${loaded[2]:-}"
+  AT_BODY_FILE="${loaded[3]:-}"
+  AT_EXPECT="${loaded[4]:-2xx,3xx}"
+  AT_HEADERS=("${loaded[@]:5}")
 }
 at_list_profiles() {
-  find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.conf' -exec basename {} .conf \; | sort
+  find "$(at_profiles_dir)" -maxdepth 1 -type f -name '*.json' -exec basename {} .json \; | sort
 }
 at_show_profile() {
-  local file="$(at_profiles_dir)/$AT_NAME.conf"
+  at_validate_profile_name "$AT_NAME" || return 1
+  local file="$(at_profile_file)"
   [[ -f "$file" ]] || {
     uk_error "Profile not found: $AT_NAME"
     return 1
   }
   cat "$file"
+}
+at_redact_header() {
+  local hdr="${1:-}"
+  case "${hdr%%:*}" in
+    [Aa]uthorization|[Cc]ookie|[Xx]-[Aa]pi-[Kk]ey|[Ss]et-[Cc]ookie) printf '%s: <redacted>\n' "${hdr%%:*}" ;;
+    *) printf '%s\n' "$hdr" ;;
+  esac
+}
+at_status_expected() {
+  local code="$1" spec_csv="${2:-2xx,3xx}" spec start end
+  [[ "$code" =~ ^[0-9][0-9][0-9]$ ]] || return 1
+  local -a specs=()
+  IFS=',' read -r -a specs <<<"$spec_csv"
+  for spec in "${specs[@]}"; do
+    spec="${spec//[[:space:]]/}"
+    case "$spec" in
+      [1-5]xx) [[ "${code:0:1}" == "${spec:0:1}" ]] && return 0 ;;
+      [0-9][0-9][0-9]) [[ "$code" == "$spec" ]] && return 0 ;;
+      [0-9][0-9][0-9]-[0-9][0-9][0-9])
+        start="${spec%-*}"; end="${spec#*-}"
+        (( code >= start && code <= end )) && return 0
+        ;;
+    esac
+  done
+  return 1
 }
 at_run_request() {
   uk_has_cmd curl || {
@@ -86,14 +132,15 @@ at_run_request() {
     curl_args+=(--data "$AT_BODY")
   fi
 
-  curl "${curl_args[@]}" 2>"$tmp_meta" >"$tmp_timing" || true
+  local curl_rc=0
+  curl "${curl_args[@]}" 2>"$tmp_meta" >"$tmp_timing" || curl_rc=$?
 
   printf '\n  %s%s◆ Request%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   printf '  %sMethod:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$AT_METHOD" "$UK_C_RESET"
   printf '  %sURL:%s     %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_URL" "$UK_C_RESET"
   for hdr in "${AT_HEADERS[@]}"; do
-    printf '  %sHeader:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$hdr" "$UK_C_RESET"
+    printf '  %sHeader:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$(at_redact_header "$hdr")" "$UK_C_RESET"
   done
   [[ -n "$AT_BODY" ]] && printf '  %sBody:%s    %s%s%s\n' \
     "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$AT_BODY" "$UK_C_RESET"
@@ -140,6 +187,16 @@ at_run_request() {
     printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
     cat "$tmp_meta" | sed 's/^/  /'
   fi
+
+  if (( curl_rc != 0 )); then
+    uk_error "curl failed with exit code $curl_rc"
+    return "$curl_rc"
+  fi
+  if ! at_status_expected "${code:-000}" "$AT_EXPECT"; then
+    uk_error "Unexpected HTTP status ${code:-000}; expected $AT_EXPECT"
+    return 1
+  fi
+  return 0
 }
 at_main() {
   uk_banner "api-tester" "One-off HTTP requests or saved/replayable profiles" "" "$@"
@@ -149,6 +206,7 @@ at_main() {
   AT_URL=''
   AT_BODY=''
   AT_BODY_FILE=''
+  AT_EXPECT='2xx,3xx'
   AT_HEADERS=()
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
@@ -188,6 +246,10 @@ at_main() {
       shift
       AT_BODY_FILE="${1:-}"
       ;;
+    --expect)
+      shift
+      AT_EXPECT="${1:-2xx,3xx}"
+      ;;
     -h | --help)
       at_usage
       return 0
@@ -214,7 +276,7 @@ at_main() {
       at_usage
       return 1
     }
-    at_load_profile
+    at_load_profile || return $?
     at_run_request
     ;;
   run)

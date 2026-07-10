@@ -241,21 +241,21 @@ ii_enrich() {
   [[ -z "$body" ]] && return 1
 
   if uk_has_cmd python3; then
-    python3 - <<PY
+    printf '%s' "$body" | python3 -c '
 import json, sys
 try:
-    d = json.loads('''$body''')
+    d = json.load(sys.stdin)
 except Exception as e:
     print(f"error={e}"); sys.exit(0)
 if d.get("status") != "success":
-    print(f"error={d.get('message','unknown')}"); sys.exit(0)
+    print("error={}".format(d.get("message", "unknown"))); sys.exit(0)
 order = ["query","reverse","country","countryCode","regionName","city","zip",
          "lat","lon","timezone","isp","org","as"]
 for k in order:
     v = d.get(k)
     if v is None or v == "": continue
     print(f"{k}={v}")
-PY
+'
   else
     # Minimal grep-based fallback.
     printf '%s' "$body" | tr ',' '\n' | sed 's/[{}"]//g; s/:/=/'
@@ -363,6 +363,18 @@ ii_report_whois() {
   done <<<"$out"
 }
 
+ii_valid_json_or_null() {
+  if uk_has_cmd python3; then
+    python3 -c 'import json,sys
+try:
+    data=json.load(sys.stdin); print(json.dumps(data, ensure_ascii=False))
+except Exception:
+    print("null")'
+  else
+    printf 'null\n'
+  fi
+}
+
 # ---- JSON mode -------------------------------------------------------------
 
 ii_report_json() {
@@ -371,6 +383,9 @@ ii_report_json() {
 
   local -a parts=()
   parts+=("$(printf '"target":%s' "$(ii_json_escape "$target")")")
+  if (( no_network )); then
+    parts+=("\"network_disabled\":true")
+  fi
 
   if (( want_local )); then
     local hn plat gw
@@ -399,6 +414,7 @@ ii_report_json() {
     fi
     local body
     body="$(ii_curl "http://ip-api.com/json/${ip_for_geo}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query,reverse" "$timeout")"
+    body="$(printf '%s' "$body" | ii_valid_json_or_null)"
     parts+=("$(printf '"geo":%s' "${body:-null}")")
   fi
 
@@ -465,6 +481,10 @@ ii_main() {
     want_public=0
     want_geo=0
     want_whois=0
+  fi
+  if (( no_network )) && (( ! want_local && ! as_json )); then
+    uk_warn "--no-network disabled all requested sections; use --local for an offline report."
+    return 0
   fi
 
   # If a target hostname was given, resolve it once so geo/reverse work.

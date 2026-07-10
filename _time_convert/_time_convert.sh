@@ -10,14 +10,14 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
 fi
 
 # --- Fallback Functions ---
-if ! declare -f uk_has_cmd  >/dev/null 2>&1; then uk_has_cmd()  { command -v "${1:-}" >/dev/null 2>&1; }; fi
-if ! declare -f uk_error    >/dev/null 2>&1; then uk_error()    { printf "[ERR] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_warn     >/dev/null 2>&1; then uk_warn()     { printf "[WRN] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_info     >/dev/null 2>&1; then uk_info()     { printf "[INF] %s\n" "$*"; }; fi
-if ! declare -f uk_success  >/dev/null 2>&1; then uk_success() { printf "[OK]  %s\n" "$*"; }; fi
-if ! declare -f uk_note     >/dev/null 2>&1; then uk_note()     { printf "-> %s\n" "$*"; }; fi
-if ! declare -f uk_banner   >/dev/null 2>&1; then uk_banner()   { :; }; fi
-if ! declare -f uk_prompt   >/dev/null 2>&1; then
+if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_info >/dev/null 2>&1; then uk_info() { printf "[INF] %s\n" "$*"; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "[OK]  %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "-> %s\n" "$*"; }; fi
+if ! declare -f uk_banner >/dev/null 2>&1; then uk_banner() { :; }; fi
+if ! declare -f uk_prompt >/dev/null 2>&1; then
   uk_prompt() {
     local label="${1:-}" default="${2:-}" reply=''
     printf '> %s%s: ' "$label" "${default:+ [$default]}" >&2
@@ -25,7 +25,7 @@ if ! declare -f uk_prompt   >/dev/null 2>&1; then
     printf '%s\n' "${reply:-$default}"
   }
 fi
-if ! declare -f uk_confirm  >/dev/null 2>&1; then
+if ! declare -f uk_confirm >/dev/null 2>&1; then
   uk_confirm() {
     local reply=''
     printf '> %s [y/N]: ' "${1:-Confirm?}" >&2
@@ -35,8 +35,10 @@ if ! declare -f uk_confirm  >/dev/null 2>&1; then
 fi
 if ! declare -f uk_platform >/dev/null 2>&1; then
   uk_platform() {
-    if [[ -n "${TERMUX_VERSION:-}" ]]; then echo termux
-    elif [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then echo macos
+    if [[ -n "${TERMUX_VERSION:-}" ]]; then
+      echo termux
+    elif [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then
+      echo macos
     else echo linux; fi
   }
 fi
@@ -91,8 +93,11 @@ tc_json_escape() {
   if uk_has_cmd python3; then
     python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
   else
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
     printf '"%s"' "$s"
   fi
 }
@@ -212,14 +217,18 @@ tc_cmd_epoch() {
   if [[ -z "$val" ]]; then
     val="$(date +%s 2>/dev/null || printf '0')"
   fi
-  [[ "$val" =~ ^[0-9]+$ ]] || { uk_error "Epoch value must be numeric: $val"; return 2; }
+  [[ "$val" =~ ^[0-9]+$ ]] || {
+    uk_error "Epoch value must be numeric: $val"
+    return 2
+  }
 
   local formats
   formats="$(tc_epoch_to_formats "$val" "$tz")"
+  local -a lines=()
+  mapfile -t lines < <(printf '%s\n' "$formats")
+  local iso="${lines[0]:-}" rfc3339="${lines[1]:-}" rfc2822="${lines[2]:-}" human="${lines[3]:-}"
 
-  if (( as_json )); then
-    local iso rfc3339 rfc2822 human
-    IFS=$'\n' read -r iso rfc3339 rfc2822 human <<<"$formats"
+  if ((as_json)); then
     printf '{"epoch":%s,"iso":%s,"rfc3339":%s,"rfc2822":%s,"human":%s}\n' \
       "$val" \
       "$(tc_json_escape "$iso")" \
@@ -229,15 +238,43 @@ tc_cmd_epoch() {
     return 0
   fi
 
+  case "$fmt" in
+  all | '') ;;
+  iso | iso8601)
+    printf '%s\n' "$iso"
+    return 0
+    ;;
+  rfc3339)
+    printf '%s\n' "$rfc3339"
+    return 0
+    ;;
+  rfc2822)
+    printf '%s\n' "$rfc2822"
+    return 0
+    ;;
+  unix | epoch)
+    printf '%s\n' "$val"
+    return 0
+    ;;
+  human)
+    printf '%s\n' "$human"
+    return 0
+    ;;
+  *)
+    uk_error "Unknown --format: $fmt"
+    return 2
+    ;;
+  esac
+
   tc_section "Epoch $val"
   local labels=("ISO 8601" "RFC 3339" "RFC 2822" "Human")
-  local idx=0 value
-  while IFS=$'\n' read -r value; do
-    if [[ -n "$value" ]]; then
-      printf '  %s%-12s%s  %s\n' "${UK_C_DIM:-}" "${labels[$idx]:-}" "${UK_C_RESET:-}" "$value"
+  local values=("$iso" "$rfc3339" "$rfc2822" "$human")
+  local idx
+  for idx in "${!labels[@]}"; do
+    if [[ -n "${values[$idx]}" ]]; then
+      printf '  %s%-12s%s  %s\n' "${UK_C_DIM:-}" "${labels[$idx]}" "${UK_C_RESET:-}" "${values[$idx]}"
     fi
-    idx=$((idx + 1))
-  done < <(printf '%s\n' "$formats")
+  done
 }
 
 # ---- Parse subcommand ------------------------------------------------------
@@ -252,10 +289,11 @@ tc_cmd_parse() {
     return 2
   fi
 
-  local epoch iso
-  IFS=$'\n' read -r epoch iso <<<"$result"
+  local -a lines=()
+  mapfile -t lines < <(printf '%s\n' "$result")
+  local epoch="${lines[0]:-}" iso="${lines[1]:-}"
 
-  if (( as_json )); then
+  if ((as_json)); then
     printf '{"epoch":%s,"iso":%s}\n' "$epoch" "$(tc_json_escape "$iso")"
     return 0
   fi
@@ -310,13 +348,14 @@ except Exception as e:
       return 2
     fi
 
-    if (( as_json )); then
-      printf '['; local first=1 line
+    if ((as_json)); then
+      printf '['
+      local first=1 line
       while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         local idx="${line%%$'\t'*}"
         local dt="${line#*$'\t'}"
-        (( first )) || printf ','
+        ((first)) || printf ','
         printf '{"index":%s,"datetime":"%s"}' "$idx" "$dt"
         first=0
       done <<<"$result"
@@ -345,7 +384,7 @@ tc_cmd_tz() {
   local zone="$1" as_json="$2"
   if [[ -z "$zone" ]]; then
     # List timezones
-    if (( as_json )); then
+    if ((as_json)); then
       if uk_has_cmd python3; then
         python3 -c '
 import zoneinfo, json
@@ -372,7 +411,7 @@ for z in zones:
   fi
 
   # Show timezone info
-  if (( as_json )); then
+  if ((as_json)); then
     if uk_has_cmd python3; then
       python3 -c '
 import sys, zoneinfo, json
@@ -424,12 +463,22 @@ except Exception as e:
 
 tc_cmd_diff() {
   local ts1="$1" ts2="$2" as_json="$3"
-  if uk_has_cmd python3; then
-    python3 -c '
-import sys
+  [[ -n "$ts1" && -n "$ts2" ]] || {
+    uk_error "diff requires two timestamps."
+    return 2
+  }
+  if ! uk_has_cmd python3; then
+    uk_error "Diff requires python3."
+    return 2
+  fi
+  local output rc
+  if output="$(
+    python3 - "$ts1" "$ts2" "$as_json" <<'PYDIFF' 2>&1
+import json, sys
 from datetime import datetime
 
 ts1, ts2 = sys.argv[1], sys.argv[2]
+as_json = sys.argv[3] == '1'
 
 def parse_ts(ts):
     formats = [
@@ -438,38 +487,61 @@ def parse_ts(ts):
         "%a, %d %b %Y %H:%M:%S %z",
         "%d/%m/%Y %H:%M:%S", "%m/%d/%Y %H:%M:%S",
     ]
-    for fmt in formats:
-        try: return datetime.strptime(ts, fmt)
-        except ValueError: continue
     if ts.isdigit():
         return datetime.fromtimestamp(int(ts))
-    try: return datetime.fromisoformat(ts)
-    except: pass
-    return None
+    for fmt in formats:
+        try:
+            return datetime.strptime(ts, fmt)
+        except ValueError:
+            pass
+    try:
+        return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+    except Exception:
+        return None
 
 d1, d2 = parse_ts(ts1), parse_ts(ts2)
 if not d1 or not d2:
-    print("error=unable to parse one or both timestamps")
-    sys.exit(0)
+    msg = "unable to parse one or both timestamps"
+    if as_json:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print(msg, file=sys.stderr)
+    sys.exit(2)
 
 diff = abs((d2 - d1).total_seconds())
 days = int(diff // 86400)
 hours = int((diff % 86400) // 3600)
 minutes = int((diff % 3600) // 60)
 seconds = int(diff % 60)
-total_hours = diff / 3600
-total_days = diff / 86400
-
-print(f"seconds={diff:.0f}")
-print(f"minutes={diff/60:.1f}")
-print(f"hours={total_hours:.1f}")
-print(f"days={total_days:.2f}")
-print(f"weeks={total_days/7:.1f}")
-print(f"human={days}d {hours}h {minutes}m {seconds}s")
-' "$ts1" "$ts2" 2>/dev/null
+obj = {
+    "ok": True,
+    "seconds": int(diff),
+    "minutes": round(diff / 60, 1),
+    "hours": round(diff / 3600, 1),
+    "days": round(diff / 86400, 2),
+    "weeks": round(diff / 86400 / 7, 1),
+    "human": f"{days}d {hours}h {minutes}m {seconds}s",
+}
+if as_json:
+    print(json.dumps(obj, ensure_ascii=False))
+else:
+    for k in ["seconds", "minutes", "hours", "days", "weeks", "human"]:
+        print(f"{k}={obj[k]}")
+PYDIFF
+  )"; then
+    rc=0
   else
-    uk_error "Diff requires python3."
-    return 2
+    rc=$?
+  fi
+  if ((rc != 0)); then
+    if ((as_json)); then printf '%s\n' "$output"; else uk_error "$output"; fi
+    return "$rc"
+  fi
+  if ((as_json)); then
+    printf '%s\n' "$output"
+  else
+    tc_section "Diff"
+    printf '%s\n' "$output"
   fi
 }
 
@@ -484,8 +556,14 @@ tc_main() {
   # Subcommand
   if [[ $# -gt 0 ]]; then
     case "${1:-}" in
-      epoch|parse|now|cron|tz|diff) sub="$1"; shift ;;
-      -h|--help) tc_usage; return 0 ;;
+    epoch | parse | now | cron | tz | diff)
+      sub="$1"
+      shift
+      ;;
+    -h | --help)
+      tc_usage
+      return 0
+      ;;
     esac
   fi
 
@@ -494,36 +572,71 @@ tc_main() {
   # Flags
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
-      --format)  shift; fmt="${1:-all}" ;;
-      --tz)      shift; tz="${1:-}" ;;
-      --count)   shift; count="${1:-5}" ;;
-      --json)    as_json=1 ;;
-      --no-color) UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
-                  UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
-      -h|--help) tc_usage; return 0 ;;
-      -*)        uk_error "Unknown option: ${1:-}"; tc_usage; return 2 ;;
-      *)
-        if [[ -z "$val" ]]; then val="$1"
+    --format)
+      shift
+      fmt="${1:-all}"
+      ;;
+    --tz)
+      shift
+      tz="${1:-}"
+      ;;
+    --count)
+      shift
+      count="${1:-5}"
+      ;;
+    --json) as_json=1 ;;
+    --no-color)
+      UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
+      UK_C_YELLOW='' UK_C_BRIGHT_CYAN=''
+      ;;
+    -h | --help)
+      tc_usage
+      return 0
+      ;;
+    -*)
+      uk_error "Unknown option: ${1:-}"
+      tc_usage
+      return 2
+      ;;
+    *)
+      if [[ -z "$val" ]]; then
+        val="$1"
+      else
+        if [[ -z "${ts2:-}" ]]; then
+          ts2="$1"
         else
-          if [[ -z "${ts2:-}" ]]; then ts2="$1"
-          else uk_error "Too many arguments"; return 2
-          fi
+          uk_error "Too many arguments"
+          return 2
         fi
-        ;;
+      fi
+      ;;
     esac
     shift || true
   done
 
   case "$sub" in
-    now)    tc_cmd_now "$tz" "$as_json" ;;
-    epoch)  tc_cmd_epoch "$val" "$tz" "$fmt" "$as_json" ;;
-    parse)  [[ -z "$val" ]] && { uk_error "parse requires a timestamp."; return 2; }
-            tc_cmd_parse "$val" "$tz" "$as_json" ;;
-    cron)   [[ -z "$val" ]] && { uk_error "cron requires an expression."; return 2; }
-            tc_cmd_cron "$val" "$count" "$as_json" ;;
-    tz)     tc_cmd_tz "$val" "$as_json" ;;
-    diff)   tc_cmd_diff "$val" "${ts2:-}" "$as_json" ;;
-    *)      tc_usage; return 2 ;;
+  now) tc_cmd_now "$tz" "$as_json" ;;
+  epoch) tc_cmd_epoch "$val" "$tz" "$fmt" "$as_json" ;;
+  parse)
+    [[ -z "$val" ]] && {
+      uk_error "parse requires a timestamp."
+      return 2
+    }
+    tc_cmd_parse "$val" "$tz" "$as_json"
+    ;;
+  cron)
+    [[ -z "$val" ]] && {
+      uk_error "cron requires an expression."
+      return 2
+    }
+    tc_cmd_cron "$val" "$count" "$as_json"
+    ;;
+  tz) tc_cmd_tz "$val" "$as_json" ;;
+  diff) tc_cmd_diff "$val" "${ts2:-}" "$as_json" ;;
+  *)
+    tc_usage
+    return 2
+    ;;
   esac
 }
 
@@ -535,60 +648,60 @@ tc_wizard() {
     'now = current time. epoch = convert epoch. parse = string to epoch.')"
 
   case "$sub" in
-    now)
-      if uk_confirm 'Specify timezone?' 'N'; then
-        tz="$(uk_prompt 'Timezone' 'UTC' 'America/New_York' 'e.g. UTC, Asia/Tokyo')"
-      fi
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(now)
-      [[ -n "$tz"   ]] && a+=(--tz "$tz")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
-    epoch)
-      val="$(uk_prompt 'Unix epoch seconds (blank = current)' '' '1700000000' 'Numeric seconds since 1970-01-01.')"
-      if uk_confirm 'Specify timezone?' 'N'; then
-        tz="$(uk_prompt 'Timezone' 'UTC' 'America/New_York' '')"
-      fi
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(epoch "${val:-}")
-      [[ -n "$tz"   ]] && a+=(--tz "$tz")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
-    parse)
-      val="$(uk_prompt 'Timestamp string' '2024-01-15T10:30:00Z' \
-        'Mon, 15 Jan 2024 10:30:00 +0000' 'Parses most common formats.')"
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(parse "$val")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
-    cron)
-      val="$(uk_prompt 'Cron expression' '*/15 * * * *' '0 9 * * 1-5' 'Standard 5-field cron syntax.')"
-      count="$(uk_prompt 'How many future fires?' '5' '3' '')"
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(cron "$val" --count "$count")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
-    tz)
-      val="$(uk_prompt 'Timezone name (blank = list available)' '' 'Asia/Tokyo' 'Leave blank to list all timezones.')"
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(tz)
-      [[ -n "$val"   ]] && a+=("$val")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
-    diff)
-      val="$(uk_prompt 'First timestamp' '2024-01-01' '1700000000' 'Any supported format.')"
-      local ts2
-      ts2="$(uk_prompt 'Second timestamp' '2024-12-31' '1735689599' 'Any supported format.')"
-      if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
-      local -a a=(diff "$val" "$ts2")
-      [[ -n "$jsonf" ]] && a+=("$jsonf")
-      tc_main "${a[@]}"
-      ;;
+  now)
+    if uk_confirm 'Specify timezone?' 'N'; then
+      tz="$(uk_prompt 'Timezone' 'UTC' 'America/New_York' 'e.g. UTC, Asia/Tokyo')"
+    fi
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(now)
+    [[ -n "${tz:-}" ]] && a+=(--tz "$tz")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
+  epoch)
+    val="$(uk_prompt 'Unix epoch seconds (blank = current)' '' '1700000000' 'Numeric seconds since 1970-01-01.')"
+    if uk_confirm 'Specify timezone?' 'N'; then
+      tz="$(uk_prompt 'Timezone' 'UTC' 'America/New_York' '')"
+    fi
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(epoch "${val:-}")
+    [[ -n "$tz" ]] && a+=(--tz "$tz")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
+  parse)
+    val="$(uk_prompt 'Timestamp string' '2024-01-15T10:30:00Z' \
+      'Mon, 15 Jan 2024 10:30:00 +0000' 'Parses most common formats.')"
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(parse "$val")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
+  cron)
+    val="$(uk_prompt 'Cron expression' '*/15 * * * *' '0 9 * * 1-5' 'Standard 5-field cron syntax.')"
+    count="$(uk_prompt 'How many future fires?' '5' '3' '')"
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(cron "$val" --count "$count")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
+  tz)
+    val="$(uk_prompt 'Timezone name (blank = list available)' '' 'Asia/Tokyo' 'Leave blank to list all timezones.')"
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(tz)
+    [[ -n "$val" ]] && a+=("$val")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
+  diff)
+    val="$(uk_prompt 'First timestamp' '2024-01-01' '1700000000' 'Any supported format.')"
+    local ts2
+    ts2="$(uk_prompt 'Second timestamp' '2024-12-31' '1735689599' 'Any supported format.')"
+    if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
+    local -a a=(diff "$val" "$ts2")
+    [[ -n "$jsonf" ]] && a+=("$jsonf")
+    tc_main "${a[@]}"
+    ;;
   esac
 }
 

@@ -742,7 +742,7 @@ run_new_utility_wizard() {
     local pattern text
     pattern="$(uk_prompt 'Regex pattern' 'Util' 'error|warn' 'Uses grep extended regex.')"
     text="$(uk_prompt 'Text to test' 'UtilityKit warning example' 'UtilityKit warning example' 'For file mode use direct CLI --file.')"
-    (rx_main --pattern "$pattern" --text "$text")
+    (rl_main --pattern "$pattern" --text "$text")
     ;;
   todo)
     local mode text tag term id

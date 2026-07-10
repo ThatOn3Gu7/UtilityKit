@@ -296,105 +296,193 @@ print(result)
 rl_run_match() {
   local pattern="$1" text="$2" multiline="$3" case_insensitive="$4" colorize="$5" as_json="$6"
 
-  local backend
-  backend="$(rl_detect_backend 2>/dev/null || true)"
-  if [[ -z "$backend" ]]; then
-    uk_error "No regex backend found. Install perl, grep -P, or python3."
+  if ! uk_has_cmd python3; then
+    uk_error "regex-lab requires python3 for reliable matching and JSON output."
     return 2
   fi
 
+  local output rc
+  if output="$(python3 - "$pattern" "$text" "$multiline" "$case_insensitive" "$colorize" "$as_json" <<'PYREGEX' 2>&1
+import json, re, sys
+pattern, text = sys.argv[1], sys.argv[2]
+multiline = sys.argv[3] == "1"
+case_insensitive = sys.argv[4] == "1"
+colorize = sys.argv[5] == "1"
+as_json = sys.argv[6] == "1"
+flags = 0
+if multiline:
+    flags |= re.MULTILINE
+if case_insensitive:
+    flags |= re.IGNORECASE
+try:
+    rx = re.compile(pattern, flags)
+except re.error as e:
+    if as_json:
+        print(json.dumps({"ok": False, "error": str(e), "matches": []}, ensure_ascii=False))
+    else:
+        print(f"Regex error: {e}", file=sys.stderr)
+    sys.exit(2)
+
+matches = []
+for line_no, line in enumerate(text.splitlines() or [text], 1):
+    for m in rx.finditer(line):
+        captures = {str(i): m.group(i) for i in range(1, len(m.groups()) + 1)}
+        captures.update({k: v for k, v in m.groupdict().items()})
+        matches.append({
+            "line": line_no,
+            "match": m.group(0),
+            "start": m.start(),
+            "end": m.end(),
+            "captures": captures,
+        })
+
+if as_json:
+    print(json.dumps({"ok": True, "matches": matches}, ensure_ascii=False))
+else:
+    if not matches:
+        sys.exit(1)
+    for i, m in enumerate(matches, 1):
+        val = m["match"]
+        if colorize:
+            val = "\033[31m" + val + "\033[0m"
+        cap = ""
+        if m["captures"]:
+            cap = " captures=" + json.dumps(m["captures"], ensure_ascii=False)
+        print(f"[{i}] line {m['line']} span {m['start']}-{m['end']}: {val}{cap}")
+sys.exit(0 if matches else 1)
+PYREGEX
+)"; then
+    rc=0
+  else
+    rc=$?
+  fi
+
   if (( as_json )); then
-    case "$backend" in
-      perl)
-        rl_match_perl_json "$pattern" "$text" "$multiline" "$case_insensitive"
-        ;;
-      grep-p)
-        # grep -P can't do JSON captures; fallback to python3.
-        if uk_has_cmd python3; then
-          rl_match_python_json "$pattern" "$text" "$multiline" "$case_insensitive"
-        else
-          printf '{"ok":true,"matches":[]}\n'
-        fi
-        ;;
-      python3)
-        rl_match_python_json "$pattern" "$text" "$multiline" "$case_insensitive"
-        ;;
-    esac
-    return 0
+    printf '%s\n' "$output"
+    return "$rc"
+  fi
+
+  if (( rc == 2 )); then
+    uk_error "$output"
+    return 2
   fi
 
   rl_section "Match results"
   printf '  %spattern:%s %s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$pattern"
-  printf '  %sbackend:%s %s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$backend"
+  printf '  %sbackend:%s python3\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   printf '  %sflags:%s  %s%s%s\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" \
     "${UK_C_BOLD:-}" \
     "$([[ "$multiline" == "1" ]] && printf ' multiline')$([[ "$case_insensitive" == "1" ]] && printf ' case-insensitive')" \
     "${UK_C_RESET:-}"
 
-  local matches
-  case "$backend" in
-    perl)    matches="$(rl_match_perl "$pattern" "$text" "$multiline" "$case_insensitive" "$colorize")" ;;
-    grep-p)  matches="$(rl_match_grep_p "$pattern" "$text" "$case_insensitive")" ;;
-    python3) matches="$(rl_match_python "$pattern" "$text" "$multiline" "$case_insensitive" "$colorize")" ;;
-  esac
-
-  if [[ -z "$matches" ]]; then
+  if (( rc == 1 )); then
     printf '  %s(no matches)%s\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
     return 1
   fi
 
   local count
-  # Count individual matches using grep -oE if possible
-  if echo "$text" | grep -oP -- "$pattern" >/dev/null 2>/dev/null; then
-    count="$(echo "$text" | grep -oP -- "$pattern" 2>/dev/null | grep -c . || true)"
-  elif echo "$text" | grep -oE -- "$pattern" >/dev/null 2>/dev/null; then
-    count="$(echo "$text" | grep -oE -- "$pattern" 2>/dev/null | grep -c . || true)"
-  else
-    count="$(printf '%s\n' "$matches" | grep -c . || true)"
-  fi
+  count="$(printf '%s\n' "$output" | grep -c '^\[' || true)"
   printf '  %s%d match(es):%s\n\n' "${UK_C_BOLD:-}${UK_C_GREEN:-}" "$count" "${UK_C_RESET:-}"
-  printf '%s\n' "$matches"
-  printf '\n'
+  printf '%s\n\n' "$output"
   return 0
 }
 
 rl_run_sub() {
   local pattern="$1" sub="$2" text="$3" multiline="$4" case_insensitive="$5" as_json="$6"
 
-  local backend
-  backend="$(rl_detect_backend 2>/dev/null || true)"
-  if [[ -z "$backend" ]]; then
-    uk_error "No regex backend found. Install perl or python3."
+  if ! uk_has_cmd python3; then
+    uk_error "regex substitution requires python3."
     return 2
   fi
 
-  local result
-  case "$backend" in
-    perl)
-      result="$(rl_sub_perl "$pattern" "$sub" "$text" "$multiline" "$case_insensitive")"
-      ;;
-    python3|grep-p)
-      result="$(rl_sub_python "$pattern" "$sub" "$text" "$multiline" "$case_insensitive")"
-      ;;
-  esac
+  local output rc
+  if output="$(python3 - "$pattern" "$sub" "$text" "$multiline" "$case_insensitive" "$as_json" <<'PYSUB' 2>&1
+import json, re, sys
+pattern, sub, text = sys.argv[1], sys.argv[2], sys.argv[3]
+multiline = sys.argv[4] == "1"
+case_insensitive = sys.argv[5] == "1"
+as_json = sys.argv[6] == "1"
+flags = 0
+if multiline:
+    flags |= re.MULTILINE
+if case_insensitive:
+    flags |= re.IGNORECASE
+
+def parse_s_expr(expr):
+    if not expr.startswith('s') or len(expr) < 3:
+        return None
+    delim = expr[1]
+    parts = []
+    cur = []
+    esc = False
+    for ch in expr[2:]:
+        if esc:
+            cur.append(ch); esc = False; continue
+        if ch == '\\':
+            cur.append(ch); esc = True; continue
+        if ch == delim and len(parts) < 2:
+            parts.append(''.join(cur)); cur = []; continue
+        cur.append(ch)
+    if len(parts) != 2:
+        return None
+    flags_part = ''.join(cur)
+    return parts[0], parts[1], flags_part
+
+expr = parse_s_expr(sub)
+if expr:
+    pattern, replacement, flag_text = expr
+    if 'i' in flag_text:
+        flags |= re.IGNORECASE
+    count = 0 if 'g' in flag_text else 1
+else:
+    replacement = sub
+    count = 0
+try:
+    rx = re.compile(pattern, flags)
+except re.error as e:
+    if as_json:
+        print(json.dumps({"ok": False, "error": str(e)}))
+    else:
+        print(f"Regex error: {e}", file=sys.stderr)
+    sys.exit(2)
+try:
+    result, n = rx.subn(replacement, text, count=count)
+except re.error as e:
+    if as_json:
+        print(json.dumps({"ok": False, "error": str(e)}))
+    else:
+        print(f"Substitution error: {e}", file=sys.stderr)
+    sys.exit(2)
+if as_json:
+    print(json.dumps({"ok": True, "input": text, "pattern": pattern, "substitution": sub, "replacements": n, "result": result}, ensure_ascii=False))
+else:
+    print(result)
+sys.exit(0)
+PYSUB
+)"; then
+    rc=0
+  else
+    rc=$?
+  fi
 
   if (( as_json )); then
-    printf '{"ok":true,"input":%s,"substitution":%s,"result":%s}\n' \
-      "$(rl_json_escape "$text")" \
-      "$(rl_json_escape "$sub")" \
-      "$(rl_json_escape "$result")"
-    return 0
+    printf '%s\n' "$output"
+    return "$rc"
+  fi
+  if (( rc != 0 )); then
+    uk_error "$output"
+    return "$rc"
   fi
 
   rl_section "Substitution preview"
   printf '  %spattern:%s      %s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$pattern"
   printf '  %ssubstitution:%s  %s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$sub"
-  printf '  %sbackend:%s       %s\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$backend"
+  printf '  %sbackend:%s       python3\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
 
   printf '  %sBefore:%s  %s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}" "$text"
   printf '  %sAfter:%s   %s%s%s\n\n' \
     "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" \
-    "${UK_C_BOLD:-}" "$result" "${UK_C_RESET:-}"
+    "${UK_C_BOLD:-}" "$output" "${UK_C_RESET:-}"
 }
 
 # ---- Main ------------------------------------------------------------------

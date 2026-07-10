@@ -2,7 +2,7 @@
 CC_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CC_SCRIPT_DIR/../lib/uk_common.sh"
 
-VERSION="2.0.2"
+VERSION="2.0.3"
 
 # ---------------------------------------------------------------------------
 CC_OLDER_THAN=60
@@ -47,11 +47,11 @@ cc_parse_args() {
     case "${1:-}" in
     -h | --help)
       cc_usage
-      exit 0
+      return 0
       ;;
     -V | --version)
       printf '_cache_clean %s\n' "$VERSION"
-      exit 0
+      return 0
       ;;
     --debug)
       CC_DEBUG=1
@@ -96,7 +96,7 @@ cc_parse_args() {
       ;;
     -*)
       printf 'Unknown option: %s\n' "${1:-}" >&2
-      exit 1
+      return 1
       ;;
     *) break ;;
     esac
@@ -244,7 +244,7 @@ cc_detect_os() {
 cc_root_check() {
   if [ "$(id -u 2>/dev/null || echo 65534)" -eq 0 ] && [ "$CC_FORCE_ROOT" -eq 0 ]; then
     cc_log_error "Running as root is not allowed."
-    exit 1
+    return 1
   fi
   return 0
 }
@@ -252,7 +252,7 @@ cc_require_basic_tools() {
   for cmd in id du find wc awk rm mkdir basename dirname cut sleep date uname; do
     command -v "$cmd" >/dev/null 2>&1 || {
       cc_log_error "Missing tool: $cmd"
-      exit 1
+      return 1
     }
   done
 }
@@ -269,7 +269,7 @@ cc_setup_tmp() {
   CC_STATE_DIR="$CC_TMPDIR/cacheclean-$$"
   mkdir -p "$CC_STATE_DIR" || {
     cc_log_error "Cannot create $CC_STATE_DIR"
-    exit 1
+    return 1
   }
 }
 cc_cleanup_tmp() {
@@ -577,14 +577,24 @@ cc_log_warn() { printf '%s%s %s%s\n' "$C_YELLOW" "$I_WARN" "${1:-}" "$C_RESET" >
 cc_log_error() { printf '%s%s %s%s\n' "$C_RED" "$I_ERR" "${1:-}" "$C_RESET" >&2; }
 cc_main() {
   uk_banner "cacheclean" "intelligent cache cleaner for devs" "" "$@"
+  case " ${*:-} " in
+  *" --help "* | *" -h "*)
+    cc_usage
+    return 0
+    ;;
+  *" --version "* | *" -V "*)
+    printf '_cache_clean %s\n' "$VERSION"
+    return 0
+    ;;
+  esac
   trap cc_cleanup_tmp EXIT
-  cc_parse_args "$@"
+  cc_parse_args "$@" || return $?
   cc_setup_colors
-  cc_require_basic_tools
+  cc_require_basic_tools || return $?
   cc_detect_os
-  cc_root_check
+  cc_root_check || return $?
   cc_setup_box_chars
-  cc_setup_tmp
+  cc_setup_tmp || return $?
 
   [ "$CC_DEBUG" -eq 1 ] && set -x
 
@@ -593,7 +603,7 @@ cc_main() {
   if [ ${#CC_ACTIVE_PLUGINS[@]} -eq 0 ]; then
     [ "$CC_QUIET" -eq 0 ] && cc_print_env_summary
     cc_log_warn "No supported package managers detected."
-    exit 0
+    return 0
   fi
 
   [ "$CC_QUIET" -eq 0 ] && cc_print_env_summary
@@ -602,7 +612,7 @@ cc_main() {
   if [ "$CC_TOTAL_ORPHAN_COUNT" -eq 0 ]; then
     [ "$CC_QUIET" -eq 0 ] && printf '\n%s%s%s %sNo orphaned cache files found. Nothing to clean.%s\n  %sThe cache is within your --older-than threshold.%s\n' \
       "$C_LGREEN" "$I_MAGIC" "$C_RESET" "$C_BOLD$C_LGREEN" "$C_RESET" "$C_DIM" "$C_RESET"
-    exit 0
+    return 0
   fi
   if cc_prompt_confirm; then
     [ "$CC_QUIET" -eq 0 ] && cc_list_orphans_to_delete
@@ -611,11 +621,11 @@ cc_main() {
       cc_print_final_summary "$result"
     else
       [ "$CC_QUIET" -eq 0 ] && printf '\n  %s%s%s %sAborted.%s\n' "$C_LRED" "$I_STOP" "$C_RESET" "$C_BOLD" "$C_RESET"
-      exit 0
+      return 0
     fi
   else
     [ "$CC_QUIET" -eq 0 ] && printf '\n  %s%s%s %sAborted.%s\n' "$C_LRED" "$I_STOP" "$C_RESET" "$C_BOLD" "$C_RESET"
-    exit 0
+    return 0
   fi
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

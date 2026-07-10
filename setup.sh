@@ -25,6 +25,12 @@ setup_expand_path() {
     printf '%s\n' "$input"
   fi
 }
+setup_validate_launcher() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || {
+    uk_error "Invalid launcher name: ${1:-}. Use letters, numbers, dot, underscore, dash."
+    exit 1
+  }
+}
 while [[ $# -gt 0 ]]; do
   case "${1:-}" in
   --no-menu) INTERACTIVE=0 ;;
@@ -68,9 +74,12 @@ if ((INTERACTIVE == 1)); then
   fi
 fi
 
+setup_validate_launcher "$LAUNCHER_NAME"
+
 SOURCE_DIR='.'
 TEMP_CLONE=''
 if [[ ! -f "./main.sh" && ! -f "$SETUP_DIR/main.sh" ]]; then
+  uk_has_cmd git || { uk_error 'git is required to clone UtilityKit when setup.sh is not run from a full checkout.'; exit 1; }
   TEMP_CLONE="$(mktemp -d)"
   git clone --depth=1 "$REPO_URL" "$TEMP_CLONE"
   SOURCE_DIR="$TEMP_CLONE"

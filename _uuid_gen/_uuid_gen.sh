@@ -59,6 +59,7 @@ Types:
 Options:
   --count N       Generate N IDs at once (default 1).
   --len N         Custom length (nanoid, short, hex).
+  --alphabet ABC  Custom alphabet for nanoid/short.
   --upper         Uppercase output (default: lowercase).
   --sep SEP       Separator between bulk IDs (default: newline).
   --json          Machine-readable JSON array output.
@@ -152,52 +153,43 @@ for _ in range(n):
 }
 
 ug_gen_nanoid() {
-  local n="$1" len="$2"
-  local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+  local n="$1" len="$2" alphabet="${3:-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-}"
   if uk_has_cmd python3; then
     python3 -c '
-import sys, os, math
+import sys, secrets
 n = int(sys.argv[1])
 length = int(sys.argv[2])
 abc = sys.argv[3]
-# Mask calculation for unbiased random
-mask = (2 << int(math.log2(len(abc) - 1))) - 1
-step = int(math.ceil(1.6 * mask * length / len(abc)))
 for _ in range(n):
-    result = []
-    while len(result) < length:
-        rand_bytes = os.urandom(step)
-        for b in rand_bytes:
-            idx = b & mask
-            if idx < len(abc):
-                result.append(abc[idx])
-                if len(result) == length:
-                    break
-    print("".join(result[:length]))
+    print("".join(secrets.choice(abc) for _ in range(length)))
 ' "$n" "$len" "$alphabet"
   else
-    local i j id='' alpha_len=${#alphabet}
+    local i
     for ((i=0; i<n; i++)); do
-      id=''
-      for ((j=0; j<len; j++)); do
-        id+="${alphabet:$((RANDOM % alpha_len)):1}"
-      done
-      printf '%s\n' "$id"
+      LC_ALL=C tr -dc "$alphabet" </dev/urandom | head -c "$len"
+      printf '\n'
     done
   fi
 }
 
 ug_gen_short() {
-  local n="$1" len="$2"
-  local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  local i j id='' alpha_len=${#alphabet}
-  for ((i=0; i<n; i++)); do
-    id=''
-    for ((j=0; j<len; j++)); do
-      id+="${alphabet:$((RANDOM % alpha_len)):1}"
+  local n="$1" len="$2" alphabet="${3:-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789}"
+  if uk_has_cmd python3; then
+    python3 -c '
+import sys, secrets
+n = int(sys.argv[1])
+length = int(sys.argv[2])
+abc = sys.argv[3]
+for _ in range(n):
+    print("".join(secrets.choice(abc) for _ in range(length)))
+' "$n" "$len" "$alphabet"
+  else
+    local i
+    for ((i=0; i<n; i++)); do
+      LC_ALL=C tr -dc "$alphabet" </dev/urandom | head -c "$len"
+      printf '\n'
     done
-    printf '%s\n' "$id"
-  done
+  fi
 }
 
 ug_gen_hex() {
@@ -253,6 +245,7 @@ ug_main() {
 
   local type="uuid4"
   local count=1 length=0 upper=0 sep=$'\n' as_json=0 clip=0 quiet=0
+  local alphabet=""
 
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
@@ -260,6 +253,7 @@ ug_main() {
         type="$1" ;;
       --count)  shift; count="${1:-1}" ;;
       --len)    shift; length="${1:-0}" ;;
+      --alphabet) shift; alphabet="${1:-}" ;;
       --upper)  upper=1 ;;
       --sep)    shift; sep="${1:-$'\n'}" ;;
       --json)   as_json=1 ;;
@@ -274,24 +268,30 @@ ug_main() {
     shift || true
   done
 
-  [[ "$count" =~ ^[0-9]+$ ]] || count=1
-  (( count < 1 )) && count=1
+  [[ "$count" =~ ^[0-9]+$ ]] || { uk_error "--count must be a positive integer."; return 2; }
+  (( count >= 1 )) || { uk_error "--count must be >= 1."; return 2; }
+  (( count <= 100000 )) || { uk_error "--count is too large (max 100000)."; return 2; }
+  [[ "$length" =~ ^[0-9]+$ ]] || { uk_error "--len must be a non-negative integer."; return 2; }
+  (( length <= 4096 )) || { uk_error "--len is too large (max 4096)."; return 2; }
 
   # Default lengths per type
   case "$type" in
-    nanoid)   (( length > 0 )) || length=21 ;;
-    short)    (( length > 0 )) || length=8 ;;
+    nanoid)   (( length > 0 )) || length=21; [[ -z "$alphabet" ]] && alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-' ;;
+    short)    (( length > 0 )) || length=8;  [[ -z "$alphabet" ]] && alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' ;;
     hex)      (( length > 0 )) || length=32 ;;
     *)        length=0 ;;
   esac
+  if [[ "$type" =~ ^(nanoid|short)$ ]]; then
+    (( ${#alphabet} >= 2 )) || { uk_error "--alphabet must contain at least 2 characters."; return 2; }
+  fi
 
   local result
   case "$type" in
     uuid4)     result="$(ug_gen_uuid4 "$count")" ;;
     uuid7)     result="$(ug_gen_uuid7 "$count")" ;;
     ulid)      result="$(ug_gen_ulid "$count")" ;;
-    nanoid)    result="$(ug_gen_nanoid "$count" "$length")" ;;
-    short)     result="$(ug_gen_short "$count" "$length")" ;;
+    nanoid)    result="$(ug_gen_nanoid "$count" "$length" "$alphabet")" ;;
+    short)     result="$(ug_gen_short "$count" "$length" "$alphabet")" ;;
     hex)       result="$(ug_gen_hex "$count" "$length")" ;;
     snowflake) result="$(ug_gen_snowflake "$count")" ;;
     *)         uk_error "Unknown type: $type"; ug_usage; return 2 ;;

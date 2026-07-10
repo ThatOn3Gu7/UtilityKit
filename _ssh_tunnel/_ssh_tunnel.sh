@@ -48,7 +48,14 @@ restart ID|NAME   Restart tunnel.
 USAGE
 }
 
-st_cfg() { local d="${XDG_CONFIG_HOME:-$HOME/.config}/utilitykit"; mkdir -p "$d" 2>/dev/null || true; ST_CONFIG="$d/tunnels.conf"; [[ -f "$ST_CONFIG" ]] || : >"$ST_CONFIG"; }
+st_cfg() { local d="${XDG_CONFIG_HOME:-$HOME/.config}/utilitykit"; mkdir -p "$d" 2>/dev/null || true; ST_CONFIG="$d/tunnels.conf"; [[ -f "$ST_CONFIG" ]] || : >"$ST_CONFIG"; chmod 600 "$ST_CONFIG" 2>/dev/null || true; }
+st_valid_name() { [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]]; }
+st_port_in_use() {
+  local port="${1:-}"
+  if uk_has_cmd lsof; then lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1 && return 0; fi
+  if uk_has_cmd ss; then ss -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]${port}$" && return 0; fi
+  return 1
+}
 
 st_create() {
   local remote="$1" lp="$2" user="$3" key="$4" autossh="$5" name="$6"
@@ -57,6 +64,10 @@ st_create() {
   [[ "$rh" == "$rp" ]] && rp="$lp"
   [[ -z "$lp" ]] && lp="$rp"
   [[ -z "$name" ]] && name="${rh}-${lp}"
+  st_valid_name "$name" || { uk_error "Tunnel name must contain only letters, numbers, dot, underscore, dash: $name"; return 2; }
+  [[ "$lp" =~ ^[0-9]+$ && "$rp" =~ ^[0-9]+$ ]] || { uk_error "Ports must be numeric."; return 2; }
+  (( lp >= 1 && lp <= 65535 && rp >= 1 && rp <= 65535 )) || { uk_error "Ports must be in 1..65535."; return 2; }
+  st_port_in_use "$lp" && { uk_error "Local port already appears to be in use: $lp"; return 1; }
   local ssh_cmd="ssh"
   local -a args=(-N -L "${lp}:${rh}:${rp}")
   [[ -n "$user" ]] && args+=("-l" "$user")
@@ -95,17 +106,17 @@ st_list() {
 
 st_kill() {
   local id="$1"; st_cfg
-  local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep "^$id|" "$ST_CONFIG" 2>/dev/null | head -1)"
+  local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep -F "${id}|" "$ST_CONFIG" 2>/dev/null | awk -F'|' -v n="$id" '$1==n{print; exit}')"
   [[ -z "$line" ]] && { uk_error "No tunnel: $id"; return 1; }
   local name="${line%%|*}" pid="${line##*|}"
   kill "$pid" 2>/dev/null && uk_success "Killed tunnel '$name'" || uk_warn "Could not kill PID $pid"
   rm -f "/tmp/tunnel-${name}.pid" 2>/dev/null || true
-  local tmp; tmp="$(mktemp)"; grep -v "^$name|" "$ST_CONFIG" >"$tmp" 2>/dev/null && mv "$tmp" "$ST_CONFIG" || rm -f "$tmp"
+  local tmp; tmp="$(mktemp)"; awk -F'|' -v n="$name" '$1 != n' "$ST_CONFIG" >"$tmp" 2>/dev/null && mv "$tmp" "$ST_CONFIG" || rm -f "$tmp"
 }
 
 st_restart() {
   local id="$1"; st_cfg
-  local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep "^$id|" "$ST_CONFIG" 2>/dev/null | head -1)"
+  local line; [[ "$id" =~ ^[0-9]+$ ]] && line="$(sed -n "${id}p" "$ST_CONFIG" 2>/dev/null)" || line="$(grep -F "${id}|" "$ST_CONFIG" 2>/dev/null | awk -F'|' -v n="$id" '$1==n{print; exit}')"
   [[ -z "$line" ]] && { uk_error "No tunnel: $id"; return 1; }
   IFS='|' read -r n lp rh rp u k a p <<<"$line"
   st_kill "$id" 2>/dev/null; sleep 1; st_create "${rh}:${rp}" "$lp" "$u" "$k" "$a" "$n"

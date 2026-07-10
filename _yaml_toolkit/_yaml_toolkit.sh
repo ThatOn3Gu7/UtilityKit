@@ -136,12 +136,12 @@ yt_cmd_lint() {
   case "$backend" in
     yq)
       if yq eval '.' "$file" >/dev/null 2>&1; then
-        (( as_json )) && printf '{"ok":true,"file":"%s"}\n' "$file" || uk_success "Valid YAML: $file"
+        (( as_json )) && printf '{"ok":true,"file":%s}\n' "$(yt_json_escape "$file")" || uk_success "Valid YAML: $file"
         return 0
       else
         local err
         err="$(yq eval '.' "$file" 2>&1 || true)"
-        (( as_json )) && printf '{"ok":false,"file":"%s","error":%s}\n' "$file" "$(yt_json_escape "$err")" || {
+        (( as_json )) && printf '{"ok":false,"file":%s,"error":%s}\n' "$(yt_json_escape "$file")" "$(yt_json_escape "$err")" || {
           uk_error "Invalid YAML: $file"
           printf '  %s\n' "$err"
         }
@@ -159,7 +159,7 @@ except yaml.YAMLError as e:
     print(f"INVALID: {e}")
     sys.exit(1)
 ' "$file" >/dev/null 2>&1; then
-        (( as_json )) && printf '{"ok":true,"file":"%s"}\n' "$file" || uk_success "Valid YAML: $file"
+        (( as_json )) && printf '{"ok":true,"file":%s}\n' "$(yt_json_escape "$file")" || uk_success "Valid YAML: $file"
         return 0
       else
         local err
@@ -171,7 +171,7 @@ try:
 except yaml.YAMLError as e:
     print(e)
 ' "$file" 2>/dev/null)"
-        (( as_json )) && printf '{"ok":false,"file":"%s","error":%s}\n' "$file" "$(yt_json_escape "$err")" || {
+        (( as_json )) && printf '{"ok":false,"file":%s,"error":%s}\n' "$(yt_json_escape "$file")" "$(yt_json_escape "$err")" || {
           uk_error "Invalid YAML: $file"
           printf '  %s\n' "$err"
         }
@@ -398,8 +398,8 @@ yaml.dump(data, sys.stdout, indent=indent, allow_unicode=True, sort_keys=False, 
 yt_main() {
   uk_banner "yaml-toolkit" "Lint, convert, query, and merge YAML files" "" "$@"
 
-  local sub="" file="" key="" base="" overlay=""
-  local indent=2 as_json=0
+  local sub="" indent=2 as_json=0
+  local -a args=()
 
   if [[ $# -gt 0 ]]; then
     case "${1:-}" in
@@ -417,40 +417,42 @@ yt_main() {
                   UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
       -h|--help) yt_usage; return 0 ;;
       -*)        uk_error "Unknown option: ${1:-}"; yt_usage; return 2 ;;
-      *)
-        if [[ -z "$file" ]]; then
-          file="$1"
-        elif [[ -z "$key" && "$sub" == "get" ]]; then
-          key="$1"
-        elif [[ -z "$base" && "$sub" == "merge" ]]; then
-          base="$file"; file=""; overlay="$1"
-        elif [[ -z "$overlay" && "$sub" == "merge" ]]; then
-          overlay="$1"
-        fi
-        ;;
+      *)         args+=("$1") ;;
     esac
     shift || true
   done
 
-  # For merge, the positional args are base and overlay
-  if [[ "$sub" == "merge" ]]; then
-    base="$file"
-    # file was already consumed as the first positional; overlay was the second
-  fi
+  [[ "$indent" =~ ^[0-9]+$ ]] || { uk_error "--indent must be numeric."; return 2; }
 
-  [[ -z "$file" && "$sub" != "merge" ]] && { uk_error "FILE required."; yt_usage; return 2; }
+  local file="" key="" base="" overlay=""
+  case "$sub" in
+    lint|tojson|toyml|keys|pretty)
+      file="${args[0]:-}"
+      [[ -z "$file" ]] && { uk_error "FILE required."; yt_usage; return 2; }
+      [[ -f "$file" ]] || { uk_error "File not found: $file"; return 2; }
+      ;;
+    get)
+      file="${args[0]:-}"; key="${args[1]:-}"
+      [[ -z "$file" || -z "$key" ]] && { uk_error "get requires FILE and KEY."; return 2; }
+      [[ -f "$file" ]] || { uk_error "File not found: $file"; return 2; }
+      ;;
+    merge)
+      base="${args[0]:-}"; overlay="${args[1]:-}"
+      [[ -z "$base" || -z "$overlay" ]] && { uk_error "merge requires BASE and OVERLAY files."; return 2; }
+      [[ -f "$base" ]] || { uk_error "File not found: $base"; return 2; }
+      [[ -f "$overlay" ]] || { uk_error "File not found: $overlay"; return 2; }
+      ;;
+    *) yt_usage; return 2 ;;
+  esac
 
   case "$sub" in
     lint)    yt_cmd_lint "$file" "$as_json" ;;
     tojson)  yt_cmd_tojson "$file" "$indent" ;;
     toyml)   yt_cmd_toyml "$file" "$indent" ;;
-    get)     [[ -z "$key" ]] && { uk_error "get requires KEY."; return 2; }
-             yt_cmd_get "$file" "$key" "$indent" ;;
-    merge)   [[ -z "$base" || -z "$overlay" ]] && { uk_error "merge requires BASE and OVERLAY files."; return 2; }
-             yt_cmd_merge "$base" "$overlay" "$indent" ;;
+    get)     yt_cmd_get "$file" "$key" "$indent" ;;
+    merge)   yt_cmd_merge "$base" "$overlay" "$indent" ;;
     keys)    yt_cmd_keys "$file" "$as_json" ;;
     pretty)  yt_cmd_pretty "$file" "$indent" ;;
-    *)       yt_usage; return 2 ;;
   esac
 }
 

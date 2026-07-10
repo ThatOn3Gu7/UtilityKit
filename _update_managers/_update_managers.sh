@@ -8,7 +8,7 @@
 set -uo pipefail
 IFS=$' \t\n'
 
-VERSION="2.1.0"
+VERSION="4.2.1"
 SCRIPT_NAME="${0##*/}"
 
 # ----------------------------- Defaults & State -----------------------------

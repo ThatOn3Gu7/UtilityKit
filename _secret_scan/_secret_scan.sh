@@ -67,6 +67,7 @@ Options:
                       .git, node_modules, __pycache__, dist, build, .venv, target.
   --context N         Show N chars of surrounding context (default 40).
   --quiet             Only print summary.
+  --reveal            Do not redact matches in JSON/terminal output (dangerous for CI logs).
   --no-color          Disable ANSI (also respects NO_COLOR=1).
   -h, --help          Show this help.
 
@@ -196,6 +197,16 @@ PY
 # ---- Findings emission -----------------------------------------------------
 
 SEC_TOTAL=0
+SEC_REVEAL=0
+
+sec_redact() {
+  local s="${1:-}" n=${#1}
+  if (( n > 12 )); then
+    printf '%s%s%s' "${s:0:4}" "$(printf '%*s' $((n - 8)) '' | tr ' ' '*')" "${s: -4}"
+  else
+    printf '%s' "$s"
+  fi
+}
 
 sec_emit_finding() {
   local rule="$1" file="$2" lineno="$3" match="$4" context="$5"
@@ -205,10 +216,15 @@ sec_emit_finding() {
     if uk_has_cmd python3; then
       python3 -c '
 import json,sys
+rule, file, line, match, context, reveal = sys.argv[1:7]
+if reveal != "1" and len(match) > 12:
+    redacted = match[:4] + "*" * (len(match)-8) + match[-4:]
+    context = context.replace(match, redacted)
+    match = redacted
 print(json.dumps({
-  "rule": sys.argv[1], "file": sys.argv[2], "line": int(sys.argv[3]),
-  "match": sys.argv[4], "context": sys.argv[5],
-}, ensure_ascii=False))' "$rule" "$file" "$lineno" "$match" "$context"
+  "rule": rule, "file": file, "line": int(line),
+  "match": match, "context": context,
+}, ensure_ascii=False))' "$rule" "$file" "$lineno" "$match" "$context" "$SEC_REVEAL"
     else
       # Fallback JSON — best-effort escape.
       local esc_m="${match//\\/\\\\}"; esc_m="${esc_m//\"/\\\"}"
@@ -226,8 +242,9 @@ print(json.dumps({
   # Use ASCII '*' so NO_UNICODE=1 terminals (and non-UTF8 locales) don't
   # emit replacement glyphs.
   local redacted="$match" mlen=${#match}
-  if (( mlen > 12 )); then
-    redacted="${match:0:4}$(printf '%*s' $((mlen - 8)) '' | tr ' ' '*')${match: -4}"
+  if [[ "$SEC_REVEAL" != "1" && $mlen -gt 12 ]]; then
+    redacted="$(sec_redact "$match")"
+    context="${context//$match/$redacted}"
   fi
 
   printf '\n %s%s%s  %s%s:%s%s\n' \
@@ -264,14 +281,20 @@ sec_scan_file_regex() {
   for (( i=0; i<${#rules_names[@]}; i++ )); do
     local rname="${rules_names[$i]}"
     local regex="${rules_regexes[$i]}"
-    # Feed the file to grep; -a treats binary as text to avoid silent drops.
+    # Feed the file to grep without -H: the file path is already known, and
+    # parsing grep's file:line:match format breaks on filenames containing ':'.
+    if [[ "$grep_flag" == "-E" ]]; then
+      regex="${regex//(?:/(}"
+      regex="${regex//\s/[[:space:]]}"
+    fi
     while IFS= read -r line; do
-      # grep output: LINENO:MATCHED_LINE (we used -n)
+      # grep output: LINENO:MATCHED_LINE (we used -n and omitted -H)
       lineno="${line%%:*}"
       match="${line#*:}"
-      # Extract the actual matched substring using grep -oE for display.
+      [[ "$lineno" =~ ^[0-9]+$ ]] || continue
+      # Extract the actual matched substring using the same grep dialect.
       local raw
-      raw="$(printf '%s' "$match" | grep $grep_flag -oi -- "$regex" | head -n1)"
+      raw="$(printf '%s' "$match" | grep $grep_flag -oi -- "$regex" | head -n1 || true)"
       [[ -z "$raw" ]] && raw="$match"
       # Trim context.
       local ctx="$match"
@@ -279,7 +302,7 @@ sec_scan_file_regex() {
         ctx="${ctx:0:ctx_len}…${ctx: -ctx_len}"
       fi
       sec_emit_finding "$rname" "$file" "$lineno" "$raw" "$ctx"
-    done < <(grep $grep_flag -Hnai -- "$regex" "$file" 2>/dev/null | cut -d: -f2- )
+    done < <(grep $grep_flag -nai -- "$regex" "$file" 2>/dev/null || true)
   done
 
   # Live dotenv values: KEY=<non-empty, not a placeholder>.
@@ -330,6 +353,8 @@ sec_main() {
   local ctx_len=40
   SEC_JSON=0
   SEC_QUIET=0
+  SEC_REVEAL=0
+  SEC_TOTAL=0
 
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
@@ -344,6 +369,7 @@ sec_main() {
       --exclude)      shift; excludes+=("${1:-}") ;;
       --context)      shift; ctx_len="${1:-40}" ;;
       --quiet)        SEC_QUIET=1 ;;
+      --reveal)       SEC_REVEAL=1 ;;
       --no-color)     UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
                       UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
       -h|--help)      sec_usage; return 0 ;;

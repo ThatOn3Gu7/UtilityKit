@@ -17,7 +17,30 @@ run_test() {
   shift
   if "$@"; then pass "$name"; else fail "$name"; fi
 }
-all_sh_files() { (cd "$ROOT" && rg --files -g '*.sh' | sort); }
+all_sh_files() {
+  if command -v rg >/dev/null 2>&1; then
+    (cd "$ROOT" && rg --files -g '*.sh' | sort)
+  else
+    (cd "$ROOT" && find . -type f -name '*.sh' -not -path './.git/*' -print | sed 's#^./##' | sort)
+  fi
+}
+repo_grep() {
+  # Usage: repo_grep PATTERN PATH... ; grep-compatible fallback for environments without ripgrep.
+  local pat="$1"; shift
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pat" "$@"
+  else
+    grep -R -n -E "$pat" "$@"
+  fi
+}
+repo_grep_glob_sh() {
+  local pat="$1"; shift
+  if command -v rg >/dev/null 2>&1; then
+    rg -n "$pat" "$@"
+  else
+    find "$ROOT" -type f -name '*.sh' -not -path '*/.git/*' -not -path '*/tests/deep_review_test.sh' -print0 | xargs -0 grep -n -E "$pat"
+  fi
+}
 t_syntax() {
   (cd "$ROOT" && bash -n $(all_sh_files)) >uk_deep_syntax.out 2>&1
 }
@@ -73,7 +96,7 @@ t_rename_color_preserve() {
 }
 t_prompt_scan() {
   # Command substitution is allowed because uk_prompt reads from /dev/tty and writes prompts to stderr.
-  ! rg -n '\|.*uk_prompt|uk_prompt.*\|[[:space:]]*$' "$ROOT/main.sh" "$ROOT"/_*/_*.sh >/dev/null
+  ! repo_grep '\|.*uk_prompt|uk_prompt.*\|[[:space:]]*$' "$ROOT/main.sh" "$ROOT"/_*/_*.sh >/dev/null
 }
 t_stat_fallback() {
   local tmp out
@@ -88,10 +111,14 @@ t_stat_fallback() {
 }
 t_termux_paths() {
   # Informational audit: permitted hardcoded paths are guarded/fallback paths in this codebase.
-  ! rg -n '(^|[^!])(/usr/bin|/etc/)' "$ROOT" -g '*.sh' -g '!tests/deep_review_test.sh' >/dev/null
+  ! repo_grep_glob_sh '(^|[^!])(/usr/bin|/etc/)' >/dev/null
 }
 t_find_printf() {
-  ! rg -n 'find .*-printf' "$ROOT" -g '*.sh' -g '!_rename_batch/_rename_batch.sh' -g '!_move_in_batch/_move_in_batch.sh' -g '!_apply_changes/_apply_changes.sh' -g '!tests/deep_review_test.sh' >/dev/null && rg -n 'if find .* -printf' "$ROOT/_rename_batch/_rename_batch.sh" >/dev/null
+  if command -v rg >/dev/null 2>&1; then
+    ! rg -n 'find .*-printf' "$ROOT" -g '*.sh' -g '!_rename_batch/_rename_batch.sh' -g '!_move_in_batch/_move_in_batch.sh' -g '!_apply_changes/_apply_changes.sh' -g '!tests/deep_review_test.sh' >/dev/null && rg -n 'if find .* -printf' "$ROOT/_rename_batch/_rename_batch.sh" >/dev/null
+  else
+    ! find "$ROOT" -type f -name '*.sh'       -not -path '*/_rename_batch/_rename_batch.sh'       -not -path '*/_move_in_batch/_move_in_batch.sh'       -not -path '*/_apply_changes/_apply_changes.sh'       -not -path '*/tests/deep_review_test.sh'       -print0 | xargs -0 grep -n -E 'find .*-printf' >/dev/null       && grep -n -E 'if find .* -printf' "$ROOT/_rename_batch/_rename_batch.sh" >/dev/null
+  fi
 }
 t_archive_traversal() {
   local tmp arc dest out rc

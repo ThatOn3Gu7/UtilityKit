@@ -10,6 +10,10 @@ sd_usage() {
   cat <<'USAGE'
 Usage:
   _shredder.sh [--passes N] [--apply] FILE...
+
+Warning:
+  Secure deletion is best-effort only. SSDs, journaling filesystems, snapshots,
+  cloud sync, and backups may retain previous copies outside this tool's reach.
 USAGE
 }
 sd_secure_delete() {
@@ -22,6 +26,7 @@ sd_secure_delete() {
     shred -n "$SD_PASSES" -z -u "$file"
     return 0
   fi
+  [[ -r /dev/urandom ]] || { uk_error "/dev/urandom is unavailable; cannot overwrite safely."; return 1; }
   size=$(wc -c <"$file")
   for ((pass = 1; pass <= SD_PASSES; pass++)); do
     head -c "$size" /dev/urandom >"$file"
@@ -79,6 +84,11 @@ sd_main() {
     return 1
   fi
 
+  [[ "$SD_PASSES" =~ ^[1-9][0-9]*$ ]] || { uk_error "--passes must be a positive integer."; return 2; }
+  (( SD_PASSES <= 35 )) || { uk_error "--passes is too high (max 35)."; return 2; }
+  if (( SD_APPLY == 1 )); then
+    uk_warn "Best-effort deletion only: SSDs/snapshots/backups may retain copies."
+  fi
   uk_section_title "Passes: $SD_PASSES"
   local f
   for f in "${SD_FILES[@]}"; do

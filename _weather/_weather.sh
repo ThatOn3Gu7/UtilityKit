@@ -21,12 +21,17 @@ if ! declare -F uk_state_dir &>/dev/null; then
   }
 fi
 
-# Modern Premium Color Palette (only set if not already provided by a parent shell)
-: "${C_DARK_GRAY:=\033[90m}" "${C_CYAN:=\033[38;5;81m}" "${C_GREEN:=\033[38;5;120m}" \
-  "${C_RED:=\033[38;5;203m}" "${C_YELLOW:=\033[38;5;221m}" "${C_WHITE:=\033[97m}" \
-  "${C_BOLD:=\033[1m}" "${C_RESET:=\033[0m}"
+# Modern Premium Color Palette. Use real ANSI escapes only on TTYs and honor
+# NO_COLOR; otherwise keep help/piped output plain text.
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  : "${C_DARK_GRAY:=$'\033[90m'}" "${C_CYAN:=${UK_C_CYAN:-$'\033[38;5;81m'}}" "${C_GREEN:=${UK_C_GREEN:-$'\033[38;5;120m'}}" \
+    "${C_RED:=${UK_C_RED:-$'\033[38;5;203m'}}" "${C_YELLOW:=${UK_C_YELLOW:-$'\033[38;5;221m'}}" "${C_WHITE:=${UK_C_WHITE:-$'\033[97m'}}" \
+    "${C_BOLD:=${UK_C_BOLD:-$'\033[1m'}}" "${C_RESET:=${UK_C_RESET:-$'\033[0m'}}"
+else
+  : "${C_DARK_GRAY:=}" "${C_CYAN:=}" "${C_GREEN:=}" "${C_RED:=}" "${C_YELLOW:=}" "${C_WHITE:=}" "${C_BOLD:=}" "${C_RESET:=}"
+fi
 
-PROMPT_CHAR="❯"
+if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then PROMPT_CHAR="❯"; else PROMPT_CHAR=">"; fi
 
 # INTERACTIVE PROMPT ENGINE
 ask_user() {

@@ -10,14 +10,14 @@
                                                    > C0ded by: ThatOn3Gu7
 ```
 
-**A modular Bash toolbox for Linux, macOS, and Termux — 48 tools, one dashboard.**
+**A modular Bash toolbox for Linux, macOS, and Termux — 63 tools, one dashboard.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg?style=flat-square)](LICENSE)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%204%2F4-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-2.0.2-orange?style=flat-square)](CHANGES.md)
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
+[![Version](https://img.shields.io/badge/Version-4.2.1-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 
 ## What is UtilityKit?
 
-UtilityKit is a collection of 51 standalone Bash scripts, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
+UtilityKit is a collection of 63 standalone Bash tools, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
 
 The suite targets three platforms without modification:
 
@@ -197,7 +197,7 @@ UtilityKit Master Suite — Tool 1 of 49
                                        [q]     : Exit UtilityKit
 ```
 
-All 48 tools live in a single unified scroll list — no nested "More tools"
+All 63 tools live in a single unified scroll list — no nested "More tools"
 pages. Highlights:
 
 - **Arrow keys** (`▲`/`▼`) or **Vim keys** (`k`/`j`) move the selection.
@@ -288,7 +288,7 @@ utility port 3000 --kill
 
 ```bash
 bash tests/smoke_test.sh
-# PASS=4 FAIL=0
+# PASS=7 FAIL=0
 ```
 
 The suite covers:

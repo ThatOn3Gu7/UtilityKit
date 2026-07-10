@@ -122,7 +122,7 @@ print(json.dumps(info, ensure_ascii=False))
     else
       local pages
       pages="$(pt_cmd_count "$file" 0 2>/dev/null || echo 0)"
-      printf '{"file":"%s","pages":%d}\n' "$file" "$pages"
+      printf '{"file":%s,"pages":%d}\n' "$(pt_json_escape "$file")" "$pages"
     fi
     return 0
   fi
@@ -178,27 +178,32 @@ except Exception:
   fi
 
   if (( as_json )); then
-    printf '{"file":"%s","pages":%d}\n' "$file" "$count"
+    printf '{"file":%s,"pages":%d}\n' "$(pt_json_escape "$file")" "$count"
   else
     printf '%d\n' "$count"
   fi
 }
 
 pt_cmd_merge() {
-  local -a inputs=("${@:1:$#-1}")
-  local output="${@: -1}"
-  local last_idx=$#
-
-  # Collect all files before the --output flag
-  # The last non-flag positional is the output
   local -a files=()
   local out=""
-  local i
-  for ((i=0; i<${#inputs[@]}; i++)); do
-    [[ "${inputs[$i]}" == "--output" ]] && { out="${inputs[$((i+1))]}"; break; }
-    files+=("${inputs[$i]}")
+  while [[ $# -gt 0 ]]; do
+    case "${1:-}" in
+      --output)
+        shift
+        out="${1:-}"
+        ;;
+      *) files+=("${1:-}") ;;
+    esac
+    shift || true
   done
-  [[ -z "$out" ]] && { uk_error "merge requires --output FILE"; return 2; }
+  [[ ${#files[@]} -ge 2 ]] || { uk_error "merge requires at least 2 input PDFs."; return 2; }
+  [[ -n "$out" ]] || { uk_error "merge requires --output FILE"; return 2; }
+  local f
+  for f in "${files[@]}"; do
+    [[ -f "$f" ]] || { uk_error "Input PDF not found: $f"; return 2; }
+  done
+  mkdir -p "$(dirname -- "$out")" 2>/dev/null || true
 
   if uk_has_cmd qpdf; then
     qpdf --empty --pages "${files[@]}" -- "$out" 2>/dev/null || {
@@ -234,8 +239,30 @@ print('OK')
   fi
 }
 
+pt_expand_pages() {
+  local range="$1" max="$2" part a b i
+  if [[ -z "$range" ]]; then
+    seq 1 "$max"
+    return 0
+  fi
+  IFS=',' read -r -a _parts <<<"$range"
+  for part in "${_parts[@]}"; do
+    part="${part//[[:space:]]/}"
+    if [[ "$part" =~ ^[0-9]+$ ]]; then
+      (( part >= 1 && part <= max )) && printf '%s\n' "$part"
+    elif [[ "$part" =~ ^[0-9]+-[0-9]+$ ]]; then
+      a="${part%-*}"; b="${part#*-}"
+      (( a > b )) && { i="$a"; a="$b"; b="$i"; }
+      for ((i=a; i<=b; i++)); do (( i >= 1 && i <= max )) && printf '%s\n' "$i"; done
+    else
+      uk_error "Invalid page range part: $part"
+      return 2
+    fi
+  done | awk '!seen[$0]++'
+}
+
 pt_cmd_split() {
-  local file="$1" outdir="$2"
+  local file="$1" outdir="$2" pages="${3:-}"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
   mkdir -p "$outdir"
 
@@ -243,13 +270,15 @@ pt_cmd_split() {
   count="$(pt_cmd_count "$file" 0 2>/dev/null || echo 0)"
   [[ "$count" -eq 0 ]] && { uk_error "No pages found."; return 1; }
 
+  local -a selected_pages=()
+  mapfile -t selected_pages < <(pt_expand_pages "$pages" "$count") || return $?
   if uk_has_cmd qpdf; then
     local i
-    for ((i=1; i<=count; i++)); do
+    for i in "${selected_pages[@]}"; do
       local outfile="$outdir/$(basename "$file" .pdf)-p$i.pdf"
       qpdf --pages "$file" "$i" -- "$file" "$outfile" 2>/dev/null || true
     done
-    uk_success "Split $count pages into $outdir"
+    uk_success "Split ${#selected_pages[@]} page(s) into $outdir"
   elif uk_has_cmd python3; then
     python3 -c "
 import sys, os
@@ -289,7 +318,7 @@ pt_cmd_text() {
     if (( as_json )); then
       local text
       text="$(pdftotext "$file" - 2>/dev/null || true)"
-      printf '{"file":"%s","text":%s}\n' "$file" "$(printf '%s' "$text" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read(), ensure_ascii=False))' 2>/dev/null || pt_json_escape "$text")"
+      printf '{"file":%s,"text":%s}\n' "$(pt_json_escape "$file")" "$(printf '%s' "$text" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read(), ensure_ascii=False))' 2>/dev/null || pt_json_escape "$text")"
     else
       pdftotext "$file" - 2>/dev/null || {
         uk_error "Text extraction failed."
@@ -366,8 +395,8 @@ pt_cmd_rotate() {
 pt_main() {
   uk_banner "pdf-toolkit" "Merge, split, extract, compress PDFs" "" "$@"
 
-  local sub="" file="" output="" deg=""
-  local -a extra=()
+  local sub="" file="" output="" deg="" pages=""
+  local -a args=()
   local as_json=0
 
   if [[ $# -gt 0 ]]; then
@@ -380,19 +409,13 @@ pt_main() {
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
       --output) shift; output="${1:-}" ;;
-      --pages)  shift; extra+=(--pages "${1:-}") ;;
+      --pages)  shift; pages="${1:-}" ;;
       --json)   as_json=1 ;;
       --no-color) UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
                   UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
       -h|--help) pt_usage; return 0 ;;
       -*)       uk_error "Unknown option: ${1:-}"; pt_usage; return 2 ;;
-      *)
-        if [[ -z "$file" ]]; then
-          file="$1"
-        else
-          extra+=("$1")
-        fi
-        ;;
+      *)        args+=("$1") ;;
     esac
     shift || true
   done
@@ -400,22 +423,21 @@ pt_main() {
   [[ -z "$sub" ]] && { uk_error "Subcommand required."; pt_usage; return 2; }
 
   case "$sub" in
-    info)  [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
+    info)  file="${args[0]:-}"; [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
            pt_cmd_info "$file" "$as_json" ;;
-    count) [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
+    count) file="${args[0]:-}"; [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
            pt_cmd_count "$file" "$as_json" ;;
-    merge) [[ -z "$file" ]] && { uk_error "At least 2 input PDFs required."; return 2; }
-           extra+=("$file")
-           pt_cmd_merge "${extra[@]}" --output "$output" ;;
-    split) [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
+    merge) [[ ${#args[@]} -lt 2 ]] && { uk_error "At least 2 input PDFs required."; return 2; }
+           pt_cmd_merge "${args[@]}" --output "$output" ;;
+    split) file="${args[0]:-}"; [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
            [[ -z "$output" ]] && output="./pages"
-           pt_cmd_split "$file" "$output" ;;
-    text)  [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
+           pt_cmd_split "$file" "$output" "$pages" ;;
+    text)  file="${args[0]:-}"; [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
            pt_cmd_text "$file" "$as_json" ;;
-    compress) [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
+    compress) file="${args[0]:-}"; [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
               pt_cmd_compress "$file" "$output" ;;
-    rotate) [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
-            deg="${extra[0]:-}"
+    rotate) file="${args[0]:-}"; deg="${args[1]:-}"
+            [[ -z "$file" ]] && { uk_error "FILE required."; return 2; }
             [[ -z "$deg" ]] && { uk_error "rotate requires DEGREES (90/180/270)."; return 2; }
             pt_cmd_rotate "$file" "$deg" "$output" ;;
     *) pt_usage; return 2 ;;

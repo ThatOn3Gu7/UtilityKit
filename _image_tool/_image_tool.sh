@@ -66,7 +66,7 @@ Options:
   --quality N        JPEG/WebP quality 1-100 (default 85).
   --size N           Thumbnail max dimension.
   --out FILE         Output path.
-  --recursive        Process directories recursively.
+  --recursive        Reserved; currently rejected instead of silently ignored.
   --json             Machine-readable output (info).
   --no-color         Disable ANSI (also respects NO_COLOR=1).
   -h, --help         Show this help.
@@ -105,18 +105,39 @@ it_json_escape() {
 it_has_convert() { uk_has_cmd convert || uk_has_cmd magick; }
 it_convert_cmd() { uk_has_cmd magick && printf 'magick\n' || printf 'convert\n'; }
 
+it_prepare_output() {
+  local out="${1:-}"
+  [[ -z "$out" ]] && return 0
+  local dir
+  dir="$(dirname -- "$out")"
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || { uk_error "Cannot create output directory: $dir"; return 1; }
+}
+
+it_validate_int() {
+  local name="$1" val="$2" min="${3:-1}" max="${4:-}"
+  [[ -z "$val" ]] && return 0
+  [[ "$val" =~ ^[0-9]+$ ]] || { uk_error "$name must be a positive integer: $val"; return 2; }
+  (( val >= min )) || { uk_error "$name must be >= $min"; return 2; }
+  [[ -z "$max" || "$val" -le "$max" ]] || { uk_error "$name must be <= $max"; return 2; }
+}
+
 it_cmd_info() {
   local file="$1" as_json="$2"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
 
   if (( as_json )); then
-    local w h fmt size
+    local w h fmt size cmd
     if it_has_convert; then
-      read -r w h fmt <<<"$(convert "$file" -format '%w %h %m' info: 2>/dev/null || true)"
+      cmd="$(it_convert_cmd)"
+      read -r w h fmt <<<"$($cmd "$file" -format '%w %h %m' info: 2>/dev/null || true)"
     fi
     size="$(wc -c <"$file" | tr -d ' ')"
-    printf '{"file":"%s","width":"%s","height":"%s","format":"%s","bytes":%s}\n' \
-      "$(it_json_escape "$file")" "${w:-?}" "${h:-?}" "${fmt:-?}" "${size:-0}"
+    printf '{"file":%s,"width":%s,"height":%s,"format":%s,"bytes":%s}\n' \
+      "$(it_json_escape "$file")" \
+      "$(it_json_escape "${w:-}")" \
+      "$(it_json_escape "${h:-}")" \
+      "$(it_json_escape "${fmt:-}")" \
+      "${size:-0}"
     return 0
   fi
 
@@ -124,7 +145,8 @@ it_cmd_info() {
   local w h fmt size
   size="$(wc -c <"$file" | tr -d ' ')"
   if it_has_convert; then
-    read -r w h fmt <<<"$(convert "$file" -format '%w %h %m' info: 2>/dev/null || true)"
+    local cmd; cmd="$(it_convert_cmd)"
+    read -r w h fmt <<<"$($cmd "$file" -format '%w %h %m' info: 2>/dev/null || true)"
     printf '  %s%-12s%s  %s\n' "${UK_C_DIM:-}" "Dimensions" "${UK_C_RESET:-}" "${w}x${h}"
     printf '  %s%-12s%s  %s\n' "${UK_C_DIM:-}" "Format" "${UK_C_RESET:-}" "$fmt"
   fi
@@ -135,6 +157,7 @@ it_cmd_resize() {
   local file="$1" width="$2" height="$3" percent="$4" out="$5"
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
   [[ -z "$out" ]] && out="${file%.*}_resized.${file##*.}"
+  it_prepare_output "$out" || return $?
 
   local cmd
   cmd="$(it_convert_cmd)"
@@ -162,6 +185,7 @@ it_cmd_convert() {
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
   [[ -z "$fmt" ]] && { uk_error "Target format required (--format)."; return 2; }
   [[ -z "$out" ]] && out="${file%.*}.${fmt}"
+  it_prepare_output "$out" || return $?
 
   local cmd
   cmd="$(it_convert_cmd)"
@@ -177,6 +201,7 @@ it_cmd_convert() {
 it_cmd_strip() {
   local file="$1" out="$2"
   [[ -z "$out" ]] && out="${file%.*}_clean.${file##*.}"
+  it_prepare_output "$out" || return $?
 
   if uk_has_cmd exiftool; then
     exiftool -all= -overwrite_original "$file" -o "$out" 2>/dev/null
@@ -251,6 +276,8 @@ it_cmd_thumb() {
   it_has_convert || { uk_error "ImageMagick required (convert/magick)."; return 2; }
   [[ -z "$size" ]] && size=200
   [[ -z "$out" ]] && out="${file%.*}_thumb.${file##*.}"
+  it_validate_int "--size" "$size" 1 10000 || return $?
+  it_prepare_output "$out" || return $?
 
   local cmd
   cmd="$(it_convert_cmd)"
@@ -265,7 +292,7 @@ it_main() {
 
   local sub="" file="" out="" fmt="" quality=""
   local width="" height="" percent="" size=""
-  local as_json=0
+  local as_json=0 recursive=0
 
   if [[ $# -gt 0 ]]; then
     case "${1:-}" in
@@ -283,7 +310,7 @@ it_main() {
       --quality) shift; quality="${1:-}" ;;
       --size)    shift; size="${1:-}" ;;
       --out)     shift; out="${1:-}" ;;
-      --recursive) ;;
+      --recursive) recursive=1 ;;
       --json)    as_json=1 ;;
       --no-color) UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
                   UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
@@ -296,6 +323,12 @@ it_main() {
 
   [[ -z "$sub" ]] && { uk_error "Subcommand required."; it_usage; return 2; }
   [[ -z "$file" ]] && { uk_error "FILE required."; it_usage; return 2; }
+  (( recursive == 0 )) || { uk_error "--recursive is not implemented yet; pass one file at a time."; return 2; }
+  [[ -f "$file" ]] || { uk_error "File not found: $file"; return 2; }
+  it_validate_int "--width" "$width" 1 100000 || return $?
+  it_validate_int "--height" "$height" 1 100000 || return $?
+  it_validate_int "--percent" "$percent" 1 10000 || return $?
+  it_validate_int "--quality" "$quality" 1 100 || return $?
 
   case "$sub" in
     info)     it_cmd_info "$file" "$as_json" ;;

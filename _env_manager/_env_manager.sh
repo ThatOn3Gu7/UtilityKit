@@ -92,13 +92,12 @@ em_validate_file() {
 }
 em_compare_files() {
   local active="${1:-}" example="${2:-}"
+  [[ -f "$active" ]] || { uk_error "Missing active env file: $active"; return 1; }
+  [[ -f "$example" ]] || { uk_error "Missing example env file: $example"; return 1; }
 
-  # Initialize variables directly without 'local' to ensure they outlive the function for the EXIT trap
-  tmp1=$(mktemp)
-  tmp2=$(mktemp)
-
-  # Use double quotes to evaluate the temp paths immediately instead of at script exit
-  trap "rm -f '$tmp1' '$tmp2'" EXIT
+  local tmp1 tmp2
+  tmp1=$(mktemp) || return 1
+  tmp2=$(mktemp) || { rm -f "$tmp1"; return 1; }
 
   em_keys "$active" >"$tmp1"
   em_keys "$example" >"$tmp2"
@@ -109,7 +108,9 @@ em_compare_files() {
 
   uk_note "Extra keys in active .env:"
   comm -23 "$tmp1" "$tmp2" | sed 's/^/  - /' || true
+  rm -f "$tmp1" "$tmp2"
 }
+
 em_list_profiles() {
   local dir="${1:-}"
   find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; 2>/dev/null | sed 's/^\.env\.//' | sort
@@ -304,17 +305,19 @@ em_main() {
 
   [[ -n "$EM_ENCRYPT" ]] && {
     em_encrypt_file "$EM_ENCRYPT"
-    return 0
+    return $?
   }
   [[ -n "$EM_DECRYPT" ]] && {
     em_decrypt_file "$EM_DECRYPT"
-    return 0
+    return $?
   }
   [[ -n "$EM_PROFILE" ]] && {
     em_swap_profile "$EM_PROFILE"
-    return 0
+    return $?
   }
-  ((EM_COMPARE == 1)) && { em_compare_files "$EM_DIR/$EM_ACTIVE" "$EM_DIR/$EM_EXAMPLE"; }
+  if ((EM_COMPARE == 1)); then
+    em_compare_files "$EM_DIR/$EM_ACTIVE" "$EM_DIR/$EM_EXAMPLE" || return $?
+  fi
 
   if [[ -n "$EM_VALIDATE" ]]; then
     if [[ "$EM_VALIDATE" == 'DEFAULT' ]]; then

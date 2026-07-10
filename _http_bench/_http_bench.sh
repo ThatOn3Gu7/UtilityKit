@@ -11,14 +11,14 @@ if [[ -f "$SCRIPT_DIR/../lib/uk_common.sh" ]]; then
 fi
 
 # --- Fallback Functions ---
-if ! declare -f uk_has_cmd  >/dev/null 2>&1; then uk_has_cmd()  { command -v "${1:-}" >/dev/null 2>&1; }; fi
-if ! declare -f uk_error    >/dev/null 2>&1; then uk_error()    { printf "[ERR] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_warn     >/dev/null 2>&1; then uk_warn()     { printf "[WRN] %s\n" "$*" >&2; }; fi
-if ! declare -f uk_info     >/dev/null 2>&1; then uk_info()     { printf "[INF] %s\n" "$*"; }; fi
-if ! declare -f uk_success  >/dev/null 2>&1; then uk_success()  { printf "[OK]  %s\n" "$*"; }; fi
-if ! declare -f uk_note     >/dev/null 2>&1; then uk_note()     { printf "-> %s\n" "$*"; }; fi
-if ! declare -f uk_banner   >/dev/null 2>&1; then uk_banner()   { :; }; fi
-if ! declare -f uk_prompt   >/dev/null 2>&1; then
+if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
+if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "[ERR] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "[WRN] %s\n" "$*" >&2; }; fi
+if ! declare -f uk_info >/dev/null 2>&1; then uk_info() { printf "[INF] %s\n" "$*"; }; fi
+if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "[OK]  %s\n" "$*"; }; fi
+if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "-> %s\n" "$*"; }; fi
+if ! declare -f uk_banner >/dev/null 2>&1; then uk_banner() { :; }; fi
+if ! declare -f uk_prompt >/dev/null 2>&1; then
   uk_prompt() {
     local label="${1:-}" default="${2:-}" reply=''
     printf '> %s%s: ' "$label" "${default:+ [$default]}" >&2
@@ -26,7 +26,7 @@ if ! declare -f uk_prompt   >/dev/null 2>&1; then
     printf '%s\n' "${reply:-$default}"
   }
 fi
-if ! declare -f uk_confirm  >/dev/null 2>&1; then
+if ! declare -f uk_confirm >/dev/null 2>&1; then
   uk_confirm() {
     local reply=''
     printf '> %s [y/N]: ' "${1:-Confirm?}" >&2
@@ -36,8 +36,10 @@ if ! declare -f uk_confirm  >/dev/null 2>&1; then
 fi
 if ! declare -f uk_platform >/dev/null 2>&1; then
   uk_platform() {
-    if [[ -n "${TERMUX_VERSION:-}" ]]; then echo termux
-    elif [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then echo macos
+    if [[ -n "${TERMUX_VERSION:-}" ]]; then
+      echo termux
+    elif [[ "$(uname -s 2>/dev/null)" == "Darwin" ]]; then
+      echo macos
     else echo linux; fi
   }
 fi
@@ -89,8 +91,11 @@ hb_json_escape() {
   if uk_has_cmd python3; then
     python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
   else
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
     printf '"%s"' "$s"
   fi
 }
@@ -99,8 +104,9 @@ hb_json_escape() {
 
 hb_run_native() {
   local url="$1" requests="$2" concurrency="$3" method="$4" timeout="$5"
-  local -a headers=()
-  local body="$6" keep_alive="$7"
+  local body="$6" keep_alive="$7" as_json="$8"
+  shift 8
+  local -a headers=("$@")
 
   if ! uk_has_cmd curl; then
     uk_error "curl is required for the built-in benchmark."
@@ -117,35 +123,43 @@ hb_run_native() {
 
   # We'll spawn workers via background coprocesses, collect results in a temp file
   local tmp_results
-  tmp_results="$(mktemp)" || { uk_error "Failed to create temp file."; return 1; }
+  tmp_results="$(mktemp)" || {
+    uk_error "Failed to create temp file."
+    return 1
+  }
   local completed=0 errors=0
   local -a pids=()
   local total_req=$((requests < concurrency ? requests : requests))
   local batch_size=$((requests / concurrency))
   local remainder=$((requests % concurrency))
 
-  hb_section "Benchmarking: $url"
-  printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "requests" "${UK_C_RESET:-}" "$requests"
-  printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "concurrency" "${UK_C_RESET:-}" "$concurrency"
-  printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "method" "${UK_C_RESET:-}" "$method"
-  printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "backend" "${UK_C_RESET:-}" "curl (built-in)"
-  hb_hr
-  printf '\n  Running benchmark...\n\n'
+  if ((!as_json)); then
+    hb_section "Benchmarking: $url"
+    printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "requests" "${UK_C_RESET:-}" "$requests"
+    printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "concurrency" "${UK_C_RESET:-}" "$concurrency"
+    printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "method" "${UK_C_RESET:-}" "$method"
+    printf '  %s%-14s%s  %s\n' "${UK_C_DIM:-}" "backend" "${UK_C_RESET:-}" "curl (built-in)"
+    hb_hr
+    printf '\n  Running benchmark...\n\n'
+  fi
 
   local start_time end_time
   start_time="$(date +%s%N 2>/dev/null || date +%s 2>/dev/null || printf '0')"
 
   local worker worker_count i
-  for ((worker=0; worker<concurrency; worker++)); do
+  for ((worker = 0; worker < concurrency; worker++)); do
     worker_count=$batch_size
-    (( worker < remainder )) && worker_count=$((worker_count + 1))
+    ((worker < remainder)) && worker_count=$((worker_count + 1))
 
     (
       local j
-      for ((j=0; j<worker_count; j++)); do
+      for ((j = 0; j < worker_count; j++)); do
         local result
-        result="$(curl "${curl_args[@]}" "$url" 2>/dev/null || printf 'ERR\t0\t0')"
-        printf '%s\n' "$result" >> "$tmp_results"
+        if result="$(curl "${curl_args[@]}" "$url" 2>/dev/null)"; then
+          printf '%s\n' "$result" >>"$tmp_results"
+        else
+          printf 'ERR\t0\t0\n' >>"$tmp_results"
+        fi
       done
     ) &
     pids+=($!)
@@ -175,7 +189,7 @@ hb_run_native() {
 
   local elapsed_ms
   if [[ "$start_time" =~ ^[0-9]+$ && "$end_time" =~ ^[0-9]+$ ]]; then
-    elapsed_ms=$(( (end_time - start_time) / 1000000 ))
+    elapsed_ms=$(((end_time - start_time) / 1000000))
   else
     elapsed_ms=0
   fi
@@ -185,21 +199,21 @@ hb_run_native() {
   local sorted
   sorted="$(printf '%s\n' "${times[@]}" | sort -n)"
 
-  hb_report "$url" "$requests" "$completed" "$errors" "$elapsed_ms" "$sorted" "curl"
+  hb_report "$url" "$requests" "$completed" "$errors" "$elapsed_ms" "$sorted" "curl" "$as_json"
 }
 
 # ---- Report generator ------------------------------------------------------
 
 hb_report() {
-  local url="$1" requests="$2" completed="$3" errors="$4" elapsed_ms="$5" sorted="$6" backend="$7"
+  local url="$1" requests="$2" completed="$3" errors="$4" elapsed_ms="$5" sorted="$6" backend="$7" as_json="$8"
 
   local ok=$((completed - errors))
   local rps=0
-  (( elapsed_ms > 0 )) && rps="$((completed * 1000 / elapsed_ms))"
+  ((elapsed_ms > 0)) && rps="$((completed * 1000 / elapsed_ms))"
   local avg=0
-  (( completed > 0 )) && avg="$((elapsed_ms / completed))"
+  ((completed > 0)) && avg="$((elapsed_ms / completed))"
 
-  if [[ "$SEC_JSON" == "1" ]]; then
+  if ((as_json)); then
     printf '{"url":%s,"requests":%s,"completed":%s,"errors":%s,"elapsed_ms":%s,"rps":%s,"backend":%s}\n' \
       "$(hb_json_escape "$url")" "$requests" "$completed" "$errors" "$elapsed_ms" "$rps" \
       "$(hb_json_escape "$backend")"
@@ -215,7 +229,7 @@ hb_report() {
   # Percentile calculation using python3 or awk
   local times_count
   times_count="$(printf '%s\n' "$sorted" | grep -c . || true)"
-  if uk_has_cmd python3 && (( times_count > 0 )); then
+  if uk_has_cmd python3 && ((times_count > 0)); then
     local p50 p95 p99 min max
     read -r p50 p95 p99 min max <<<"$(printf '%s\n' "${sorted}" | python3 -c '
 import sys
@@ -245,8 +259,9 @@ print(f"{pct(50)*1000:.1f} {pct(95)*1000:.1f} {pct(99)*1000:.1f} {vals[0]*1000:.
 
 hb_run_hey() {
   local url="$1" requests="$2" concurrency="$3" method="$4" timeout="$5" json="$6"
-  local -a headers=()
   local body="$7" keep_alive="$8"
+  shift 8
+  local -a headers=("$@")
 
   if ! uk_has_cmd hey; then
     uk_error "hey is not installed."
@@ -259,7 +274,7 @@ hb_run_hey() {
   [[ -n "$body" ]] && args+=(-d "$body")
   [[ "$keep_alive" == "1" ]] || args+=(-disable-keepalive)
 
-  if (( json )); then
+  if ((json)); then
     # Pipe through our own JSON schema
     local raw
     raw="$(hey "${args[@]}" "$url" 2>/dev/null || true)"
@@ -283,7 +298,7 @@ hb_run_wrk() {
   fi
 
   local -a args=(-t "$concurrency" -c "$concurrency" -d "${timeout}s" -L)
-  if (( json )); then
+  if ((json)); then
     local raw
     raw="$(wrk "${args[@]}" "$url" 2>/dev/null || true)"
     local rps errors
@@ -306,41 +321,72 @@ hb_main() {
 
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
-      -n|--requests)    shift; requests="${1:-50}" ;;
-      -c|--concurrency) shift; concurrency="${1:-5}" ;;
-      -m|--method)      shift; method="${1:-GET}" ;;
-      -H|--header)      shift; headers+=("${1:-}") ;;
-      -d|--data)        shift; body="${1:-}" ;;
-      --timeout)        shift; timeout="${1:-10}" ;;
-      --keep-alive)     keep_alive=1 ;;
-      --json)           as_json=1 ;;
-      --no-color)       UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
-                        UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
-      -h|--help)        hb_usage; return 0 ;;
-      -*)               uk_error "Unknown option: ${1:-}"; hb_usage; return 2 ;;
-      *)                url="${1:-}" ;;
+    -n | --requests)
+      shift
+      requests="${1:-50}"
+      ;;
+    -c | --concurrency)
+      shift
+      concurrency="${1:-5}"
+      ;;
+    -m | --method)
+      shift
+      method="${1:-GET}"
+      ;;
+    -H | --header)
+      shift
+      headers+=("${1:-}")
+      ;;
+    -d | --data)
+      shift
+      body="${1:-}"
+      ;;
+    --timeout)
+      shift
+      timeout="${1:-10}"
+      ;;
+    --keep-alive) keep_alive=1 ;;
+    --json) as_json=1 ;;
+    --no-color)
+      UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
+      UK_C_YELLOW='' UK_C_BRIGHT_CYAN=''
+      ;;
+    -h | --help)
+      hb_usage
+      return 0
+      ;;
+    -*)
+      uk_error "Unknown option: ${1:-}"
+      hb_usage
+      return 2
+      ;;
+    *) url="${1:-}" ;;
     esac
     shift || true
   done
 
-  [[ -z "$url" ]] && { uk_error "URL required."; hb_usage; return 2; }
+  [[ -z "$url" ]] && {
+    uk_error "URL required."
+    hb_usage
+    return 2
+  }
 
   # Validate numeric params
-  [[ "$requests"    =~ ^[0-9]+$ ]] || requests=50
+  [[ "$requests" =~ ^[0-9]+$ ]] || requests=50
   [[ "$concurrency" =~ ^[0-9]+$ ]] || concurrency=5
-  [[ "$timeout"     =~ ^[0-9]+$ ]] || timeout=10
-  (( requests < 1 )) && requests=50
-  (( concurrency < 1 )) && concurrency=1
+  [[ "$timeout" =~ ^[0-9]+$ ]] || timeout=10
+  ((requests < 1)) && requests=50
+  ((concurrency < 1)) && concurrency=1
 
   method="${method^^}"
 
   # External backend preference: hey > wrk > built-in curl
   if uk_has_cmd hey; then
-    hb_run_hey "$url" "$requests" "$concurrency" "$method" "$timeout" "$as_json" "$body" "$keep_alive"
-  elif uk_has_cmd wrk; then
+    hb_run_hey "$url" "$requests" "$concurrency" "$method" "$timeout" "$as_json" "$body" "$keep_alive" "${headers[@]}"
+  elif uk_has_cmd wrk && [[ "$method" == "GET" && -z "$body" && ${#headers[@]} -eq 0 ]]; then
     hb_run_wrk "$url" "$requests" "$concurrency" "$timeout" "$as_json" "$keep_alive"
   else
-    hb_run_native "$url" "$requests" "$concurrency" "$method" "$timeout" "$body" "$keep_alive"
+    hb_run_native "$url" "$requests" "$concurrency" "$method" "$timeout" "$body" "$keep_alive" "$as_json" "${headers[@]}"
   fi
 }
 

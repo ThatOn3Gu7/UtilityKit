@@ -1,6 +1,6 @@
 # UtilityKit test report
 
-Last verified: 2026-06-19
+Last verified: 2026-07-09
 Verified against the final packaged working tree.
 
 Follow-up Termux UX fixes were re-smoke-tested after dashboard, wizard, and interactive-loop changes.
@@ -15,7 +15,7 @@ bash tests/smoke_test.sh
 
 Result:
 
-- PASS=4
+- PASS=7
 - FAIL=0
 
 ## What the smoke suite covers

@@ -6,7 +6,7 @@ IFS=$'\n\t'
 
 #  0.  METADATA
 readonly SCRIPT_NAME="Batch File Renamer"
-readonly SCRIPT_VERSION="2.0.2"
+readonly SCRIPT_VERSION="2.0.3"
 readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 #  1.  TERMINAL CAPABILITY DETECTION
@@ -521,11 +521,11 @@ rb_main() {
     case "${1:-}" in
     -h | --help)
       show_help
-      exit 0
+      return 0
       ;;
     -v | --version)
       show_version
-      exit 0
+      return 0
       ;;
     -f | --force | --all)
       OPT_ALLOW_EXCLUDED=true
@@ -553,7 +553,7 @@ rb_main() {
     if [[ "$RB_CAP_IS_INTERACTIVE" == false ]]; then
       msg_error "Non-interactive environment detected and no parameters supplied."
       msg_info "Usage: $0 <source_dir> <new_extension> [output_dir]"
-      exit 1
+      return 1
     fi
 
     uk_section_title "Interactive Configuration"
@@ -577,7 +577,7 @@ rb_main() {
     if [[ ${#positional_args[@]} -lt 2 ]]; then
       msg_error "Missing required parameters. Expected: <source_dir> <new_extension> [output_dir]"
       msg_info "Try '$0 --help' for syntax options."
-      exit 1
+      return 1
     fi
     source_dir="${positional_args[0]}"
     new_ext_raw="${positional_args[1]}"
@@ -620,7 +620,7 @@ rb_main() {
     msg_warning "No files found in $(colorize "$RB_C_BOLD" "$source_dir")"
     uk_section_title "Operation Summary — Nothing to process"
     printf "  %s  0 files processed\n" "$(colorize "$RB_C_GREEN" "$RB_I_TICK")"
-    exit 0
+    return 0
   fi
 
   local dest_names=()
@@ -685,7 +685,7 @@ rb_main() {
   if ((active_count == 0)); then
     printf "\n"
     msg_warning "All files already have the .${new_ext} extension — nothing to do."
-    exit 0
+    return 0
   fi
 
   if ((conflicts > 0)); then
@@ -786,7 +786,7 @@ rb_main() {
     n | no)
       printf "\n"
       msg_warning "Operation cancelled by user."
-      exit 0
+      return 0
       ;;
     esac
     printf "\n"
@@ -1001,9 +1001,9 @@ rb_main() {
   printf "\n"
 
   if ((failed_count > 0 && success_count > 0)); then
-    exit 2
+    return 2
   elif ((failed_count > 0)); then
-    exit 1
+    return 1
   fi
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
