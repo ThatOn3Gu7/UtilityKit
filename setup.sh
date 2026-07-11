@@ -76,7 +76,7 @@ setup_run_with_spinner() {
   if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
     local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏') i=0
     while kill -0 "$pid" 2>/dev/null; do
-      printf '\r   %s%s%s %s' "$UK_C_CYAN" "${frames[i%${#frames[@]}]}" "$UK_C_RESET" "$label"
+      printf '\r   %s%s%s %s' "$UK_C_CYAN" "${frames[i % ${#frames[@]}]}" "$UK_C_RESET" "$label"
       i=$((i + 1))
       sleep 0.08
     done
@@ -167,7 +167,10 @@ TEMP_CLONE=''
 setup_step 'Locating source files'
 if [[ ! -f "./main.sh" && ! -f "$SETUP_DIR/main.sh" ]]; then
   setup_detail "No local main.sh found — cloning $REPO_URL"
-  uk_has_cmd git || { uk_error 'git is required to clone UtilityKit when setup.sh is not run from a full checkout.'; exit 1; }
+  uk_has_cmd git || {
+    uk_error 'git is required to clone UtilityKit when setup.sh is not run from a full checkout.'
+    exit 1
+  }
   TEMP_CLONE="$(mktemp -d)"
   setup_run_with_spinner "Cloning UtilityKit repository" git clone --depth=1 --quiet "$REPO_URL" "$TEMP_CLONE"
   SOURCE_DIR="$TEMP_CLONE"
@@ -242,7 +245,7 @@ fi
 [[ -n "$TEMP_CLONE" ]] && rm -rf "$TEMP_CLONE"
 
 if ((INTERACTIVE == 0)); then
-  printf '\n  %s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$(printf '%*s' 52 '' | tr ' ' '═')" "$UK_C_RESET"
+  printf '\n  %s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$(printf '%*s' 52 '' | tr ' ' -)" "$UK_C_RESET"
 fi
 uk_success "Installed UtilityKit to $INSTALL_DIR"
-printf '  %s%s %s%s%s\n' "$UK_C_CYAN" "$UK_I_ARROW" "$UK_C_BOLD" "$LAUNCHER_NAME" "$UK_C_RESET"
+printf '  %s%s Run: %s%s%s\n' "$UK_C_CYAN" "$UK_I_ARROW" "$UK_C_BOLD" "$LAUNCHER_NAME" "$UK_C_RESET"

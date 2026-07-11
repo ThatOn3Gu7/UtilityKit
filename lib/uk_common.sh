@@ -237,7 +237,7 @@ uk_banner() {
     tl='+' tr='+' bl='+' br='+' h='-' v='|'
   fi
 
-  local l1="  $icon utilitykit $UK_I_SEP $name  v$UK_VERSION  "
+  local l1="  $icon UtilityKit $UK_I_SEP $name  v$UK_VERSION  "
   local l2="  $tagline  "
   local l3="  linux $UK_I_DOT macos $UK_I_DOT termux  "
 

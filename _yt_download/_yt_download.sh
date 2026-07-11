@@ -44,10 +44,7 @@ if ! declare -f uk_note >/dev/null 2>&1; then uk_note() { printf "\033[34m[i]\03
 : "${UK_I_ARROW:=>}" "${UK_C_RED:=}" "${UK_C_GREEN:=}" "${UK_C_YELLOW:=}" "${UK_C_BLUE:=}" "${UK_C_CYAN:=}" "${UK_C_MAGENTA:=}" "${UK_C_DIM:=}" "${UK_C_BOLD:=}" "${UK_C_RESET:=}" "${UK_C_BRIGHT_CYAN:=}" "${UK_C_BRIGHT_BLUE:=}" "${UK_C_BRIGHT_MAGENTA:=}" "${UK_C_WHITE:=}"
 YD_DEFAULT_DIR="${HOME}/Downloads/YouTube"
 
-# =============================================================================
 # Help / Usage
-# =============================================================================
-
 yd_usage() {
   cat <<'USAGE'
 Usage:
@@ -100,10 +97,7 @@ Options:
 USAGE
 }
 
-# =============================================================================
 # Helpers
-# =============================================================================
-
 yd_check_deps() {
   if ! uk_has_cmd yt-dlp; then
     uk_error "yt-dlp is not installed."
@@ -134,7 +128,7 @@ yd_spinner() {
   i=0
   while kill -0 "$pid" 2>/dev/null; do
     printf "\r%s %c" "$label" "${spin:$i:1}" >&2
-    i=$(( (i+1) % 4 ))
+    i=$(((i + 1) % 4))
     sleep 0.12
   done
   wait "$pid" 2>/dev/null
@@ -145,10 +139,7 @@ yd_spinner() {
   return $rc
 }
 
-# =============================================================================
 # CLI Subcommands
-# =============================================================================
-
 yd_list() {
   local url="${1:-}"
   if [[ -z "$url" ]]; then
@@ -325,10 +316,7 @@ yd_download() {
   return $ret
 }
 
-# =============================================================================
 # Interactive Wizard
-# =============================================================================
-
 yd_wizard() {
   local url="${1:-}"
 
@@ -459,9 +447,7 @@ yd_wizard() {
     "%(title)s [%(id)s].%(ext)s" \
     "See yt-dlp output template docs for variables")
 
-  # =========================================================================
   # Summary & Confirm
-  # =========================================================================
   echo ""
 
   local yn_audio yn_subs yn_thumb yn_meta yn_playlist
@@ -536,10 +522,7 @@ yd_wizard() {
   return $ret
 }
 
-# =============================================================================
 # Entry Point
-# =============================================================================
-
 yd_main() {
   if [[ $# -eq 0 ]]; then
     yd_wizard ""
@@ -582,9 +565,7 @@ yd_main() {
   esac
 }
 
-# =============================================================================
 # BASH_SOURCE guard (standalone execution)
-# =============================================================================
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   # set -euo pipefail
   if [[ $# -eq 0 ]] && [[ -t 0 && -t 1 ]]; then
