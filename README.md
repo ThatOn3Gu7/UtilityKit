@@ -17,7 +17,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-4.2.1-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-5.1.1-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -398,7 +398,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.0.0** — current — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
+**v5.1.1** — Added interactive directory picker menu to `_apply_changes` and resolved unbound variable bugs (array iteration fixes and global color initialization)
+**v5.0.0** — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
 **v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  
