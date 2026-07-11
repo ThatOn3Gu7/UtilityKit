@@ -269,5 +269,27 @@ wave2_tools_smoke() {
 
 run_test 'Wave-2 tool smoke tests' wave2_tools_smoke
 
+apply_interactive_test() {
+  # 1) Non-TTY guard: the interactive picker must abort fast (non-zero), never hang.
+  bash "$ROOT/main.sh" apply -i </dev/null >/dev/null 2>&1
+  [[ $? -ne 0 ]] || return 1
+
+  # 2) Drive the real picker through a pty: pick src, pick dst, then apply.
+  #    Skip gracefully when `script` (util-linux) is unavailable.
+  script -c 'true' /dev/null >/dev/null 2>&1 || { return 0; }
+  mkdir -p "$TMP/ihome/src/sub" "$TMP/ihome/dst"
+  printf 'v2\n' >"$TMP/ihome/src/new.txt"
+  printf 'old\n' >"$TMP/ihome/dst/old.txt"
+  # Keys: filter "src" -> descend -> select current; filter "dst" -> descend -> select; confirm.
+  local keys=$'/src\n\e[B\e[B\ns/dst\n\e[B\e[B\ns\n'
+  local cmd="HOME='$TMP/ihome' NO_COLOR=1 bash '$ROOT/main.sh' apply -i"
+  script -qec "$cmd" /dev/null <<<"$keys" >/dev/null 2>&1 || true
+  [[ -f "$TMP/ihome/dst/new.txt" ]] || return 1
+  [[ "$(cat "$TMP/ihome/dst/new.txt")" == "v2" ]] || return 1
+  return 0
+}
+
+run_test 'apply-changes interactive guard + picker' apply_interactive_test
+
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
 ((FAIL == 0))

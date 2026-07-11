@@ -4,9 +4,6 @@ set -euo pipefail
 readonly UK_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$UK_ROOT_DIR/lib/uk_common.sh"
 
-# Fallback for color names not defined in uk_common.sh.
-: "${UK_C_BRIGHT_GREEN:=$UK_C_GREEN}"
-
 uk_source_tool() {
   local path="${1:-}"
   [[ -f "$path" ]] || {
@@ -160,25 +157,8 @@ EOF
 }
 
 run_apply_wizard() {
-  uk_banner "apply-changes" "Directory sync with dry-run preview, backup, and rollback" ""
-  local src dst apply mirror force include_runtime custom
-  src="$(uk_prompt 'Enter updated source directory to sync from' '.' '~/path/to/source' 'Use a directory that contains the newest version of your files.')"
-  dst="$(uk_prompt 'Enter local target directory to update' '.' '~/path/to/target' 'The target directory will be compared against the source.')"
-  if uk_confirm 'Apply changes now?' 'N'; then apply=y; else apply=n; fi
-  if uk_confirm 'Mirror delete missing target files too?' 'N'; then mirror=y; else mirror=n; fi
-  if uk_confirm 'Force past local git changes if needed?' 'N'; then force=y; else force=n; fi
-  if uk_confirm 'Include runtime logs/tmp files?' 'N'; then include_runtime=y; else include_runtime=n; fi
-  custom=""
-  [[ "$apply" =~ ^[Yy]$ ]] && custom+=" --apply --yes"
-  [[ "$mirror" =~ ^[Yy]$ ]] && custom+=" --mirror"
-  [[ "$force" =~ ^[Yy]$ ]] && custom+=" --force"
-  [[ "$include_runtime" =~ ^[Yy]$ ]] && custom+=" --include-runtime"
-  local args=()
-  [[ "$apply" =~ ^[Yy]$ ]] && args+=(--apply --yes) || args+=(--dry-run)
-  [[ "$mirror" =~ ^[Yy]$ ]] && args+=(--mirror)
-  [[ "$force" =~ ^[Yy]$ ]] && args+=(--force)
-  [[ "$include_runtime" =~ ^[Yy]$ ]] && args+=(--include-runtime)
-  (ac_main "${args[@]}" "$(uk_expand_path "$src")" "$(uk_expand_path "$dst")")
+  uk_load apply_changes
+  ac_wizard
 }
 run_rename_wizard() {
   uk_banner "rename-batch" "Recursively rename or copy files to a new extension" ""
@@ -783,7 +763,11 @@ run_tool() {
   case "$cmd" in
   apply | apply-changes)
     uk_load apply_changes
-    ([[ $# -gt 0 ]] && ac_main "$@" || run_apply_wizard)
+    if [[ $# -eq 0 ]]; then
+      run_apply_wizard
+    else
+      ac_main "$@"
+    fi
     ;;
   rename | rename-batch)
     uk_load rename_batch

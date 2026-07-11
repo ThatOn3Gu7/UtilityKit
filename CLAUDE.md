@@ -55,6 +55,15 @@ All tools and `main.sh`/`setup.sh` source `lib/uk_common.sh` for colors, icons, 
 
 `NO_COLOR=1` and `NO_UNICODE=1` are respected globally; new visual code must keep working when either is set (the smoke tests exercise this).
 
+## Unbound-variable safety (`set -u` is always on)
+
+Every script runs under `set -euo pipefail`, so referencing an **unset** variable is fatal ("unbound variable"). This is the single most common way new code breaks at runtime while passing `bash -n`. Rules:
+
+- **Always give variables a value before use.** For function parameters use `${1:-default}`; for `read` into a var, declare it first (`local key=''`) and/or normalize after (`key="${key:-}"`). A `read` that times out leaves the variable *unset*, not empty.
+- **Every color/glyph a tool prints must exist in all branches of `uk_setup_visuals`** (`lib/uk_common.sh`): the color branch AND the no-color/`NO_COLOR`/non-TTY branch must define the *same* full set of `UK_C_*` variables. If you add a new `UK_C_*` reference, add its definition to both branches (the no-color branch assigns empty strings). Do not paper over a missing color with a `:=` default in `main.sh` — fix it in the library so every entry point is safe.
+- **UI/drawing helpers must be self-initializing.** A function that draws to the terminal should ensure its own dependencies (glyph set via `ac_init_glyphs`, colors via `uk_setup_visuals`, and any size vars like `inner`/`AC_COLS` with sane defaults) so it cannot crash when called directly instead of via the usual wizard entry point.
+- **Verify before declaring done:** run the new path under `bash -u` (not just the normal `bash` the smoke suite uses, which does not propagate `-u` into sourced tool code the same way) and through a real TTY-less/`NO_COLOR` path, and grep the output for `unbound variable`. Also run `bash tests/smoke_test.sh` (its `syntax_check` runs `bash -n` over every `*.sh`).
+
 ## Adding a new tool — touchpoints checklist
 
 Because the wiring is spread across several files, adding a tool means editing all of these:
@@ -76,3 +85,7 @@ Because the wiring is spread across several files, adding a tool means editing a
 ## Commit style
 
 Semantic prefixes scoped to the tool: `feat(tool):`, `fix(tool):`, `refactor(tool):`, `docs:`. Recent history (`git log --oneline`) is the source of truth for tone.
+
+## Commit workflow — DO NOT COMMIT WITHOUT EXPLICIT APPROVAL
+
+Never run `git commit` or `git push` on your own initiative. Make the code changes, verify them (syntax, smoke/behavioral tests), and then STOP. Wait for the user to explicitly say "commit" (or "commit and push") before creating any commit or pushing to `origin`. The user reviews and approves all changes first.

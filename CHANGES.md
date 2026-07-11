@@ -1,5 +1,15 @@
 # Changelog
 
+## [5.1.1] - 2026-07-11
+
+### Fixed
+- **Unbound-variable safety under `set -u`.** The repo runs with `set -euo pipefail`, so any unset variable is fatal. `uk_setup_visuals` (in `lib/uk_common.sh`) was missing definitions for `UK_C_BRIGHT_GREEN`, `UK_C_BRIGHT_RED`, and `UK_C_BRIGHT_YELLOW` in both its color and no-color branches — they were only ever patched ad-hoc by `main.sh`. The interactive `_apply_changes` directory picker references `UK_C_BRIGHT_GREEN`, so it crashed with "unbound variable" whenever it ran through any entry point other than `main.sh`. The three colors are now defined in `uk_setup_visuals`, the redundant `main.sh` patch was removed, and the picker now initializes its own glyph/color/size dependencies (`ac_init_glyphs` + sane `AC_COLS`/`AC_ROWS`/`inner` defaults) and normalizes all read-buffer variables (`key`, `seq`, `tok`) so it is unbound-safe even when invoked standalone.
+
+## [5.1.0] - 2026-07-11
+
+### Added
+- **`_apply_changes` interactive directory browser.** New `--interactive`/`-i` flag (and the replaced `Apply Changes` dashboard wizard) launches a hierarchical, arrow-key-driven browser that scans `$HOME` so you can pick the SOURCE and TARGET folders without typing paths. Features: live resize-aware viewport, scroll indicators, fuzzy `/` filter, hidden-directory toggle (`h`), symlink-loop guard, plain-ASCII fallback under `NO_UNICODE`, and a graceful non-TTY abort. After selection it runs the existing dry-run → backup → apply → verify pipeline.
+
 ## [5.0.0] - 2026-07-11
 
 ### Changed (Versioning & Layout)

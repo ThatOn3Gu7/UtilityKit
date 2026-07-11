@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.0.0'
+readonly UK_VERSION='5.1.1'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -22,10 +22,13 @@ uk_setup_visuals() {
     UK_C_BRIGHT_BLUE=$'\033[94m'
     UK_C_BRIGHT_CYAN=$'\033[96m'
     UK_C_BRIGHT_MAGENTA=$'\033[95m'
+    UK_C_BRIGHT_GREEN=$'\033[92m'
+    UK_C_BRIGHT_RED=$'\033[91m'
+    UK_C_BRIGHT_YELLOW=$'\033[93m'
   else
     UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN='' UK_C_YELLOW=''
     UK_C_BLUE='' UK_C_MAGENTA='' UK_C_CYAN='' UK_C_WHITE='' UK_C_BRIGHT_BLUE=''
-    UK_C_BRIGHT_CYAN='' UK_C_BRIGHT_MAGENTA=''
+    UK_C_BRIGHT_CYAN='' UK_C_BRIGHT_MAGENTA='' UK_C_BRIGHT_GREEN='' UK_C_BRIGHT_RED='' UK_C_BRIGHT_YELLOW=''
   fi
 
   if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
