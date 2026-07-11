@@ -1,6 +1,6 @@
 # UtilityKit test report
 
-Last verified: 2026-06-19
+Last verified: 2026-07-09
 Verified against the final packaged working tree.
 
 Follow-up Termux UX fixes were re-smoke-tested after dashboard, wizard, and interactive-loop changes.
@@ -15,7 +15,7 @@ bash tests/smoke_test.sh
 
 Result:
 
-- PASS=4
+- PASS=7
 - FAIL=0
 
 ## What the smoke suite covers
@@ -63,6 +63,6 @@ bash setup.sh --no-menu --install-dir <temp>/install --bin-dir <temp>/bin --no-p
 
 Validated:
 - launcher wrapper creation
-- installation of all `_*/` tool directories
+- installation of all `modules/_*/` tool directories
 - installation of `lib/`, `docs/`, and `tests/`
 - direct launcher routing to the new dashboard

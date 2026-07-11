@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='2.0.2'
+readonly UK_VERSION='5.0.0'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -93,11 +93,11 @@ uk_state_dir() {
   mkdir -p "$dir"
   printf '%s\n' "$dir"
 }
-uk_note() { printf '%s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-uk_info() { printf '%s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
-uk_success() { printf '%s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
-uk_warn() { printf '%s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
-uk_error() { printf '%s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
+uk_note() { printf ' %s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_info() { printf ' %s%s%s %s\n' "$UK_C_CYAN" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
+uk_success() { printf ' %s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$*"; }
+uk_warn() { printf ' %s%s%s %s\n' "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$*" >&2; }
+uk_error() { printf ' %s%s%s %s\n' "$UK_C_RED" "$UK_I_ERR" "$UK_C_RESET" "$*" >&2; }
 uk_die() {
   uk_error "$*"
   return 1
@@ -237,7 +237,7 @@ uk_banner() {
     tl='+' tr='+' bl='+' br='+' h='-' v='|'
   fi
 
-  local l1="  $icon utilitykit $UK_I_SEP $name  v$UK_VERSION  "
+  local l1="  $icon UtilityKit $UK_I_SEP $name  v$UK_VERSION  "
   local l2="  $tagline  "
   local l3="  linux $UK_I_DOT macos $UK_I_DOT termux  "
 
@@ -255,7 +255,7 @@ uk_banner() {
   if [[ -z "$term_width" ]]; then
     term_width="${COLUMNS:-80}"
   fi
-  
+
   # Failsafe in case term_width is still somehow empty or not a number
   if ! [[ "$term_width" =~ ^[0-9]+$ ]]; then
     term_width=80
@@ -274,19 +274,19 @@ uk_banner() {
 
   printf '\n'
   printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$tl" "$hbar" "$tr" "$UK_C_RESET"
-  
-  local pad1=$(( (inner - n1) / 2 ))
-  local pad1_r=$(( inner - n1 - pad1 ))
+
+  local pad1=$(((inner - n1) / 2))
+  local pad1_r=$((inner - n1 - pad1))
   printf '%s%s%s%*s%s%*s%s%s%s\n' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
     "$pad1" '' \
     "$UK_C_BOLD$UK_C_BRIGHT_CYAN$l1$UK_C_RESET" \
     "$pad1_r" '' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
-    
+
   if [[ -n "$tagline" ]]; then
-    local pad2=$(( (inner - n2) / 2 ))
-    local pad2_r=$(( inner - n2 - pad2 ))
+    local pad2=$(((inner - n2) / 2))
+    local pad2_r=$((inner - n2 - pad2))
     printf '%s%s%s%*s%s%*s%s%s%s\n' \
       "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
       "$pad2" '' \
@@ -294,22 +294,21 @@ uk_banner() {
       "$pad2_r" '' \
       "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
   fi
-  
-  local pad3=$(( (inner - n3) / 2 ))
-  local pad3_r=$(( inner - n3 - pad3 ))
+
+  local pad3=$(((inner - n3) / 2))
+  local pad3_r=$((inner - n3 - pad3))
   printf '%s%s%s%*s%s%*s%s%s%s\n' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET" \
     "$pad3" '' \
     "$UK_C_DIM$l3$UK_C_RESET" \
     "$pad3_r" '' \
     "$UK_C_BRIGHT_CYAN" "$v" "$UK_C_RESET"
-    
+
   printf '%s%s%s%s%s\n' "$UK_C_BRIGHT_CYAN" "$bl" "$hbar" "$br" "$UK_C_RESET"
   printf '\n'
 
   UK_BANNER_PRINTED=1
 }
-
 # uk_term_size — write "$cols $rows" to stdout. Falls back through tput → stty
 # → $COLUMNS/$LINES → 80x24, matching the pattern already used by uk_banner.
 uk_term_size() {
@@ -435,8 +434,8 @@ _uk_render_width_notice_full() {
   clear 2>/dev/null || printf '\033[2J\033[H'
 
   local diff verb
-  diff=$(( cols - required ))
-  if (( diff > 0 )); then
+  diff=$((cols - required))
+  if ((diff > 0)); then
     verb="Shrink the window (or zoom IN)"
   else
     verb="Widen the window (or zoom OUT)"
@@ -457,12 +456,12 @@ _uk_render_width_notice_full() {
   local inner=0 len line
   for line in "$title" "$l1" "$l3" "$l4" "$hint" "$live_template"; do
     len="$(uk_visible_len "$line")"
-    (( len > inner )) && inner=$len
+    ((len > inner)) && inner=$len
   done
-  inner=$(( inner + 4 ))
+  inner=$((inner + 4))
 
   # Terminal too narrow — one-line fallback (no live tick, no cursor moves).
-  if (( cols < inner + 2 )); then
+  if ((cols < inner + 2)); then
     printf '\n%s%s%s Resize terminal to %s cols (current: %s). Press q to skip.%s\n' \
       "$UK_C_YELLOW" "$UK_I_WARN" "$UK_C_RESET" "$required" "$cols" ""
     _UK_WG_TOP=0 _UK_WG_LEFT=0 _UK_WG_INNER=0 _UK_WG_DYN_ROW=0
@@ -480,7 +479,7 @@ _uk_render_width_notice_full() {
   rendered+=("$(_uk_center_line "$title" "$inner" "$v" bold_cyan)")
   rendered+=("$blank_row")
   rendered+=("$(_uk_center_line "$l1" "$inner" "$v" bold)")
-  rendered+=("$blank_row")                                              # ← LIVE
+  rendered+=("$blank_row") # ← LIVE
   rendered+=("$(_uk_center_line "$l3" "$inner" "$v" plain)")
   rendered+=("$(_uk_center_line "$l4" "$inner" "$v" dim)")
   rendered+=("$blank_row")
@@ -490,19 +489,19 @@ _uk_render_width_notice_full() {
 
   # Vertical centring (screen rows are 1-indexed for cursor addressing).
   local box_h=${#rendered[@]}
-  local top=$(( (rows - box_h) / 2 + 1 ))
-  (( top < 1 )) && top=1
+  local top=$(((rows - box_h) / 2 + 1))
+  ((top < 1)) && top=1
 
   # Horizontal centring — column of the box's leftmost cell (1-indexed).
-  local left=$(( (cols - inner - 2) / 2 + 1 ))
-  (( left < 1 )) && left=1
+  local left=$(((cols - inner - 2) / 2 + 1))
+  ((left < 1)) && left=1
 
   # Draw every row at an absolute (row,col) position — no reliance on the
   # cursor being anywhere in particular.
   local n
   for ((n = 0; n < box_h; n++)); do
     printf '\033[%d;%dH%s%s%s' \
-      "$(( top + n ))" "$left" \
+      "$((top + n))" "$left" \
       "$UK_C_BRIGHT_CYAN" "${rendered[$n]}" "$UK_C_RESET"
   done
 
@@ -510,7 +509,7 @@ _uk_render_width_notice_full() {
   _UK_WG_TOP="$top"
   _UK_WG_LEFT="$left"
   _UK_WG_INNER="$inner"
-  _UK_WG_DYN_ROW=$(( top + live_row_idx ))
+  _UK_WG_DYN_ROW=$((top + live_row_idx))
 }
 
 # Internal — rewrites ONLY the live line (spinner + current cols + off-by).
@@ -519,12 +518,12 @@ _uk_render_width_notice_full() {
 _uk_render_width_notice_tick() {
   local cols="$1" required="$2" v="$3" spin="$4"
   # Full-paint mode did the drawing already; nothing to update.
-  (( _UK_WG_INNER > 0 )) || return 0
+  ((_UK_WG_INNER > 0)) || return 0
 
   local diff abs_diff
-  diff=$(( cols - required ))
+  diff=$((cols - required))
   abs_diff=$diff
-  (( abs_diff < 0 )) && abs_diff=$(( -abs_diff ))
+  ((abs_diff < 0)) && abs_diff=$((-abs_diff))
 
   local text
   text="$(printf '  %s  Current: %d   Target: %d   Off by: %d  ' \
@@ -532,9 +531,9 @@ _uk_render_width_notice_tick() {
 
   local vis pad_l pad_r
   vis="$(uk_visible_len "$text")"
-  (( vis > _UK_WG_INNER )) && vis=$_UK_WG_INNER
-  pad_l=$(( (_UK_WG_INNER - vis) / 2 ))
-  pad_r=$(( _UK_WG_INNER - vis - pad_l ))
+  ((vis > _UK_WG_INNER)) && vis=$_UK_WG_INNER
+  pad_l=$(((_UK_WG_INNER - vis) / 2))
+  pad_r=$((_UK_WG_INNER - vis - pad_l))
 
   # Jump to the reserved live row, redraw exactly one line's worth of cells.
   # Order: [left bar] [pad_l] [styled text] [pad_r] [right bar] [reset]
@@ -549,7 +548,7 @@ _uk_render_width_notice_tick() {
 
   # Park the cursor safely below the box so any accidental echo stays out
   # of the frame.
-  printf '\033[%d;1H' "$(( _UK_WG_TOP + 12 ))"
+  printf '\033[%d;1H' "$((_UK_WG_TOP + 12))"
 }
 
 # Internal — pad `text` to `inner` visible columns and wrap it in the box's
@@ -558,16 +557,16 @@ _uk_center_line() {
   local text="$1" inner="$2" v="$3" style="$4"
   local vis pad_l pad_r styled
   vis="$(uk_visible_len "$text")"
-  (( vis > inner )) && vis=$inner
-  pad_l=$(( (inner - vis) / 2 ))
-  pad_r=$(( inner - vis - pad_l ))
+  ((vis > inner)) && vis=$inner
+  pad_l=$(((inner - vis) / 2))
+  pad_r=$((inner - vis - pad_l))
 
   case "$style" in
   bold_cyan) styled="${UK_C_BOLD}${UK_C_BRIGHT_CYAN}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
-  bold)      styled="${UK_C_BOLD}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
-  dim)       styled="${UK_C_DIM}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
-  arrow)     styled="${UK_C_YELLOW}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
-  *)         styled="${text}" ;;
+  bold) styled="${UK_C_BOLD}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  dim) styled="${UK_C_DIM}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  arrow) styled="${UK_C_YELLOW}${text}${UK_C_RESET}${UK_C_BRIGHT_CYAN}" ;;
+  *) styled="${text}" ;;
   esac
 
   printf '%s%*s%s%*s%s' "$v" "$pad_l" '' "$styled" "$pad_r" '' "$v"

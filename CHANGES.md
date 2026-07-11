@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## [5.0.0] - 2026-07-11
+
+### Changed (Versioning & Layout)
+- **Unified single project version.** All tools now share one version, `UK_VERSION`, defined once in `lib/uk_common.sh`. Independent per-tool version variables (`VERSION`, `DA_VERSION`, `SM_VERSION`, `MIB_SCRIPT_VERSION`, `SCRIPT_VERSION`) have been removed; each tool's header/version output now prints `UK_VERSION`.
+- **Repository reorganized.** Every `_<tool>/` directory now lives under `modules/`. `main.sh` resolves tools via `modules/_<tool>/_<tool>.sh`, the installer preserves the `modules/` nesting, and tool scripts source the shared library via `../../lib/uk_common.sh`.
+- Bumped version to `5.0.0` to mark the breaking layout change and the move to unified versioning.
+
+### Added
+- New `_yt_download` tool — interactive YouTube downloader wrapping `yt-dlp` with full format listing, audio extraction, subtitle support, thumbnail/metadata embedding, playlist handling, and a guided wizard. CLI subcommands: `list`, `info`, `audio`, `download`.
+
+### Fixed (Stabilization)
+- Removed a duplicated `_ssh_assistant` implementation that caused help output and runtime paths to execute twice.
+- Fixed broken/invalid JSON output paths in `_http_bench`, `_regex_lab`, `_image_tool`, `_time_convert`, `_secret_scan`, `_pdf_toolkit`, and `_yaml_toolkit`.
+- Hardened `_api_tester` with nonzero curl failures, expected-status checks, redacted sensitive headers, and JSON profile storage instead of sourced shell profiles.
+- Fixed `_yaml_toolkit merge`, `_time_convert diff/parse`, `_secret_scan` filename parsing for paths containing colons, and `_env_manager --compare` missing-file handling.
+- Added validation/safety checks for `_uuid_gen`, `_todo_manager`, `_ssh_tunnel`, `_shredder`, and `setup.sh`.
+- Added `tests/stabilization_regression_test.sh` covering the regression cases above and made `tests/deep_review_test.sh` usable without ripgrep.
 
 ### Added (CI/CD)
 - New `.github/workflows/ci.yml` runs on every push and pull request against
@@ -42,10 +58,9 @@
 
 ### Removed (Cleanup)
 - Removed all references to the deleted tools `_log_rotator`, `_zen_mode`,
-  `_clipboard_manager`, and `_regex_lab`, plus the never-routed `logs` command,
-  from `main.sh`, the tests, `README.md`, `docs/ROADMAP_STATUS.md`, and
-  `docs/index.html`. Tool counts were corrected to 48. (Clipboard *helper*
-  functions used by `_password_gen` and `lib/uk_common.sh` were kept.)
+  and `_clipboard_manager`, plus stale/unrouted command references, from
+  `main.sh`, the tests, `README.md`, `docs/ROADMAP_STATUS.md`, and
+  `docs/index.html`. `_regex_lab` is present and routed as `regex`.
 
 ### Changed (Dashboard)
 - Replaced the paged "More tools" navigation with a single unified scroll list

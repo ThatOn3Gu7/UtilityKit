@@ -93,6 +93,7 @@ UK_REGISTRY=(
   "time_convert|time|◷|UK_C_GREEN|Time Convert|epoch ↔ ISO 8601 ↔ human, cron analyzer|1"
   "http_bench|bench|▤|UK_C_YELLOW|HTTP Bench|HTTP benchmark with p50/p95/p99 & RPS stats|1"
   "yaml_toolkit|yaml|▦|UK_C_CYAN|YAML Toolkit|lint, convert, query, and merge YAML files|1"
+  "yt_download|ytdl|▶|UK_C_RED|YT Download|download YouTube videos via yt-dlp (format selection, subs, audio)|1"
   "pdf_toolkit|pdf|▣|UK_C_MAGENTA|PDF Toolkit|count pages, info, merge, split, extract text from PDFs|1"
   "image_tool|image|▣|UK_C_BRIGHT_MAGENTA|Image Tool|resize, convert, strip EXIF, optimize images|1"
   "file_watcher|fwatch|◉|UK_C_CYAN|File Watcher|run command on file change with glob patterns|1"
@@ -106,7 +107,7 @@ uk_registry_build_paths() {
   local rec key
   for rec in "${UK_REGISTRY[@]}"; do
     key="${rec%%|*}"
-    UK_TOOL_PATHS["$key"]="$UK_ROOT_DIR/_${key}/_${key}.sh"
+    UK_TOOL_PATHS["$key"]="$UK_ROOT_DIR/modules/_${key}/_${key}.sh"
   done
 }
 uk_registry_build_paths
@@ -742,7 +743,7 @@ run_new_utility_wizard() {
     local pattern text
     pattern="$(uk_prompt 'Regex pattern' 'Util' 'error|warn' 'Uses grep extended regex.')"
     text="$(uk_prompt 'Text to test' 'UtilityKit warning example' 'UtilityKit warning example' 'For file mode use direct CLI --file.')"
-    (rx_main --pattern "$pattern" --text "$text")
+    (rl_main --pattern "$pattern" --text "$text")
     ;;
   todo)
     local mode text tag term id
@@ -1017,6 +1018,10 @@ run_tool() {
   yaml | yaml-toolkit)
     uk_load yaml_toolkit
     ([[ $# -gt 0 ]] && yt_main "$@" || yt_wizard)
+    ;;
+  ytdl | yt-download)
+    uk_load yt_download
+    ([[ $# -gt 0 ]] && yd_main "$@" || yd_wizard)
     ;;
   pdf | pdf-toolkit)
     uk_load pdf_toolkit

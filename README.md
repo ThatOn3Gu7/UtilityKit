@@ -10,14 +10,14 @@
                                                    > C0ded by: ThatOn3Gu7
 ```
 
-**A modular Bash toolbox for Linux, macOS, and Termux — 48 tools, one dashboard.**
+**A modular Bash toolbox for Linux, macOS, and Termux — 63 tools, one dashboard.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg?style=flat-square)](LICENSE)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%204%2F4-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-2.0.2-orange?style=flat-square)](CHANGES.md)
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
+[![Version](https://img.shields.io/badge/Version-4.2.1-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 
 ## What is UtilityKit?
 
-UtilityKit is a collection of 51 standalone Bash scripts, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
+UtilityKit is a collection of 63 standalone Bash tools, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
 
 The suite targets three platforms without modification:
 
@@ -71,12 +71,13 @@ UtilityKit/
 ├── setup.sh                 ← installer (creates launcher in ~/.local/bin)
 ├── lib/
 │   └── uk_common.sh         ← shared helpers: colors, prompts, platform detection
-├── _<tool>/
-│   ├── _<tool>.sh           ← guarded entry point  (BASH_SOURCE guard)
-│   └── _<tool>_README.md    ← standalone docs
-├── _cache_clean/
-│   ├── _cache_clean.sh
-│   └── plugins/             ← 17 package-manager plugins (npm, pip, cargo…)
+├── modules/
+│   ├── _<tool>/
+│   │   ├── _<tool>.sh       ← guarded entry point  (BASH_SOURCE guard)
+│   │   └── _<tool>_README.md ← standalone docs
+│   └── _cache_clean/
+│       ├── _cache_clean.sh
+│       └── plugins/         ← 17 package-manager plugins (npm, pip, cargo…)
 ├── docs/
 │   ├── ICON_STYLE_GUIDE.md
 │   └── ROADMAP_STATUS.md
@@ -197,7 +198,7 @@ UtilityKit Master Suite — Tool 1 of 49
                                        [q]     : Exit UtilityKit
 ```
 
-All 48 tools live in a single unified scroll list — no nested "More tools"
+All 63 tools live in a single unified scroll list — no nested "More tools"
 pages. Highlights:
 
 - **Arrow keys** (`▲`/`▼`) or **Vim keys** (`k`/`j`) move the selection.
@@ -288,7 +289,7 @@ utility port 3000 --kill
 
 ```bash
 bash tests/smoke_test.sh
-# PASS=4 FAIL=0
+# PASS=7 FAIL=0
 ```
 
 The suite covers:
@@ -397,7 +398,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v4.2.1** — current — fix awk field expansion in process_killer, fix ssh_tunnel wizard routing, color-var inheritance for tmux/weather/update_managers  
+**v5.0.0** — current — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
 **v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  

@@ -32,7 +32,7 @@ The `run_tool` dispatch cases stay hand-written because each tool has bespoke
 wizard/argument logic — but `uk doctor` now verifies every registry action has a
 matching dispatch case, so a missing wiring is caught immediately.
 
-Adding a new tool is now: drop the `_<tool>/` directory in, add **one** line to
+Adding a new tool is now: drop the `modules/_<tool>/` directory in, add **one** line to
 `UK_REGISTRY`, add its `run_tool` case, and run `./main.sh doctor`.
 
 ## 2. `uk doctor` — integrity checker
@@ -75,9 +75,9 @@ features, not the removed tool.
 ## 4. Verification
 
 - `bash -n` passes on every `.sh` file.
-- `tests/smoke_test.sh` → **PASS=7 FAIL=0** (was PASS=3 FAIL=2 before), including
+- `tests/smoke_test.sh` → **PASS=7 FAIL=0** (was PASS=7 FAIL=0 before), including
   two new checks: an Update Managers smoke test and a doctor/registry check.
-- `./main.sh doctor` → **48 tools checked, 0 problems, 0 warnings, no orphans**.
+- `./main.sh doctor` → **63 tools checked, 0 problems, 0 warnings, no orphans**.
 - Removed commands (`zen`, `regex`, `clipboard`, `logs`) now correctly report
   "unknown command"; `update` and `doctor` route correctly.
-- The dashboard menu renders 49 entries (48 tools + Setup) with colors resolved.
+- The dashboard menu renders 64 entries (63 tools + Setup) with colors resolved.
