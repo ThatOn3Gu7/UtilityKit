@@ -70,7 +70,7 @@ Always implement plain ASCII fallbacks for non-Unicode compatible environments o
    ```bash
    bash tests/smoke_test.sh        # PASS=N FAIL=0
    bash tests/deep_review_test.sh  # PASS=N FAIL=0
-   shellcheck -S error _<tool>/_<tool>.sh
+   shellcheck -S error modules/_<tool>/_<tool>.sh
    ```
 7. **Commit beautifully** with semantic commit prefixes (`feat(tool):`, `fix(tool):`, `docs:`, `refactor:`).
 8. **Submit your Pull Request!** The `.github/workflows/ci.yml` pipeline

@@ -181,8 +181,8 @@ jobs:
           set -e
           fail=0
           ok=0
-          for d in _*/; do
-            tool="${d%/}"
+          for d in modules/_*/; do
+            tool="$(basename "${d%/}")"
             f="$d${tool}.sh"
             [[ -f "$f" ]] || continue
             if bash "$f" --help >/dev/null 2>&1; then

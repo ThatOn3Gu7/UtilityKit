@@ -189,10 +189,16 @@ setup_copy_dirs() {
   while IFS= read -r dir_path; do
     [[ -n "$dir_path" ]] || continue
     dir="$(basename "$dir_path")"
-    rm -rf "$INSTALL_DIR/$dir"
-    mkdir -p "$INSTALL_DIR/$dir"
-    cp -a "$dir_path/." "$INSTALL_DIR/$dir/"
-  done < <(find "$SOURCE_DIR" -maxdepth 1 -mindepth 1 -type d \( -name '_*' -o -name 'lib' -o -name 'docs' -o -name 'tests' \) | sort)
+    if [[ "$dir" == _* ]]; then
+      # Tool directory — preserve the modules/ nesting main.sh expects.
+      dest="$INSTALL_DIR/modules/$dir"
+    else
+      dest="$INSTALL_DIR/$dir"
+    fi
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -a "$dir_path/." "$dest/"
+  done < <({ find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null | sort; for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done; })
 
   for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LICENSE; do
     [[ -f "$SOURCE_DIR/$file" ]] && cp -f "$SOURCE_DIR/$file" "$INSTALL_DIR/"
@@ -200,7 +206,7 @@ setup_copy_dirs() {
   find "$INSTALL_DIR" -type f -name '*.sh' -exec chmod +x {} \;
 }
 if ((INTERACTIVE == 0)); then
-  dir_count=$(find "$SOURCE_DIR" -maxdepth 1 -mindepth 1 -type d \( -name '_*' -o -name 'lib' -o -name 'docs' -o -name 'tests' \) | wc -l | tr -d ' ')
+  dir_count=$({ find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null; for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done; } | wc -l | tr -d ' ')
   setup_detail "Copying $dir_count tool/support directories into $INSTALL_DIR"
   setup_run_with_spinner "Copying files" setup_copy_dirs
 else

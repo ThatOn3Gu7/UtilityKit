@@ -107,7 +107,7 @@ uk_registry_build_paths() {
   local rec key
   for rec in "${UK_REGISTRY[@]}"; do
     key="${rec%%|*}"
-    UK_TOOL_PATHS["$key"]="$UK_ROOT_DIR/_${key}/_${key}.sh"
+    UK_TOOL_PATHS["$key"]="$UK_ROOT_DIR/modules/_${key}/_${key}.sh"
   done
 }
 uk_registry_build_paths

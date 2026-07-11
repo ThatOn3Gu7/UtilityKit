@@ -19,7 +19,7 @@ There is no separate lint target. Syntax is validated by the `syntax_check` test
 To exercise a single tool in isolation:
 
 ```sh
-bash _<tool>/_<tool>.sh --help     # standalone (BASH_SOURCE guard fires)
+bash modules/_<tool>/_<tool>.sh --help     # standalone (BASH_SOURCE guard fires)
 ```
 
 ## Architecture: one suite, 51 self-contained tools
@@ -28,7 +28,7 @@ The repo is a fan-out of independent Bash tools unified by a single router. Unde
 
 ### 1. Tool layout and the BASH_SOURCE guard
 
-Every tool lives in `_<tool>/_<tool>.sh` next to a `_<tool>_README.md`. Each script:
+Every tool lives in `modules/_<tool>/_<tool>.sh` next to a `_<tool>_README.md`. Each script:
 
 - Defines a short namespaced prefix for *all* its functions (`pi_` for `_port_inspector`, `mc_` for `_media_convert`, `cs_` for `_cheat_sheet`, etc.). The prefix is the tool's API surface inside `main.sh`.
 - Wraps its entry point in `<prefix>_main`.
@@ -59,11 +59,11 @@ All tools and `main.sh`/`setup.sh` source `lib/uk_common.sh` for colors, icons, 
 
 Because the wiring is spread across several files, adding a tool means editing all of these:
 
-1. `_<tool>/_<tool>.sh` with namespaced functions + BASH_SOURCE guard.
-2. `_<tool>/_<tool>_README.md` for standalone users.
+1. `modules/_<tool>/_<tool>.sh` with namespaced functions + BASH_SOURCE guard.
+2. `modules/_<tool>/_<tool>_README.md` for standalone users.
 3. `main.sh`: add an entry to `UK_TOOL_PATHS`, a `case` branch routing the CLI command, a `run_<tool>_wizard()` for the dashboard, and an entry in the four parallel arrays `M_ICONS` / `M_COLORS` / `M_NAMES` / `M_DESCS` / `M_ACTIONS` in `load_all_tools()` so the tool appears in the arrow-key scroll menu.
 4. `tests/smoke_test.sh`: append the CLI command to the `cmds=(...)` array inside `help_check` so `<cmd> --help` is exercised; add a behavioral smoke case if the tool has side effects.
-5. `setup.sh` requires no edit — its installer globs `_*/` directories, plus `lib`, `docs`, `tests`.
+5. `setup.sh` globs tool directories from `modules/_*/`, plus `lib`, `docs`, `tests` at the repo root.
 
 ## Platform notes
 
@@ -71,7 +71,7 @@ Because the wiring is spread across several files, adding a tool means editing a
 
 ## `_cache_clean` plugin contract
 
-`_cache_clean/plugins/<manager>.sh` files implement five functions: `<id>_plugin_info`, `<id>_detect`, `<id>_get_cache_dirs`, `<id>_scan_cache`, `<id>_clean_orphans`. Plugins are auto-loaded when their package manager is detected. Helpers available to plugins (`cc_find_old`, `cc_du_kb`, `cc_emit_orphan`, `cc_clean_orphans_from_file`, etc.) are defined in `_cache_clean/_cache_clean.sh`; don't reimplement them.
+`modules/_cache_clean/plugins/<manager>.sh` files implement five functions: `<id>_plugin_info`, `<id>_detect`, `<id>_get_cache_dirs`, `<id>_scan_cache`, `<id>_clean_orphans`. Plugins are auto-loaded when their package manager is detected. Helpers available to plugins (`cc_find_old`, `cc_du_kb`, `cc_emit_orphan`, `cc_clean_orphans_from_file`, etc.) are defined in `modules/_cache_clean/_cache_clean.sh`; don't reimplement them.
 
 ## Commit style
 

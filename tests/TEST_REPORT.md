@@ -63,6 +63,6 @@ bash setup.sh --no-menu --install-dir <temp>/install --bin-dir <temp>/bin --no-p
 
 Validated:
 - launcher wrapper creation
-- installation of all `_*/` tool directories
+- installation of all `modules/_*/` tool directories
 - installation of `lib/`, `docs/`, and `tests/`
 - direct launcher routing to the new dashboard

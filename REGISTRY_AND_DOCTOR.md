@@ -32,7 +32,7 @@ The `run_tool` dispatch cases stay hand-written because each tool has bespoke
 wizard/argument logic — but `uk doctor` now verifies every registry action has a
 matching dispatch case, so a missing wiring is caught immediately.
 
-Adding a new tool is now: drop the `_<tool>/` directory in, add **one** line to
+Adding a new tool is now: drop the `modules/_<tool>/` directory in, add **one** line to
 `UK_REGISTRY`, add its `run_tool` case, and run `./main.sh doctor`.
 
 ## 2. `uk doctor` — integrity checker

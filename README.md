@@ -71,12 +71,13 @@ UtilityKit/
 ├── setup.sh                 ← installer (creates launcher in ~/.local/bin)
 ├── lib/
 │   └── uk_common.sh         ← shared helpers: colors, prompts, platform detection
-├── _<tool>/
-│   ├── _<tool>.sh           ← guarded entry point  (BASH_SOURCE guard)
-│   └── _<tool>_README.md    ← standalone docs
-├── _cache_clean/
-│   ├── _cache_clean.sh
-│   └── plugins/             ← 17 package-manager plugins (npm, pip, cargo…)
+├── modules/
+│   ├── _<tool>/
+│   │   ├── _<tool>.sh       ← guarded entry point  (BASH_SOURCE guard)
+│   │   └── _<tool>_README.md ← standalone docs
+│   └── _cache_clean/
+│       ├── _cache_clean.sh
+│       └── plugins/         ← 17 package-manager plugins (npm, pip, cargo…)
 ├── docs/
 │   ├── ICON_STYLE_GUIDE.md
 │   └── ROADMAP_STATUS.md
