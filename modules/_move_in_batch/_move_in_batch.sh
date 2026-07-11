@@ -6,7 +6,6 @@ IFS=$'\n\t'
 
 #  0.  METADATA
 MIB_SCRIPT_NAME="Batch File Mover"
-MIB_SCRIPT_VERSION="2.0.2"
 MIB_SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 #  1.  TERMINAL CAPABILITY DETECTION
@@ -359,7 +358,7 @@ show_help() {
 show_version() {
   printf "%s %s\n" \
     "$(colorize "${MIB_C_BOLD}${MIB_C_CYAN}" "$MIB_SCRIPT_NAME")" \
-    "$(colorize "$MIB_C_GREEN" "v${MIB_SCRIPT_VERSION}")"
+    "$(colorize "$MIB_C_GREEN" "v${UK_VERSION}")"
   printf "%s\n" "$(colorize "$MIB_C_DIM" "$MIB_SCRIPT_URL")"
   printf "\n"
   printf "  Bash:          %s\n" "${BASH_VERSION}"

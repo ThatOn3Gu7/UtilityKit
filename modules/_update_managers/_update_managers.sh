@@ -8,7 +8,10 @@
 set -uo pipefail
 IFS=$' \t\n'
 
-VERSION="4.2.1"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../../lib/uk_common.sh"
+
 SCRIPT_NAME="${0##*/}"
 
 # ----------------------------- Defaults & State -----------------------------
@@ -145,7 +148,7 @@ check_internet() {
 # ----------------------------- Helpers & UI ---------------------------------
 usage() {
   cat <<EOF
-${SCRIPT_NAME} v${VERSION}
+${SCRIPT_NAME} v${UK_VERSION}
 
 Detect and securely update all package managers found on this machine.
 
@@ -237,7 +240,7 @@ ${C_CYAN}    __  __      _                            __
  / /_/ / / / / /| |/ /  __/ /  (__  ) /_/ / /   
  \\____/_/ /_/_/ |___/\\___/_/  /____/\\__,_/_/    ${C_RESET}
                                                 
- ${C_BOLD}${C_MAGENTA}Universal Package Updater${C_RESET} ${C_DIM}v${VERSION}${C_RESET}
+ ${C_BOLD}${C_MAGENTA}Universal Package Updater${C_RESET} ${C_DIM}v${UK_VERSION}${C_RESET}
  ${C_GRAY}──────────────────────────────────────────────────${C_RESET}
  ${C_BLUE}▪ OS:${C_RESET} $os 
  ${C_BLUE}▪ Arch:${C_RESET} $arch 
@@ -248,7 +251,7 @@ EOF
   else
     cat <<EOF
 +--------------------------------------------------+
-| Universal Package Updater               v${VERSION} |
+| Universal Package Updater               v${UK_VERSION} |
 +--------------------------------------------------+
 | OS: $os | Arch: $arch | Bash: $bashv
 +--------------------------------------------------+

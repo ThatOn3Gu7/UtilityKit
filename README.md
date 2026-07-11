@@ -398,7 +398,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v4.2.1** — current — fix awk field expansion in process_killer, fix ssh_tunnel wizard routing, color-var inheritance for tmux/weather/update_managers  
+**v5.0.0** — current — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
 **v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  

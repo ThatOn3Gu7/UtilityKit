@@ -6,7 +6,6 @@ IFS=$'\n\t'
 
 #  0.  METADATA
 readonly SCRIPT_NAME="Batch File Renamer"
-readonly SCRIPT_VERSION="2.0.3"
 readonly SCRIPT_URL="https://github.com/Thaton3gu7/Utilitykit.git"
 
 #  1.  TERMINAL CAPABILITY DETECTION
@@ -485,7 +484,7 @@ show_help() {
 }
 
 show_version() {
-  printf "%s %s\n" "$(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$SCRIPT_NAME")" "$(colorize "$RB_C_GREEN" "v${SCRIPT_VERSION}")"
+  printf "%s %s\n" "$(colorize "${RB_C_BOLD}${RB_C_CYAN}" "$SCRIPT_NAME")" "$(colorize "$RB_C_GREEN" "v${UK_VERSION}")"
   printf "%s\n" "$(colorize "$RB_C_DIM" "$SCRIPT_URL")"
   printf "\n"
   printf "  Bash:          %s\n" "${BASH_VERSION}"

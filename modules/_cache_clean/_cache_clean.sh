@@ -2,8 +2,6 @@
 CC_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CC_SCRIPT_DIR/../../lib/uk_common.sh"
 
-VERSION="2.0.3"
-
 # ---------------------------------------------------------------------------
 CC_OLDER_THAN=60
 CC_YES=0
@@ -50,7 +48,7 @@ cc_parse_args() {
       return 0
       ;;
     -V | --version)
-      printf '_cache_clean %s\n' "$VERSION"
+      printf '_cache_clean %s\n' "$UK_VERSION"
       return 0
       ;;
     --debug)
@@ -583,7 +581,7 @@ cc_main() {
     return 0
     ;;
   *" --version "* | *" -V "*)
-    printf '_cache_clean %s\n' "$VERSION"
+    printf '_cache_clean %s\n' "$UK_VERSION"
     return 0
     ;;
   esac

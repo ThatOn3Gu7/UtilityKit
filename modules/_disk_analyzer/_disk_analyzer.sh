@@ -2,7 +2,6 @@
 DA_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$DA_SCRIPT_DIR/../../lib/uk_common.sh"
 
-DA_VERSION="2.0.2"
 DA_COUNT=10
 
 DA_EXCLUDE_REGEX='/(\.git|\.hg|\.svn)$'
