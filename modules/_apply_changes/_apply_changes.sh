@@ -30,6 +30,11 @@ LOCK_ACQUIRED=0
 LOCK_DIR=""
 APPLY_IN_PROGRESS=0
 TRAP_RUN=0
+AC_R='' AC_BOLD='' AC_DIM='' AC_ITALIC='' AC_INVERSE=''
+AC_FG_RED='' AC_FG_GREEN='' AC_FG_YELLOW='' AC_FG_BLUE='' AC_FG_MAGENTA='' AC_FG_CYAN='' AC_FG_WHITE=''
+AC_FG_BRIGHT_RED='' AC_FG_BRIGHT_GREEN='' AC_FG_BRIGHT_YELLOW='' AC_FG_BRIGHT_BLUE=''
+AC_FG_BRIGHT_MAGENTA='' AC_FG_BRIGHT_CYAN='' AC_FG_BRIGHT_WHITE=''
+
 # Color + style setup — disabled when not a TTY or NO_COLOR is set
 _setup_colors() {
   # TERM=dumb must never receive cursor or color escape sequences.
@@ -60,6 +65,8 @@ _setup_colors() {
     AC_FG_BRIGHT_MAGENTA='' AC_FG_BRIGHT_CYAN='' AC_FG_BRIGHT_WHITE=''
   fi
 }
+_setup_colors
+
 log_action() {
   local msg="$*"
   if [[ -n "${LOG_FILE:-}" ]]; then
@@ -375,7 +382,7 @@ collect_changes() {
   local path_list rec ftype fsize fmode tmeta dst_mode
   if ((_have_printf)); then
     mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -printf '%y\t%s\t%m\t%p\0')
-    for rec in "${path_list[@]}"; do
+    for rec in ${path_list[@]+"${path_list[@]}"}; do
       # Record layout: type<TAB>size<TAB>mode<TAB>path  (path may itself contain tabs)
       ftype="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
       fsize="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
@@ -435,7 +442,7 @@ collect_changes() {
   else
     # Slow path preserved for non-GNU find (BSD/macOS).
     mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
-    for path in "${path_list[@]}"; do
+    for path in ${path_list[@]+"${path_list[@]}"}; do
       rel="${path#"$src"/}"
       should_exclude_rel "$rel" && continue
       target="$dst/$rel"
@@ -478,7 +485,7 @@ collect_changes() {
 
   if [[ "$mirror" -eq 1 ]]; then
     mapfile -d '' path_list < <(find "$dst" -mindepth 1 -depth -print0)
-    for path in "${path_list[@]}"; do
+    for path in ${path_list[@]+"${path_list[@]}"}; do
       rel="${path#"$dst"/}"
       should_exclude_rel "$rel" && continue
       if ! path_exists_or_link "$src/$rel"; then
@@ -864,7 +871,7 @@ _ac_descend() {
   local p="${1:-}" rp='' v
   [[ -d "$p" ]] || { warn "Not a directory."; return 1; }
   rp="$(abs_path "$p")" || return 1
-  for v in "${visited[@]}"; do
+  for v in ${visited[@]+"${visited[@]}"}; do
     [[ "$v" == "$rp" ]] && { warn "Loop prevented: already visited."; return 1; }
   done
   visited+=("$rp"); cur_dir="$rp"; SELECTED_INDEX=0; filter=''
@@ -899,7 +906,7 @@ ac_pick_dir_plain() {
     entries=()
     while IFS= read -r -d '' p; do entries+=("$p"); done < <(ac_list_dirs "$cur_dir" 0)
     printf '\n%s\nCurrent: %s\n  0) select this folder\n  u) up  c) custom path  q) cancel\n' "$label" "$cur_dir" >&2
-    for i in "${!entries[@]}"; do base="$(basename "${entries[$i]}")"; printf '  %d) %s\n' "$((i + 1))" "$base" >&2; done
+    for i in ${entries[@]+"${!entries[@]}"}; do base="$(basename "${entries[$i]}")"; printf '  %d) %s\n' "$((i + 1))" "$base" >&2; done
     printf 'Choice: ' >&2
     IFS= read -r answer </dev/tty || return 1
     case "$answer" in
@@ -948,7 +955,7 @@ ac_pick_dir() {
 
       entries=()
       while IFS= read -r -d '' p; do entries+=("$p"); done < <(ac_list_dirs "$cur_dir" "$show_hidden")
-      for p in "${entries[@]}"; do
+      for p in ${entries[@]+"${entries[@]}"}; do
         base="$(basename "$p")"; kind='dir'; [[ -L "$p" ]] && kind='symlink'
         lock=0; [[ ! -r "$p" || ! -x "$p" ]] && lock=1
         lab="$base"
@@ -959,7 +966,7 @@ ac_pick_dir() {
       disp+=("[ Type a custom path$AC_ELL ]"); paths+=("__CUSTOM__"); kinds+=("custom")
 
       fdisp=(); fpaths=(); fkinds=()
-      for i in "${!disp[@]}"; do
+      for i in ${disp[@]+"${!disp[@]}"}; do
         kind="${kinds[$i]}"
         if [[ -z "$filter" || "$kind" == select || "$kind" == up || "$kind" == custom || "${disp[$i],,}" == *"${filter,,}"* ]]; then
           fdisp+=("${disp[$i]}"); fpaths+=("${paths[$i]}"); fkinds+=("$kind")
