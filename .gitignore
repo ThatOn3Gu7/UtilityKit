@@ -4,3 +4,6 @@ config.js
 *.bak
 *.tmp
 *.swp
+handoff.md
+idea.md
+CLAUDE.md
