@@ -34,7 +34,6 @@ AC_R='' AC_BOLD='' AC_DIM='' AC_ITALIC='' AC_INVERSE=''
 AC_FG_RED='' AC_FG_GREEN='' AC_FG_YELLOW='' AC_FG_BLUE='' AC_FG_MAGENTA='' AC_FG_CYAN='' AC_FG_WHITE=''
 AC_FG_BRIGHT_RED='' AC_FG_BRIGHT_GREEN='' AC_FG_BRIGHT_YELLOW='' AC_FG_BRIGHT_BLUE=''
 AC_FG_BRIGHT_MAGENTA='' AC_FG_BRIGHT_CYAN='' AC_FG_BRIGHT_WHITE=''
-AC_MENU_SAVED=0
 
 # Color + style setup — disabled when not a TTY or NO_COLOR is set
 _setup_colors() {
@@ -385,12 +384,9 @@ collect_changes() {
     mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -printf '%y\t%s\t%m\t%p\0')
     for rec in ${path_list[@]+"${path_list[@]}"}; do
       # Record layout: type<TAB>size<TAB>mode<TAB>path  (path may itself contain tabs)
-      ftype="${rec%%$'\t'*}"
-      rec="${rec#*$'\t'}"
-      fsize="${rec%%$'\t'*}"
-      rec="${rec#*$'\t'}"
-      fmode="${rec%%$'\t'*}"
-      path="${rec#*$'\t'}"
+      ftype="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
+      fsize="${rec%%$'\t'*}"; rec="${rec#*$'\t'}"
+      fmode="${rec%%$'\t'*}"; path="${rec#*$'\t'}"
       rel="${path#"$src"/}"
       should_exclude_rel "$rel" && continue
       target="$dst/$rel"
@@ -698,62 +694,17 @@ ac_init_terminal() {
   # Use line-drawing characters only in a UTF-8 locale. Keep all icons
   # single-column so border calculations are deterministic.
   case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
-  *UTF-8* | *utf8* | *UTF8*) AC_UNICODE=1 ;;
-  *) AC_UNICODE=0 ;;
+    *UTF-8* | *utf8* | *UTF8*) AC_UNICODE=1 ;;
+    *) AC_UNICODE=0 ;;
   esac
   [[ -n "${NO_UNICODE:-}" ]] && AC_UNICODE=0
 
   if ((AC_UNICODE)); then
-    AC_TL='╭'
-    AC_TR='╮'
-    AC_BL='╰'
-    AC_BR='╯'
-    AC_H='─'
-    AC_V='│'
-    AC_ELL='…'
-    AC_DIR='📁'
-    AC_SYMLINK='🔗'
+    AC_TL='╭'; AC_TR='╮'; AC_BL='╰'; AC_BR='╯'; AC_H='─'; AC_V='│'; AC_ELL='…'
   else
-    AC_TL='+'
-    AC_TR='+'
-    AC_BL='+'
-    AC_BR='+'
-    AC_H='-'
-    AC_V='|'
-    AC_ELL='...'
-    AC_DIR='[D]'
-    AC_SYMLINK='[L]'
+    AC_TL='+'; AC_TR='+'; AC_BL='+'; AC_BR='+'; AC_H='-'; AC_V='|'; AC_ELL='...'
   fi
-  AC_ARR='>'
-  AC_UP='^'
-  AC_DOWN='v'
-  AC_LINK='->'
-  AC_LOCK='[!]'
-  AC_SEL='*'
-
-  # if ((AC_UNICODE)); then
-  #   AC_TL='╭'
-  #   AC_TR='╮'
-  #   AC_BL='╰'
-  #   AC_BR='╯'
-  #   AC_H='─'
-  #   AC_V='│'
-  #   AC_ELL='…'
-  # else
-  #   AC_TL='+'
-  #   AC_TR='+'
-  #   AC_BL='+'
-  #   AC_BR='+'
-  #   AC_H='-'
-  #   AC_V='|'
-  #   AC_ELL='...'
-  # fi
-  # AC_ARR='>'
-  # AC_UP='^'
-  # AC_DOWN='v'
-  # AC_LINK='->'
-  # AC_LOCK='[!]'
-  # AC_SEL='*'
+  AC_ARR='>'; AC_UP='^'; AC_DOWN='v'; AC_LINK='->'; AC_LOCK='[!]'; AC_SEL='*'
 }
 
 ac_term_size() {
@@ -764,8 +715,7 @@ ac_term_size() {
   fi
   if [[ ! "$cols" =~ ^[0-9]+$ || ! "$rows" =~ ^[0-9]+$ ]]; then
     size="$(stty size </dev/tty 2>/dev/null || true)"
-    rows="${size%% *}"
-    cols="${size##* }"
+    rows="${size%% *}"; cols="${size##* }"
   fi
   [[ "$cols" =~ ^[0-9]+$ ]] || cols=80
   [[ "$rows" =~ ^[0-9]+$ ]] || rows=24
@@ -801,28 +751,21 @@ ac_truncate() {
   local text="${1:-}" max="${2:-80}" vis out='' i=0 len c code keep visible=0
   ((max > 0)) || return 0
   vis="$(ac_visible_len "$text")"
-  ((vis <= max)) && {
-    printf '%s' "$text"
-    return 0
-  }
+  ((vis <= max)) && { printf '%s' "$text"; return 0; }
   keep=$((max - ${#AC_ELL}))
   ((keep < 0)) && keep=0
   len=${#text}
   while ((visible < keep && i < len)); do
-    c="${text:i:1}"
-    i=$((i + 1))
+    c="${text:i:1}"; i=$((i + 1))
     if [[ "$c" == $'\033' ]]; then
       code="$c"
       while ((i < len)); do
-        c="${text:i:1}"
-        code+="$c"
-        i=$((i + 1))
+        c="${text:i:1}"; code+="$c"; i=$((i + 1))
         [[ "$c" =~ [[:alpha:]] ]] && break
       done
       out+="$code"
     else
-      out+="$c"
-      visible=$((visible + 1))
+      out+="$c"; visible=$((visible + 1))
     fi
   done
   printf '%s%s' "$out" "$AC_ELL"
@@ -833,18 +776,12 @@ ac_box_row() {
   local vis pad_r middle left_color='' body_color='' reset="${AC_R:-}"
   ((width > 0)) || width=1
   vis="$(ac_visible_len "$text")"
-  if ((vis > width)); then
-    text="$(ac_truncate "$text" "$width")"
-    vis="$(ac_visible_len "$text")"
-  fi
-  pad_r=$((width - vis))
-  ((pad_r < 0)) && pad_r=0
+  if ((vis > width)); then text="$(ac_truncate "$text" "$width")"; vis="$(ac_visible_len "$text")"; fi
+  pad_r=$((width - vis)); ((pad_r < 0)) && pad_r=0
   printf -v middle '%s%*s' "$text" "$pad_r" ''
   left_color="${AC_FG_BRIGHT_CYAN:-}"
-  if ((sel)); then
-    body_color="${AC_BOLD:-}${AC_FG_BRIGHT_GREEN:-}"
-  elif ((dim)); then
-    body_color="${AC_DIM:-}"
+  if ((sel)); then body_color="${AC_BOLD:-}${AC_FG_BRIGHT_GREEN:-}"
+  elif ((dim)); then body_color="${AC_DIM:-}"
   fi
   printf '%s%s%s%s%s%s%s\n' "$left_color" "$AC_V" "$reset" "$body_color" "$middle" "$reset$left_color$AC_V" "$reset" >&2
 }
@@ -868,64 +805,34 @@ ac_box_title() {
 ac_draw_pointer() {
   local index="${1:-0}" window="${2:-0}" enabled="${3:-0}" prompt_row="${4:-0}"
   local row=$((3 + (window > 0 ? 1 : 0) + index - window))
-
-  if [[ "${AC_MENU_SAVED:-0}" -eq 1 ]]; then
-    tput rc >&2 2>/dev/null || return 1
-    if ((row > 0)); then
-      tput cud "$row" >&2 2>/dev/null || printf '\033[%dB' "$row" >&2
-    fi
-    tput cuf 1 >&2 2>/dev/null || printf '\033[1C' >&2
-  else
-    tput cup "$row" 1 >&2 2>/dev/null || return 1
-  fi
-
+  tput cup "$row" 1 >&2 2>/dev/null || return 1
   if ((enabled)); then
     printf '%s %s %s' "${AC_BOLD:-}${AC_FG_BRIGHT_GREEN:-}" "$AC_ARR" "${AC_R:-}" >&2
   else
     printf '   ' >&2
   fi
-
-  if [[ "${AC_MENU_SAVED:-0}" -eq 1 ]]; then
-    tput rc >&2 2>/dev/null || true
-    if ((prompt_row > 0)); then
-      tput cud "$prompt_row" >&2 2>/dev/null || printf '\033[%dB' "$prompt_row" >&2
-    fi
-    tput cr >&2 2>/dev/null || printf '\r' >&2
-  else
-    tput cup "$prompt_row" 0 >&2 2>/dev/null || true
-  fi
+  # Keep subsequent warnings/prompts below the menu rather than on a list row.
+  tput cup "$prompt_row" 0 >&2 2>/dev/null || true
 }
 
 # Blocking key read. The only timeout is after ESC, to distinguish ESC from an
 # escape sequence. Therefore an idle menu consumes no CPU and never redraws.
 ac_read_key() {
   local key='' seq=''
-  IFS= read -rsn1 key </dev/tty || {
-    printf 'EOF'
-    return
-  }
-  [[ -z "$key" ]] && {
-    printf 'ENTER'
-    return
-  }
+  IFS= read -rsn1 key </dev/tty || { printf 'EOF'; return; }
+  [[ -z "$key" ]] && { printf 'ENTER'; return; }
   if [[ "$key" == $'\033' ]]; then
-    IFS= read -rsn1 -t 0.08 seq </dev/tty 2>/dev/null || {
-      printf 'ESC'
-      return
-    }
+    IFS= read -rsn1 -t 0.08 seq </dev/tty 2>/dev/null || { printf 'ESC'; return; }
     if [[ "$seq" == '[' || "$seq" == 'O' ]]; then
       local tail=''
       IFS= read -rsn1 -t 0.08 tail </dev/tty 2>/dev/null || true
-      case "$tail" in A) printf 'UP' ;; B) printf 'DOWN' ;; C) printf 'RIGHT' ;; D) printf 'LEFT' ;; *) printf 'ESC' ;; esac
+      case "$tail" in A) printf 'UP';; B) printf 'DOWN';; C) printf 'RIGHT';; D) printf 'LEFT';; *) printf 'ESC';; esac
     else
       printf 'ESC'
     fi
     return
   fi
-  [[ "$key" == $'\177' || "$key" == $'\010' ]] && {
-    printf 'BACKSPACE'
-    return
-  }
+  [[ "$key" == $'\177' || "$key" == $'\010' ]] && { printf 'BACKSPACE'; return; }
   printf '%s' "$key"
 }
 
@@ -935,17 +842,11 @@ ac_read_filter() {
   while :; do
     ch="$(ac_read_key)"
     case "$ch" in
-    ENTER) break ;;
-    ESC)
-      q=''
-      break
-      ;;
-    BACKSPACE) q="${q%?}" ;;
-    EOF)
-      q=''
-      break
-      ;;
-    *) [[ ${#ch} -eq 1 ]] && q+="$ch" ;;
+      ENTER) break ;;
+      ESC) q=''; break ;;
+      BACKSPACE) q="${q%?}" ;;
+      EOF) q=''; break ;;
+      *) [[ ${#ch} -eq 1 ]] && q+="$ch" ;;
     esac
     printf '\r\033[K  > Filter: %s' "$q" >&2
   done
@@ -968,21 +869,12 @@ ac_list_dirs() {
 
 _ac_descend() {
   local p="${1:-}" rp='' v
-  [[ -d "$p" ]] || {
-    warn "Not a directory."
-    return 1
-  }
+  [[ -d "$p" ]] || { warn "Not a directory."; return 1; }
   rp="$(abs_path "$p")" || return 1
   for v in ${visited[@]+"${visited[@]}"}; do
-    [[ "$v" == "$rp" ]] && {
-      warn "Loop prevented: already visited."
-      return 1
-    }
+    [[ "$v" == "$rp" ]] && { warn "Loop prevented: already visited."; return 1; }
   done
-  visited+=("$rp")
-  cur_dir="$rp"
-  SELECTED_INDEX=0
-  filter=''
+  visited+=("$rp"); cur_dir="$rp"; SELECTED_INDEX=0; filter=''
 }
 
 ac_prompt_path() {
@@ -995,30 +887,14 @@ ac_prompt_path() {
 _ac_act() {
   local kind="${1:-}" path="${2:-}" cp=''
   case "$kind" in
-  select)
-    chosen="$path"
-    return 0
-    ;;
-  up)
-    cur_dir="$(dirname "$cur_dir")"
-    SELECTED_INDEX=0
-    filter=''
-    return 1
-    ;;
-  custom)
-    cp="$(ac_prompt_path "$cur_dir")" || return 1
-    if [[ -d "$cp" ]]; then
-      chosen="$(abs_path "$cp")"
-      return 0
-    fi
-    warn "Not a directory: $cp"
-    return 1
-    ;;
-  dir | symlink)
-    _ac_descend "$path"
-    return 1
-    ;;
-  *) return 1 ;;
+    select) chosen="$path"; return 0 ;;
+    up) cur_dir="$(dirname "$cur_dir")"; SELECTED_INDEX=0; filter=''; return 1 ;;
+    custom)
+      cp="$(ac_prompt_path "$cur_dir")" || return 1
+      if [[ -d "$cp" ]]; then chosen="$(abs_path "$cp")"; return 0; fi
+      warn "Not a directory: $cp"; return 1 ;;
+    dir | symlink) _ac_descend "$path"; return 1 ;;
+    *) return 1 ;;
   esac
 }
 
@@ -1030,31 +906,17 @@ ac_pick_dir_plain() {
     entries=()
     while IFS= read -r -d '' p; do entries+=("$p"); done < <(ac_list_dirs "$cur_dir" 0)
     printf '\n%s\nCurrent: %s\n  0) select this folder\n  u) up  c) custom path  q) cancel\n' "$label" "$cur_dir" >&2
-    for i in ${entries[@]+"${!entries[@]}"}; do
-      base="$(basename "${entries[$i]}")"
-      p="${entries[$i]}"
-      if [[ -L "$p" ]]; then
-        printf '  %d) %s %s\n' "$((i + 1))" "$AC_SYMLINK" "$base" >&2
-      else
-        printf '  %d) %s %s\n' "$((i + 1))" "$AC_DIR" "$base" >&2
-      fi
-    done
+    for i in ${entries[@]+"${!entries[@]}"}; do base="$(basename "${entries[$i]}")"; printf '  %d) %s\n' "$((i + 1))" "$base" >&2; done
     printf 'Choice: ' >&2
     IFS= read -r answer </dev/tty || return 1
     case "$answer" in
-    0)
-      printf '%s\n' "$cur_dir"
-      return 0
-      ;;
-    u | U) [[ "$cur_dir" != / ]] && cur_dir="$(dirname "$cur_dir")" ;;
-    c | C)
-      p="$(ac_prompt_path "$cur_dir")" || continue
-      [[ -d "$p" ]] && cur_dir="$(abs_path "$p")" || warn "Not a directory: $p"
-      ;;
-    q | Q) return 1 ;;
-    *)
-      if [[ "$answer" =~ ^[0-9]+$ ]] && ((answer >= 1 && answer <= ${#entries[@]})); then cur_dir="$(abs_path "${entries[$((answer - 1))]}")"; else warn "Invalid choice."; fi
-      ;;
+      0) printf '%s\n' "$cur_dir"; return 0 ;;
+      u | U) [[ "$cur_dir" != / ]] && cur_dir="$(dirname "$cur_dir")" ;;
+      c | C) p="$(ac_prompt_path "$cur_dir")" || continue; [[ -d "$p" ]] && cur_dir="$(abs_path "$p")" || warn "Not a directory: $p" ;;
+      q | Q) return 1 ;;
+      *)
+        if [[ "$answer" =~ ^[0-9]+$ ]] && ((answer >= 1 && answer <= ${#entries[@]})); then cur_dir="$(abs_path "${entries[$((answer - 1))]}")"; else warn "Invalid choice."; fi
+        ;;
     esac
   done
 }
@@ -1063,26 +925,17 @@ ac_pick_dir() {
   [[ -t 0 && -t 2 ]] || return 1
   ac_init_terminal
   local label="${1:-Select directory}" start="${2:-${HOME:-/}}"
-  if [[ "$AC_TERM_MODE" != full ]]; then
-    ac_pick_dir_plain "$label" "$start"
-    return $?
-  fi
+  if [[ "$AC_TERM_MODE" != full ]]; then ac_pick_dir_plain "$label" "$start"; return $?; fi
 
   local cur_dir="$start" filter='' show_hidden=0 SELECTED_INDEX=0 chosen=''
   local -a visited=() disp=() paths=() kinds=() entries=() fdisp=() fpaths=() fkinds=()
   local dims AC_COLS=0 AC_ROWS=0 inner=1 total=0 vis=1 win=0 i p base kind lab lock prefix key
   local selected_kind selected_path footer shown=0 above=0 below=0 menu_prompt_row=0
   local needs_redraw=1 rendered_cols=0 rendered_rows=0 old_index new_index new_win
-  # Save cursor position so we can redraw the menu without clearing the screen
-  AC_MENU_SAVED=0
-  if [[ "$AC_TERM_MODE" == full ]]; then
-    tput sc >&2 2>/dev/null && AC_MENU_SAVED=1
-  fi
 
   while :; do
     dims="$(ac_term_size)"
-    AC_COLS="${dims%% *}"
-    AC_ROWS="${dims##* }"
+    AC_COLS="${dims%% *}"; AC_ROWS="${dims##* }"
 
     # A resize changes every border coordinate, so it legitimately requires a
     # complete repaint on the next key. Ordinary Up/Down movement does not.
@@ -1090,7 +943,6 @@ ac_pick_dir() {
 
     # Leave the last physical column unused to avoid delayed-wrap glitches.
     if ((AC_COLS < 24 || AC_ROWS < 10)); then
-      AC_MENU_SAVED=0
       ac_show_cursor
       ac_pick_dir_plain "$label" "$cur_dir"
       return $?
@@ -1098,84 +950,49 @@ ac_pick_dir() {
 
     if ((needs_redraw)); then
       inner=$((AC_COLS - 3))
-      disp=("$AC_SEL Select this folder: $cur_dir")
-      paths=("$cur_dir")
-      kinds=("select")
-      if [[ "$cur_dir" != / ]]; then
-        disp+=(".. (up one level)")
-        paths+=("__UP__")
-        kinds+=("up")
-      fi
+      disp=("$AC_SEL Select this folder: $cur_dir"); paths=("$cur_dir"); kinds=("select")
+      if [[ "$cur_dir" != / ]]; then disp+=(".. (up one level)"); paths+=("__UP__"); kinds+=("up"); fi
 
       entries=()
       while IFS= read -r -d '' p; do entries+=("$p"); done < <(ac_list_dirs "$cur_dir" "$show_hidden")
       for p in ${entries[@]+"${entries[@]}"}; do
-        base="$(basename "$p")"
-        kind='dir'
-        [[ -L "$p" ]] && kind='symlink'
-        lock=0
-        [[ ! -r "$p" || ! -x "$p" ]] && lock=1
-        if [[ "$kind" == symlink ]]; then
-          lab="$AC_SYMLINK $base"
-          lab+=" $AC_LINK $(readlink "$p" 2>/dev/null || true)"
-        else
-          lab="$AC_DIR $base"
-        fi
+        base="$(basename "$p")"; kind='dir'; [[ -L "$p" ]] && kind='symlink'
+        lock=0; [[ ! -r "$p" || ! -x "$p" ]] && lock=1
+        lab="$base"
+        [[ "$kind" == symlink ]] && lab+=" $AC_LINK $(readlink "$p" 2>/dev/null || true)"
         ((lock)) && lab+=" $AC_LOCK"
-        disp+=("$lab")
-        paths+=("$p")
-        kinds+=("$kind")
+        disp+=("$lab"); paths+=("$p"); kinds+=("$kind")
       done
-      disp+=("[ Type a custom path$AC_ELL ]")
-      paths+=("__CUSTOM__")
-      kinds+=("custom")
+      disp+=("[ Type a custom path$AC_ELL ]"); paths+=("__CUSTOM__"); kinds+=("custom")
 
-      fdisp=()
-      fpaths=()
-      fkinds=()
+      fdisp=(); fpaths=(); fkinds=()
       for i in ${disp[@]+"${!disp[@]}"}; do
         kind="${kinds[$i]}"
         if [[ -z "$filter" || "$kind" == select || "$kind" == up || "$kind" == custom || "${disp[$i],,}" == *"${filter,,}"* ]]; then
-          fdisp+=("${disp[$i]}")
-          fpaths+=("${paths[$i]}")
-          fkinds+=("$kind")
+          fdisp+=("${disp[$i]}"); fpaths+=("${paths[$i]}"); fkinds+=("$kind")
         fi
       done
       total=${#fdisp[@]}
-      if ((total == 0)); then
-        filter=''
-        continue
-      fi
+      if ((total == 0)); then filter=''; continue; fi
       ((SELECTED_INDEX < 0)) && SELECTED_INDEX=0
       ((SELECTED_INDEX >= total)) && SELECTED_INDEX=$((total - 1))
 
       # Header (3), borders (2), footer (1), and up/down indicators (up to 2).
-      vis=$((AC_ROWS - 8))
-      ((vis < 1)) && vis=1
+      vis=$((AC_ROWS - 8)); ((vis < 1)) && vis=1
       win=$((SELECTED_INDEX / vis * vis))
-      above=0
-      below=0
+      above=0; below=0
       ((win > 0)) && above=1
       ((win + vis < total)) && below=1
-      shown=$((total - win))
-      ((shown > vis)) && shown=$vis
+      shown=$((total - win)); ((shown > vis)) && shown=$vis
       menu_prompt_row=$((3 + above + shown + below + 2))
 
-      if [[ "$AC_TERM_MODE" == full ]]; then
-        if [[ "${AC_MENU_SAVED:-0}" -eq 1 ]]; then
-          tput rc >&2 2>/dev/null || true
-          tput ed >&2 2>/dev/null || printf '\033[J' >&2
-        else
-          ac_clear_screen
-        fi
-      fi
+      ac_clear_screen
       ac_box_top
       ac_box_title "$label"
       ac_box_row "  $cur_dir" 0 1
       ((above)) && ac_box_row "  $AC_UP more above" 0 1
       for ((i = win; i < win + shown; i++)); do
-        prefix='   '
-        ((i == SELECTED_INDEX)) && prefix=" $AC_ARR "
+        prefix='   '; ((i == SELECTED_INDEX)) && prefix=" $AC_ARR "
         # Selection is represented only by the marker. No full-row style is
         # applied, allowing Up/Down to change exactly six character cells:
         # erase the old marker and draw the new one.
@@ -1186,131 +1003,90 @@ ac_pick_dir() {
       footer='Up/Dn move  Enter open  s select  Left up  / filter  h hidden  ~ home  q quit'
       printf ' %s\n' "$(ac_truncate "$footer" "$((AC_COLS - 2))")" >&2
 
-      rendered_cols=$AC_COLS
-      rendered_rows=$AC_ROWS
-      needs_redraw=0
+      rendered_cols=$AC_COLS; rendered_rows=$AC_ROWS; needs_redraw=0
     fi
 
     key="$(ac_read_key)"
     case "$key" in
-    UP | k | K)
-      old_index=$SELECTED_INDEX
-      new_index=$((SELECTED_INDEX - 1))
-      ((new_index < 0)) && new_index=0
-      if ((new_index != old_index)); then
-        new_win=$((new_index / vis * vis))
-        SELECTED_INDEX=$new_index
-        if ((new_win == win)); then
-          ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
-          ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
-        else
-          needs_redraw=1
+      UP | k | K)
+        old_index=$SELECTED_INDEX; new_index=$((SELECTED_INDEX - 1))
+        ((new_index < 0)) && new_index=0
+        if ((new_index != old_index)); then
+          new_win=$((new_index / vis * vis))
+          SELECTED_INDEX=$new_index
+          if ((new_win == win)); then
+            ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
+            ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
+          else
+            needs_redraw=1
+          fi
         fi
-      fi
-      ;;
-    DOWN | j | J)
-      old_index=$SELECTED_INDEX
-      new_index=$((SELECTED_INDEX + 1))
-      ((new_index >= total)) && new_index=$((total - 1))
-      if ((new_index != old_index)); then
-        new_win=$((new_index / vis * vis))
-        SELECTED_INDEX=$new_index
-        if ((new_win == win)); then
-          ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
-          ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
-        else
-          needs_redraw=1
+        ;;
+      DOWN | j | J)
+        old_index=$SELECTED_INDEX; new_index=$((SELECTED_INDEX + 1))
+        ((new_index >= total)) && new_index=$((total - 1))
+        if ((new_index != old_index)); then
+          new_win=$((new_index / vis * vis))
+          SELECTED_INDEX=$new_index
+          if ((new_win == win)); then
+            ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
+            ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
+          else
+            needs_redraw=1
+          fi
         fi
-      fi
-      ;;
-    ENTER | RIGHT)
-      selected_kind="${fkinds[$SELECTED_INDEX]:-}"
-      selected_path="${fpaths[$SELECTED_INDEX]:-}"
-      if [[ "$selected_kind" == dir || "$selected_kind" == symlink ]]; then
-        _ac_descend "$selected_path" || true
-      else
-        _ac_act "$selected_kind" "$selected_path" && break
-      fi
-      needs_redraw=1
-      ;;
-    LEFT | BACKSPACE)
-      if [[ -n "$filter" ]]; then
-        filter=''
+        ;;
+      ENTER | RIGHT)
+        selected_kind="${fkinds[$SELECTED_INDEX]:-}"; selected_path="${fpaths[$SELECTED_INDEX]:-}"
+        if [[ "$selected_kind" == dir || "$selected_kind" == symlink ]]; then
+          _ac_descend "$selected_path" || true
+        else
+          _ac_act "$selected_kind" "$selected_path" && break
+        fi
         needs_redraw=1
-      elif [[ "$cur_dir" != / ]]; then
-        cur_dir="$(dirname "$cur_dir")"
-        SELECTED_INDEX=0
-        needs_redraw=1
-      fi
-      ;;
-    s | S | ' ')
-      selected_kind="${fkinds[$SELECTED_INDEX]:-}"
-      selected_path="${fpaths[$SELECTED_INDEX]:-}"
-      if [[ "$selected_kind" == dir || "$selected_kind" == symlink ]]; then
-        if [[ -d "$selected_path" ]]; then
-          chosen="$(abs_path "$selected_path")"
-          break
-        else
-          warn "Not a directory."
+        ;;
+      LEFT | BACKSPACE)
+        if [[ -n "$filter" ]]; then
+          filter=''; needs_redraw=1
+        elif [[ "$cur_dir" != / ]]; then
+          cur_dir="$(dirname "$cur_dir")"; SELECTED_INDEX=0; needs_redraw=1
         fi
-      else
-        _ac_act "$selected_kind" "$selected_path" && break
-      fi
-      needs_redraw=1
-      ;;
-    / | f | F)
-      filter="$(ac_read_filter)"
-      SELECTED_INDEX=0
-      needs_redraw=1
-      ;;
-    h | H)
-      show_hidden=$((1 - show_hidden))
-      SELECTED_INDEX=0
-      needs_redraw=1
-      ;;
-    '~')
-      cur_dir="${HOME:-/}"
-      SELECTED_INDEX=0
-      filter=''
-      needs_redraw=1
-      ;;
-    q | Q | EOF) return 1 ;;
-    ESC) : ;;
-    *) : ;;
+        ;;
+      s | S | ' ')
+        selected_kind="${fkinds[$SELECTED_INDEX]:-}"; selected_path="${fpaths[$SELECTED_INDEX]:-}"
+        if [[ "$selected_kind" == dir || "$selected_kind" == symlink ]]; then
+          if [[ -d "$selected_path" ]]; then chosen="$(abs_path "$selected_path")"; break
+          else warn "Not a directory."
+          fi
+        else
+          _ac_act "$selected_kind" "$selected_path" && break
+        fi
+        needs_redraw=1
+        ;;
+      / | f | F)
+        filter="$(ac_read_filter)"; SELECTED_INDEX=0; needs_redraw=1
+        ;;
+      h | H) show_hidden=$((1 - show_hidden)); SELECTED_INDEX=0; needs_redraw=1 ;;
+      '~') cur_dir="${HOME:-/}"; SELECTED_INDEX=0; filter=''; needs_redraw=1 ;;
+      q | Q | EOF) return 1 ;;
+      ESC) : ;;
+      *) : ;;
     esac
   done
-  AC_MENU_SAVED=0
   [[ -n "$chosen" ]] && printf '%s\n' "$chosen"
 }
 ac_wizard() {
-  [[ -t 0 && -t 2 ]] || {
-    fail "Interactive directory picker requires a terminal (TTY)."
-    return 2
-  }
+  [[ -t 0 && -t 2 ]] || { fail "Interactive directory picker requires a terminal (TTY)."; return 2; }
   ac_init_terminal
   ac_hide_cursor
   trap 'ac_show_cursor; exit 130' INT TERM HUP
   local src='' tgt=''
   info "Step 1 of 2 — choose the SOURCE directory (contains the updated files)."
-  src="$(ac_pick_dir "Select SOURCE directory" "${HOME:-/}")" || {
-    ac_show_cursor
-    warn "Selection cancelled."
-    return 1
-  }
-  [[ -n "$src" ]] || {
-    ac_show_cursor
-    return 1
-  }
+  src="$(ac_pick_dir "Select SOURCE directory" "${HOME:-/}")" || { ac_show_cursor; warn "Selection cancelled."; return 1; }
+  [[ -n "$src" ]] || { ac_show_cursor; return 1; }
   info "Step 2 of 2 — choose the TARGET directory (will be updated to match source)."
-  tgt="$(ac_pick_dir "Select TARGET directory" "${HOME:-/}")" || {
-    ac_show_cursor
-    warn "Selection cancelled."
-    return 1
-  }
-  [[ -n "$tgt" ]] || {
-    ac_show_cursor
-    return 1
-  }
+  tgt="$(ac_pick_dir "Select TARGET directory" "${HOME:-/}")" || { ac_show_cursor; warn "Selection cancelled."; return 1; }
+  [[ -n "$tgt" ]] || { ac_show_cursor; return 1; }
   ac_show_cursor
   trap - INT TERM HUP
   printf 'Preview and apply changes? [Y/n] ' >&2
