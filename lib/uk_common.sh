@@ -41,6 +41,7 @@ uk_setup_visuals() {
     UK_I_SEP="╱"
     UK_I_WORK='⚙'
     UK_I_STAR='✦'
+    UK_I_CLAUDE='✽'
     UK_I_DOT='•'
   else
     UK_I_INFO='i'
@@ -52,6 +53,7 @@ uk_setup_visuals() {
     UK_I_SEP="/"
     UK_I_WORK='*'
     UK_I_STAR='*'
+    UK_I_CLAUDE='∅'
     UK_I_DOT='-'
   fi
 }

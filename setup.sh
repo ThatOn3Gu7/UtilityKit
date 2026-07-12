@@ -46,7 +46,7 @@ setup_step() {
   ((INTERACTIVE == 1)) && return 0
   SETUP_STEP_NUM=$((SETUP_STEP_NUM + 1))
   printf '\n  %s%s%s %s[%d/%d]%s %s%s%s\n' \
-    "$UK_C_YELLOW" "$UK_I_STAR" "$UK_C_RESET" \
+    "$UK_C_YELLOW" "$UK_I_CLAUDE" "$UK_C_RESET" \
     "$UK_C_BOLD$UK_C_CYAN" "$SETUP_STEP_NUM" "$SETUP_TOTAL_STEPS" "$UK_C_RESET" \
     "$UK_C_BOLD" "$1" "$UK_C_RESET"
 }
@@ -198,7 +198,10 @@ setup_copy_dirs() {
     rm -rf "$dest"
     mkdir -p "$dest"
     cp -a "$dir_path/." "$dest/"
-  done < <({ find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null | sort; for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done; })
+  done < <({
+    find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null | sort
+    for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+  })
 
   for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LICENSE; do
     [[ -f "$SOURCE_DIR/$file" ]] && cp -f "$SOURCE_DIR/$file" "$INSTALL_DIR/"
@@ -206,7 +209,10 @@ setup_copy_dirs() {
   find "$INSTALL_DIR" -type f -name '*.sh' -exec chmod +x {} \;
 }
 if ((INTERACTIVE == 0)); then
-  dir_count=$({ find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null; for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done; } | wc -l | tr -d ' ')
+  dir_count=$({
+    find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null
+    for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+  } | wc -l | tr -d ' ')
   setup_detail "Copying $dir_count tool/support directories into $INSTALL_DIR"
   setup_run_with_spinner "Copying files" setup_copy_dirs
 else
