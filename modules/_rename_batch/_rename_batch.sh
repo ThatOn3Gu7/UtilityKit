@@ -647,7 +647,13 @@ rb_ac_read_key() {
     if [[ "$seq" == '[' || "$seq" == 'O' ]]; then
       local tail=''
       IFS= read -rsn1 -t 0.08 tail </dev/tty 2>/dev/null || true
-      case "$tail" in A) printf 'UP' ;; B) printf 'DOWN' ;; C) printf 'RIGHT' ;; D) printf 'LEFT' ;; *) printf 'ESC' ;; esac
+      # Consume any remaining parameter bytes until the final letter.
+      # Some terminals send longer sequences like \033[1;2A (Shift+Arrow)
+      # or \033[5~ (Page Up). Without this, leftover bytes leak to screen.
+      while [[ -n "$tail" && ! "$tail" =~ [A-Za-z~] ]]; do
+        IFS= read -rsn1 -t 0.01 tail </dev/tty 2>/dev/null || { tail=''; break; }
+      done
+      case "$tail" in A) printf 'UP' ;; B) printf 'DOWN' ;; C) printf 'RIGHT' ;; D) printf 'LEFT' ;; H) printf 'HOME' ;; F) printf 'END' ;; *) printf 'ESC' ;; esac
     else
       printf 'ESC'
     fi
@@ -802,7 +808,13 @@ rb_ac_pick_dir() {
   rb_ac_init_terminal
   rb_ac_hide_cursor
   local label="${1:-Select directory}" start="${2:-${HOME:-/}}"
+  # Save terminal settings and disable echoing so held-key escape fragments
+  # never appear on screen between read calls.
+  local _ac_old_stty=''
+  _ac_old_stty=$(stty -g </dev/tty 2>/dev/null) || _ac_old_stty=''
+  stty -echo </dev/tty 2>/dev/null || true
   if [[ "$RB_AC_TERM_MODE" != full ]]; then
+    [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
     rb_ac_show_cursor
     rb_ac_pick_dir_plain "$label" "$start"
     return $?
@@ -819,6 +831,16 @@ rb_ac_pick_dir() {
     tput sc >&2 2>/dev/null && RB_AC_MENU_SAVED=1
   fi
 
+  # Query cursor row so vis accounts for banners/messages already printed
+  # above us, without clearing the screen.
+  local _ac_start_row=1
+  printf '\033[6n' >/dev/tty 2>/dev/null
+  local _dsr=''
+  IFS= read -rs -d 'R' -t 0.1 _dsr </dev/tty 2>/dev/null || true
+  _ac_start_row="${_dsr#*\[}"
+  _ac_start_row="${_ac_start_row%%;*}"
+  [[ "$_ac_start_row" =~ ^[0-9]+$ ]] || _ac_start_row=1
+
   while :; do
     dims="$(rb_ac_term_size)"
     AC_COLS="${dims%% *}"
@@ -828,6 +850,7 @@ rb_ac_pick_dir() {
 
     if ((AC_COLS < 24 || AC_ROWS < 10)); then
       RB_AC_MENU_SAVED=0
+      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
       rb_ac_show_cursor
       rb_ac_pick_dir_plain "$label" "$cur_dir"
       return $?
@@ -886,7 +909,7 @@ rb_ac_pick_dir() {
       ((SELECTED_INDEX < 0)) && SELECTED_INDEX=0
       ((SELECTED_INDEX >= total)) && SELECTED_INDEX=$((total - 1))
 
-      vis=$((AC_ROWS - 8))
+      vis=$((AC_ROWS - _ac_start_row - 7))
       ((vis < 1)) && vis=1
       win=$((SELECTED_INDEX / vis * vis))
       above=0
@@ -932,8 +955,14 @@ rb_ac_pick_dir() {
       new_index=$((SELECTED_INDEX - 1))
       ((new_index < 0)) && new_index=0
       if ((new_index != old_index)); then
+        new_win=$((new_index / vis * vis))
         SELECTED_INDEX=$new_index
-        needs_redraw=1
+        if ((new_win == win)); then
+          rb_ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
+          rb_ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
+        else
+          needs_redraw=1
+        fi
       fi
       ;;
     DOWN | j | J)
@@ -941,8 +970,14 @@ rb_ac_pick_dir() {
       new_index=$((SELECTED_INDEX + 1))
       ((new_index >= total)) && new_index=$((total - 1))
       if ((new_index != old_index)); then
+        new_win=$((new_index / vis * vis))
         SELECTED_INDEX=$new_index
-        needs_redraw=1
+        if ((new_win == win)); then
+          rb_ac_draw_pointer "$old_index" "$win" 0 "$menu_prompt_row"
+          rb_ac_draw_pointer "$new_index" "$win" 1 "$menu_prompt_row"
+        else
+          needs_redraw=1
+        fi
       fi
       ;;
     ENTER | RIGHT)
@@ -998,6 +1033,7 @@ rb_ac_pick_dir() {
       ;;
     q | Q | EOF)
       RB_AC_MENU_SAVED=0
+      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
       rb_ac_show_cursor
       return 1
       ;;
@@ -1006,6 +1042,7 @@ rb_ac_pick_dir() {
     esac
   done
   RB_AC_MENU_SAVED=0
+  [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
   rb_ac_show_cursor
   [[ -n "$chosen" ]] && printf '%s\n' "$chosen"
 }
