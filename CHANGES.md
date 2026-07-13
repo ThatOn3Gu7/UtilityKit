@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.2.1] - 2026-07-13
+
+### Added
+- **Interactive directory picker expanded to more tools.** `_move_in_batch` gains a two-step wizard: pick the SOURCE directory, then the DESTINATION directory, with post-selection prompts for transfer method (`cp`/`mv`) and flatten mode. Triggered via `-i`/`--interactive` or the dashboard wizard.
+- **Directory icons in pickers.** Every directory and symlink entry shows a 📁 / 🔗 glyph (or `[D]` / `[L]` fallback under `NO_UNICODE` / dumb terminals) in the full-screen and plain fallback menus of `_apply_changes`, `_move_in_batch`, and `_rename_batch`.
+- **Banner-safe picker redraw.** The full-screen picker no longer clears the whole screen on every redraw — the UK banner and step messages stay visible above the menu, with emoji-width compensation for correct border alignment.
+- **Canonical documentation site.** The React + Vite + Tailwind single-page app (HashRouter, semantic design tokens, system light/dark theme with anti-flash inline script) is now the source of truth for the docs, building to a self-contained single-file bundle via `vite-plugin-singlefile` and shipping to GitHub Pages on pushes touching `docs-site/` or `docs/`.
+
+### Changed
+- **Setup glyph.** Replaced `UK_I_STAR` (✦) with `UK_I_CLAUDE` (✽) in `lib/uk_common.sh` and `setup.sh`.
+- **Docs directory renamed** `webAPP/` → `docs-site/` to match its role; all workflow, `CLAUDE.md`, and `README.md` references updated.
+
+### Fixed
+- **Flicker-free picker navigation.** UP/DOWN now use a surgical pointer redraw (`rb_ac_draw_pointer()`) instead of a full-screen repaint, restoring green+bold arrow styling across `_move_in_batch` and `_rename_batch`.
+- **Robust terminal input.** `stty -echo` suppresses escape-fragment echo between `read` calls, and the escape-sequence parser now consumes full CSI parameter bytes (Shift+Arrow, Page Up/Down, Home, End). An ANSI DSR query (`\033[6n`) detects the cursor row at menu start so the viewport accounts for banners/messages without clearing the screen.
+- **Interrupted transfers.** `handle_interrupt` now `exit 130` (Ctrl+C truly terminates the script instead of resuming the file loop), and rollback correctly handles `mv` mode by moving files back to the source instead of deleting the destination — preventing permanent data loss on interrupted moves.
+
 ## [5.1.1] - 2026-07-11
 
 ### Fixed
