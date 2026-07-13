@@ -1,4 +1,4 @@
-# UtilityKit Documentation Site (`webAPP/`)
+# UtilityKit Documentation Site (`docs-site/`)
 
 The canonical documentation site for UtilityKit. A React + Vite + Tailwind
 single-page app that inlines to one self-contained HTML file, then ships to
@@ -33,7 +33,7 @@ Two paths, both supported:
 ### 1. GitHub Actions (recommended)
 
 `.github/workflows/pages.yml` builds this app on every push to `master` that
-touches `webAPP/` or `docs/`, then publishes the bundle via
+touches `docs-site/` or `docs/`, then publishes the bundle via
 `actions/deploy-pages`. Enable it in **Settings → Pages → Source: GitHub
 Actions**.
 
@@ -43,10 +43,10 @@ Some setups configure Pages to serve `/docs` from the branch. To refresh that
 copy locally:
 
 ```sh
-cd webAPP
+cd docs-site
 npm run deploy:docs
 git add ../docs/index.html ../docs/.nojekyll
-git commit -m "docs: publish webAPP build"
+git commit -m "docs: publish docs-site build"
 git push
 ```
 

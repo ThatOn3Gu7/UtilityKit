@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // publish-to-docs.mjs — Copy the built single-file bundle from
-// webAPP/dist/index.html to the repository-level docs/index.html so that
+// docs-site/dist/index.html to the repository-level docs/index.html so that
 // GitHub Pages (configured to serve /docs on the master branch) picks it up.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const webAppRoot = resolve(here, "..");
-const repoRoot = resolve(webAppRoot, "..");
-const distFile = join(webAppRoot, "dist", "index.html");
+const siteRoot = resolve(here, "..");
+const repoRoot = resolve(siteRoot, "..");
+const distFile = join(siteRoot, "dist", "index.html");
 const docsDir = join(repoRoot, "docs");
 const target = join(docsDir, "index.html");
 const nojekyll = join(docsDir, ".nojekyll");

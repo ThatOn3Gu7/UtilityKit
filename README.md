@@ -79,11 +79,11 @@ UtilityKit/
 │       ├── _cache_clean.sh
 │       └── plugins/         ← 17 package-manager plugins (npm, pip, cargo…)
 ├── docs/
-│   ├── index.html           ← published documentation site (built from webAPP/)
+│   ├── index.html           ← published documentation site (built from docs-site/)
 │   ├── .nojekyll            ← disables Jekyll processing on GitHub Pages
 │   ├── ICON_STYLE_GUIDE.md
 │   └── ROADMAP_STATUS.md
-├── webAPP/                  ← React + Vite source for the documentation site
+├── docs-site/                  ← React + Vite source for the documentation site
 │   ├── src/
 │   ├── package.json
 │   └── README.md            ← build, dev, and deploy instructions
@@ -293,12 +293,12 @@ utility port 3000 --kill
 
 ## Documentation site
 
-The user-facing documentation lives in [`webAPP/`](webAPP/) — a React + Vite
+The user-facing documentation lives in [`docs-site/`](docs-site/) — a React + Vite
 single-page app that inlines to a single self-contained `dist/index.html` via
 `vite-plugin-singlefile`.
 
 ```bash
-cd webAPP
+cd docs-site
 npm install
 npm run dev            # local preview with HMR (http://localhost:5173)
 npm run build          # emit dist/index.html
@@ -308,14 +308,14 @@ npm run deploy:docs    # build + copy dist/index.html → ../docs/index.html
 The bundle is deployed to GitHub Pages two ways, either works standalone:
 
 1. **GitHub Actions** — [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
-   builds and publishes on every push to `master` that touches `webAPP/` or
+   builds and publishes on every push to `master` that touches `docs-site/` or
    `docs/`. Enable via *Settings → Pages → Source: GitHub Actions*.
 2. **Serving `/docs`** — the built bundle is committed to
    [`docs/index.html`](docs/index.html) alongside a `docs/.nojekyll` marker.
    Set *Settings → Pages → Source: Deploy from a branch → master → /docs* to
    use it.
 
-See [`webAPP/README.md`](webAPP/README.md) for the full build and theming
+See [`docs-site/README.md`](docs-site/README.md) for the full build and theming
 notes.
 
 ---
