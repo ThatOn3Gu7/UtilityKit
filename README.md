@@ -79,8 +79,14 @@ UtilityKit/
 │       ├── _cache_clean.sh
 │       └── plugins/         ← 17 package-manager plugins (npm, pip, cargo…)
 ├── docs/
+│   ├── index.html           ← published documentation site (built from webAPP/)
+│   ├── .nojekyll            ← disables Jekyll processing on GitHub Pages
 │   ├── ICON_STYLE_GUIDE.md
 │   └── ROADMAP_STATUS.md
+├── webAPP/                  ← React + Vite source for the documentation site
+│   ├── src/
+│   ├── package.json
+│   └── README.md            ← build, dev, and deploy instructions
 └── tests/
     └── smoke_test.sh        ← syntax + behavioral smoke suite
 ```
@@ -285,6 +291,35 @@ utility port 3000 --kill
 
 ---
 
+## Documentation site
+
+The user-facing documentation lives in [`webAPP/`](webAPP/) — a React + Vite
+single-page app that inlines to a single self-contained `dist/index.html` via
+`vite-plugin-singlefile`.
+
+```bash
+cd webAPP
+npm install
+npm run dev            # local preview with HMR (http://localhost:5173)
+npm run build          # emit dist/index.html
+npm run deploy:docs    # build + copy dist/index.html → ../docs/index.html
+```
+
+The bundle is deployed to GitHub Pages two ways, either works standalone:
+
+1. **GitHub Actions** — [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+   builds and publishes on every push to `master` that touches `webAPP/` or
+   `docs/`. Enable via *Settings → Pages → Source: GitHub Actions*.
+2. **Serving `/docs`** — the built bundle is committed to
+   [`docs/index.html`](docs/index.html) alongside a `docs/.nojekyll` marker.
+   Set *Settings → Pages → Source: Deploy from a branch → master → /docs* to
+   use it.
+
+See [`webAPP/README.md`](webAPP/README.md) for the full build and theming
+notes.
+
+---
+
 ## Testing
 
 ```bash
@@ -398,7 +433,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.1.1** — Added interactive directory picker menu to `_apply_changes` and resolved unbound variable bugs (array iteration fixes and global color initialization)
+**v5.1.1** - current — Added interactive directory picker menu to `_apply_changes` and resolved unbound variable bugs (array iteration fixes and global color initialization)
+
 **v5.0.0** — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
 **v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  

@@ -12,6 +12,12 @@ bash main.sh help                  # list all routes
 bash setup.sh --no-menu            # non-interactive install to ~/.local/share/utility
 bash tests/smoke_test.sh           # full smoke suite (5 groups, must end PASS=N FAIL=0)
 bash tests/deep_review_test.sh     # deeper review pass
+
+# Documentation site (webAPP/)
+cd webAPP && npm install           # first time only
+cd webAPP && npm run dev           # dev server on :5173 with HMR
+cd webAPP && npm run typecheck     # tsc --noEmit
+cd webAPP && npm run deploy:docs   # build + copy dist/index.html → docs/index.html
 ```
 
 There is no separate lint target. Syntax is validated by the `syntax_check` test in `smoke_test.sh`, which runs `bash -n` over every `*.sh` in the tree.
@@ -73,6 +79,25 @@ Because the wiring is spread across several files, adding a tool means editing a
 3. `main.sh`: add an entry to `UK_TOOL_PATHS`, a `case` branch routing the CLI command, a `run_<tool>_wizard()` for the dashboard, and an entry in the four parallel arrays `M_ICONS` / `M_COLORS` / `M_NAMES` / `M_DESCS` / `M_ACTIONS` in `load_all_tools()` so the tool appears in the arrow-key scroll menu.
 4. `tests/smoke_test.sh`: append the CLI command to the `cmds=(...)` array inside `help_check` so `<cmd> --help` is exercised; add a behavioral smoke case if the tool has side effects.
 5. `setup.sh` globs tool directories from `modules/_*/`, plus `lib`, `docs`, `tests` at the repo root.
+6. `webAPP/src/data/tools.ts` mirrors the tool registry for the documentation site. Add the new tool here (`command`, `name`, `category`, `description`, `icon`, `options`, `examples`, `related`) so it appears on the docs UI, then rebuild with `cd webAPP && npm run deploy:docs`.
+
+## Documentation site — `webAPP/`
+
+React + Vite + Tailwind SPA. Bundles to a single self-contained
+`dist/index.html` via `vite-plugin-singlefile`, which is then either published
+to GitHub Pages by `.github/workflows/pages.yml` or copied into `docs/index.html`
+(and committed) via `npm run deploy:docs`.
+
+- Design tokens are semantic CSS vars in `webAPP/src/index.css` (`--bg`,
+  `--text`, `--accent`, ...) with light/dark values under `.dark` on
+  `<html>`. New colors go here, not inline in components.
+- Theme selection (`system | light | dark`) lives in
+  `webAPP/src/components/ThemeProvider.tsx`, persisted in `localStorage`
+  under `uk-theme`. An inline script in `index.html` prevents flash of wrong
+  theme.
+- HashRouter is used so the site works from any subpath without server
+  rewrites, which is what makes the single-file bundle portable to GitHub
+  Pages, filesystem previews, or a custom domain unchanged.
 
 ## Platform notes
 

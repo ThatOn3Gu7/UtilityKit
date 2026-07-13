@@ -1,0 +1,72 @@
+name: Deploy documentation (GitHub Pages)
+
+# Builds webAPP/ into a single-file bundle and publishes it to GitHub Pages.
+# The same bundle is committed to docs/index.html for repos configured to
+# serve /docs directly; this workflow provides the artifact-based path.
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "webAPP/**"
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: pages-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build webAPP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: webAPP/package-lock.json
+
+      - name: Install dependencies
+        working-directory: webAPP
+        run: npm ci
+
+      - name: Type check
+        working-directory: webAPP
+        run: npm run typecheck
+
+      - name: Build single-file bundle
+        working-directory: webAPP
+        run: npm run build
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site
+          cp webAPP/dist/index.html _site/index.html
+          touch _site/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
