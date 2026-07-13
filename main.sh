@@ -96,6 +96,7 @@ UK_REGISTRY=(
   "file_watcher|fwatch|◉|UK_C_CYAN|File Watcher|run command on file change with glob patterns|1"
   "ssh_tunnel|tunnel|⇄|UK_C_CYAN|SSH Tunnel|create, list, kill, restart persistent SSH port-forwards|1"
   "git_hooks|hooks|⚙|UK_C_GREEN|Git Hooks|install, remove, list, show git hook templates|1"
+  "installed|installed|📦|UK_C_BRIGHT_GREEN|Installed Commands|list packages & PATH executables by manager|1"
 )
 
 # Derive the lazy-loader path map from the registry (never hand-maintained now).
@@ -749,6 +750,16 @@ run_new_utility_wizard() {
     ;;
   esac
 }
+run_installed_wizard() {
+  uk_banner "installed-commands" "List installed packages and PATH executables" ""
+  local mode
+  mode="$(uk_prompt 'What to list? (all / packages / commands)' 'all' 'packages' 'all = packages + PATH executables')"
+  case "$mode" in
+  packages) (ic_main --packages) ;;
+  commands) (ic_main --commands) ;;
+  *) (ic_main --all) ;;
+  esac
+}
 uk_menu_execute() {
   local status=0
   run_tool "$@" || status=$?
@@ -1027,6 +1038,10 @@ run_tool() {
     uk_load git_hooks
     ([[ $# -gt 0 ]] && gh_main "$@" || gh_wizard)
     ;;
+  installed | installed-cmds | cmds)
+    uk_load installed
+    ([[ $# -gt 0 ]] && ic_main "$@" || run_installed_wizard)
+    ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
   help | --help | -h) uk_main_show_help ;;
   doctor | diagnostics)
@@ -1176,7 +1191,7 @@ New utility commands:
   weather, json, tmux, font, toolbox, search, github, links, log-inspect,
   csv, hash, archive, snapshot, open-files, battery, release, license, todo,
   update, qr, clipboard, secret, dns, ipinfo, regex, uuid, time, bench, yaml,
-  pdf, image, fwatch, tunnel, hooks
+  pdf, image, fwatch, tunnel, hooks, installed
 
 Maintenance:
   doctor     Run integrity checks on the tool registry and installation

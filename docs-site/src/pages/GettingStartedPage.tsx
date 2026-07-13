@@ -26,7 +26,7 @@ cd UtilityKit`,
     step: "02",
     title: "Run the interactive dashboard",
     description:
-      "Launch the arrow-key dashboard to browse all 63 tools. Or install a system-wide launcher so you can call it from anywhere.",
+      "Launch the arrow-key dashboard to browse all 65 tools. Or install a system-wide launcher so you can call it from anywhere.",
     code: `# Interactive dashboard (▲/▼ or j/k, ↵ to run, q to quit)
 bash main.sh
 
@@ -57,7 +57,7 @@ bash main.sh json package.json --summary`,
     step: "04",
     title: "Explore the tool reference",
     description:
-      "Browse all 63 tools with live search and category filters. Each tool has its own docs page with options, examples, and related tools.",
+      "Browse all 65 tools with live search and category filters. Each tool has its own docs page with options, examples, and related tools.",
     code: `# Run the built-in integrity checker
 bash main.sh doctor
 
@@ -238,7 +238,7 @@ export function GettingStartedPage() {
           <section id="environment" className="mb-14 scroll-mt-24">
             <SectionH>Environment variables</SectionH>
             <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--text-muted)" }}>
-              All 63 tools respect these two variables. Set them in your shell profile or prefix any command.
+              All 65 tools respect these two variables. Set them in your shell profile or prefix any command.
             </p>
             <div className="space-y-4">
               {ENV_VARS.map((v) => (
@@ -266,7 +266,7 @@ export function GettingStartedPage() {
           <section id="verify" className="mb-14 scroll-mt-24">
             <SectionH>Verify your installation</SectionH>
             <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--text-muted)" }}>
-              Run the built-in doctor to confirm all 63 tools are correctly registered and their dispatch routes work end-to-end.
+              Run the built-in doctor to confirm all 65 tools are correctly registered and their dispatch routes work end-to-end.
             </p>
             <CodeBlock code={`bash main.sh doctor`} label="integrity check" />
             <p
@@ -293,7 +293,7 @@ export function GettingStartedPage() {
               >
                 <div className="flex items-center gap-2">
                   <Package size={16} weight="duotone" style={{ color: "var(--accent)" }} />
-                  <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>Browse all 63 tools</span>
+                  <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>Browse all 65 tools</span>
                 </div>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                   Search, filter by category, and explore every tool's documentation.

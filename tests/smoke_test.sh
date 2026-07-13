@@ -27,7 +27,7 @@ syntax_check() {
 help_check() {
   bash "$ROOT/main.sh" help >/dev/null
   bash "$ROOT/setup.sh" --help >/dev/null
-  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo qr secret dns ipinfo uuid time bench yaml ytdl pdf image fwatch tunnel hooks)
+  local cmds=(apply rename move cacheclean symlink disk env git docker scaffold dup proc port ssl api pass ssh shred media toc pomodoro cheat network cron dotenv disk-health service git-stats backup clipboard weather json tmux font toolbox search github links log-inspect csv hash archive snapshot open-files battery release license regex todo qr secret dns ipinfo uuid time bench yaml ytdl pdf image fwatch tunnel hooks installed)
   local cmd
   for cmd in "${cmds[@]}"; do
     bash "$ROOT/main.sh" "$cmd" --help >/dev/null || return 1
@@ -179,6 +179,19 @@ ada,dev
   bash "$ROOT/modules/_toolbox_bootstrap/_toolbox_bootstrap.sh" >/dev/null
   bash "$ROOT/modules/_font_inspector/_font_inspector.sh" --glyphs >/dev/null
   bash "$ROOT/modules/_system_snapshot/_system_snapshot.sh" >/dev/null
+
+  # --- _installed: PATH executables counted, JSON summary is well-formed
+  local inst_out
+  inst_out="$(NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/modules/_installed/_installed.sh" --commands --count 2>/dev/null)"
+  printf '%s\n' "$inst_out" | grep -q 'unique command'
+  NO_COLOR=1 NO_UNICODE=1 bash "$ROOT/modules/_installed/_installed.sh" --commands --json 2>/dev/null | grep -q '"commands"'
+
+  # --- _installed: version formatting renders "[ - name → vX ]" / "[ - name ]"
+  local fmt_out
+  fmt_out="$(cd "$ROOT" && bash -c 'source lib/uk_common.sh; source modules/_installed/_installed.sh; ic_format_pkg nvim 2.2.5; ic_format_pkg gobin ""; ic_format_pkg fzf v0.58.0' 2>/dev/null)"
+  printf '%s\n' "$fmt_out" | grep -q '\[ - nvim → v2.2.5 \]'
+  printf '%s\n' "$fmt_out" | grep -q '\[ - gobin \]'
+  printf '%s\n' "$fmt_out" | grep -q '\[ - fzf → v0.58.0 \]'
 }
 
 wave1_tools_smoke() {

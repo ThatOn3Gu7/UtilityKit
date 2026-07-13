@@ -115,7 +115,7 @@ function TerminalMockup() {
             </div>
             <div>
               <span style={{ color: "#7ee787" }}>║</span>
-              <span style={{ color: "#8b949e" }}>   63 tools · bash main.sh        </span>
+              <span style={{ color: "#8b949e" }}>   65 tools · bash main.sh        </span>
               <span style={{ color: "#7ee787" }}>║</span>
             </div>
             <div style={{ color: "#7ee787" }}>╚══════════════════════════════════╝</div>
@@ -205,7 +205,7 @@ const FEATURES = [
     icon: <Cube size={20} weight="duotone" />,
     tag: "Architecture",
     title: "Composable shared library",
-    description: "All 63 tools share lib/uk_common.sh for color output, prompts, icons, and platform detection — one behavior surface, everywhere.",
+    description: "All 65 tools share lib/uk_common.sh for color output, prompts, icons, and platform detection — one behavior surface, everywhere.",
     color: "#a855f7",
   },
   {
@@ -292,7 +292,7 @@ export function HomePage() {
                   />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                 </span>
-                <span className="font-mono">v2.0 · 63 tools · MIT · Bash 5+</span>
+                <span className="font-mono">v2.0 · 65 tools · MIT · Bash 5+</span>
               </motion.div>
 
               <motion.h1
@@ -566,7 +566,7 @@ export function HomePage() {
                   Explore the toolkit
                 </h2>
                 <p className="text-base" style={{ color: "var(--text-muted)" }}>
-                  63 tools across 5 categories. Search, filter, and dive in.
+                  65 tools across 5 categories. Search, filter, and dive in.
                 </p>
               </div>
               <Link
@@ -578,7 +578,7 @@ export function HomePage() {
                   border: "1px solid var(--border)",
                 }}
               >
-                View all 63 tools
+                View all 65 tools
                 <ArrowRight size={13} />
               </Link>
             </div>

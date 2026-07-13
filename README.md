@@ -10,14 +10,14 @@
                                                    > C0ded by: ThatOn3Gu7
 ```
 
-**A modular Bash toolbox for Linux, macOS, and Termux — 63 tools, one dashboard.**
+**A modular Bash toolbox for Linux, macOS, and Termux — 65 tools, one dashboard.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg?style=flat-square)](LICENSE)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash_5%2B-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-5.2.1-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-5.2.5-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 
 ## What is UtilityKit?
 
-UtilityKit is a collection of 63 standalone Bash tools, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
+UtilityKit is a collection of 65 standalone Bash tools, each living in its own subdirectory with its own README. Every tool runs standalone, can be sourced as a library module, and is wired into a unified interactive dashboard (`main.sh`) with guided prompts and a direct CLI router.
 
 The suite targets three platforms without modification:
 
@@ -180,6 +180,7 @@ Each plugin follows a five-function contract (`*_plugin_info`, `*_detect`, `*_ge
 | `_license_helper` | `license` | Detects `LICENSE*`/`COPYING*` in current directory. Generates MIT or Apache 2.0 text. |
 | `_todo_manager` | `todo` | Plain-text TSV task tracker with tags, `--done` by line number, and `--search`. |
 | `_update_managers` | `update` | Detect and update 60+ package managers (apt, brew, npm, pip, cargo, winget, …) with a live per-command spinner and extracted failure reasons. Aliases: `update-managers`, `upgrade`. |
+| `_installed` | `installed` | 📦 List every installed package (native + language package managers) and each executable discovered on `$PATH`. Live per-manager spinner; versions printed as `[ - name → vX ]`. Read-only inventory across apt, brew, npm, pip, cargo, and more. |
 
 ---
 
@@ -204,7 +205,7 @@ UtilityKit Master Suite — Tool 1 of 49
                                        [q]     : Exit UtilityKit
 ```
 
-All 63 tools live in a single unified scroll list — no nested "More tools"
+All 65 tools live in a single unified scroll list — no nested "More tools"
 pages. Highlights:
 
 - **Arrow keys** (`▲`/`▼`) or **Vim keys** (`k`/`j`) move the selection.
@@ -433,7 +434,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.2.1** - current — Interactive directory pickers hardened and expanded across `_apply_changes`, `_move_in_batch`, and `_rename_batch` (banner-safe redraw, 📁/🔗 icons, two-step source+destination wizard, surgical flicker-free pointer redraw, full CSI escape parsing, `stty -echo`, DSR-based banner-aware viewport, `exit 130` on Ctrl+C, and safe `mv` rollback). Replaced the `UK_I_STAR` (✦) glyph with `UK_I_CLAUDE` (✽). Documentation promoted to a canonical React + Vite + Tailwind single-file site in `docs-site/` (formerly `webAPP/`), deployed to GitHub Pages.
+**v5.2.5** - current — Upgraded from 5.2.1: added the `_installed` tool (read-only package & PATH inventory with a live per-manager spinner and per-package version detection); refreshed documentation and doc-site entry.
+
+**v5.2.1** — Interactive directory pickers hardened and expanded across `_apply_changes`, `_move_in_batch`, and `_rename_batch` (banner-safe redraw, 📁/🔗 icons, two-step source+destination wizard, surgical flicker-free pointer redraw, full CSI escape parsing, `stty -echo`, DSR-based banner-aware viewport, `exit 130` on Ctrl+C, and safe `mv` rollback). Replaced the `UK_I_STAR` (✦) glyph with `UK_I_CLAUDE` (✽). Documentation promoted to a canonical React + Vite + Tailwind single-file site in `docs-site/` (formerly `webAPP/`), deployed to GitHub Pages.
 
 **v5.1.1** — Added interactive directory picker menu to `_apply_changes` and resolved unbound variable bugs (array iteration fixes and global color initialization)
 

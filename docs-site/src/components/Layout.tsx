@@ -76,7 +76,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search 63 tools…"
+            placeholder="Search 65 tools…"
             className="flex-1 bg-transparent outline-none text-sm"
             style={{ color: "var(--text)" }}
           />
@@ -269,7 +269,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className="text-[10px] font-mono mt-0.5 hidden sm:block"
                   style={{ color: "var(--text-faint)" }}
                 >
-                  63 tools · one dashboard
+                  65 tools · one dashboard
                 </span>
               </div>
             </Link>
@@ -493,7 +493,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 className="w-1.5 h-1.5 rounded-full inline-block"
                 style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }}
               />
-              PASS 7/7 · 63 tools · 3 platforms
+              PASS 7/7 · 65 tools · 3 platforms
             </div>
           </div>
         </div>

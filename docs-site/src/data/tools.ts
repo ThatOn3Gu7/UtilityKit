@@ -201,7 +201,15 @@ const TOOLS_RAW: Omit<Tool, "options" | "examples" | "related">[] = [
     category: "Developer Tools",
     icon: "⚡",
     description:
-      "Install, remove, list, and inspect git hook templates (pre-commit, commit-msg, pre-push, and more).",
+      "Install, remove, list, and show git hook templates. Transactional rollback, backup of existing hooks, and per-hook enable/disable toggles.",
+  },
+  {
+    command: "installed",
+    name: "Installed Commands",
+    category: "Developer Tools",
+    icon: "📦",
+    description:
+      "List every installed package (native + language package managers) and every executable command discoverable on $PATH. Read-only inventory across apt, brew, npm, pip, cargo, and more.",
   },
   {
     command: "tunnel",
@@ -1394,6 +1402,24 @@ const TOOL_DETAILS: Record<
       { label: "Filter fonts", code: "bash main.sh font --list --filter Mono" },
     ],
     related: ["toolbox", "snapshot", "todo"],
+  },
+  installed: {
+    options: [
+      { flag: "--packages", description: "Only list packages per detected package manager" },
+      { flag: "--commands", description: "Only list executable commands found in $PATH" },
+      { flag: "--category <list>", description: "Filter: system, apps, language, tools" },
+      { flag: "--manager <list>", description: "Only these manager ids, e.g. apt,brew,npm" },
+      { flag: "--count", description: "Show counts instead of full names" },
+      { flag: "--json", description: "Emit a machine-readable JSON summary" },
+      { flag: "--export <file>", description: "Write a plain-text report to a file" },
+    ],
+    examples: [
+      { label: "Everything (packages + PATH)", code: "bash main.sh installed" },
+      { label: "Language packages only", code: "bash main.sh installed --packages --category language" },
+      { label: "Count PATH executables", code: "bash main.sh installed --commands --count" },
+      { label: "JSON summary", code: "bash main.sh installed --json" },
+    ],
+    related: ["toolbox", "update", "snapshot"],
   },
   "log-inspect": {
     options: [

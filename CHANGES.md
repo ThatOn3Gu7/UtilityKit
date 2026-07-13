@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.2.5] - 2026-07-13
+
+### Added
+- **`_installed` tool — package & PATH inventory.** New `installed` command lists every installed package (native + language package managers: apt, brew, npm, pip, cargo, and more) and every executable discovered on `$PATH`. Features: a live per-manager spinner (`◐◓◑◒` on UTF-8 terminals, ASCII `|/-\` otherwise, auto-disabled for `--json`/`--export`), per-package version detection printed as `[ - name → vX ]` (version forced to a `v` prefix; name-only when no version is reported), and a JSON summary of `{"name","version"}` objects. Read-only; every manager list is capped with a portable `timeout 25` so a blocked network (e.g. `npm ls -g`) degrades gracefully instead of hanging.
+
 ## [5.2.1] - 2026-07-13
 
 ### Added
