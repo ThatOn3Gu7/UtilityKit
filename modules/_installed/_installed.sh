@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 SCRIPT_NAME="${0##*/}"
 
-# Modes & Flags 
+# Modes & Flags
 IC_DO_PACKAGES=0
 IC_DO_COMMANDS=0
 IC_COUNT_ONLY=0
@@ -43,7 +43,7 @@ ic_register() {
 }
 
 ic_register_managers() {
-  # NATIVE SYSTEM PACKAGE MANAGERS 
+  # NATIVE SYSTEM PACKAGE MANAGERS
   ic_register "apt" "system" \
     'command -v apt-get >/dev/null 2>&1 || command -v dpkg-query >/dev/null 2>&1' \
     "dpkg-query -W -f='\${Package} \${Version}\n' 2>/dev/null" \
@@ -209,7 +209,7 @@ ic_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
 
 ic_usage() {
   cat <<EOF
-${SCRIPT_NAME} v${UK_VERSION}
+${SCRIPT_NAME} v${UK_VERSION:-Unknown}
 
 List installed packages (native + language package managers) and every
 executable command discoverable on your \$PATH. Versions are shown per package
@@ -277,7 +277,8 @@ ic_spinner_start() {
       i=$((i + 1))
       sleep 0.1
     done
-  ) & IC_SPIN_PID=$!
+  ) &
+  IC_SPIN_PID=$!
 }
 
 ic_spinner_stop() {
@@ -294,7 +295,12 @@ ic_spinner_stop() {
 ic_run_to_file() {
   local cmd="${1:-}" file="${2:-}" rc=0 err="${file}.err"
   if ic_has_cmd timeout; then
-    timeout 25 sh -c "$cmd" >"$file" 2>"$err" || rc=$?
+    timeout 25 sh -c "$cmd" >"$file" 2>/dev/null
+    local rc=$?
+    if [ $rc -eq 124 ]; then
+      echo "Warning: command timed out after 25s" >&2
+    fi
+    return $rc
   else
     sh -c "$cmd" >"$file" 2>"$err" || rc=$?
   fi
@@ -355,13 +361,10 @@ ic_parse() {
 # Render one package as "[ - name → vX ]" (version forced to a v-prefix) or
 # "[ - name ]" when no version is available.
 ic_format_pkg() {
-  local name="${1:-}" ver="${2:-}" disp
+  local name="${1:-}" ver="${2:-}"
   if [ -n "$ver" ]; then
-    disp="$ver"
-    case "$disp" in
-    v*) disp="${disp#v}" ;;
-    esac
-    printf '[ - %s → %s ]' "$name" "v$disp"
+    # Strip one leading v if present, then force exactly one v
+    printf '[ - %s → v%s ]' "$name" "${ver#v}"
   else
     printf '[ - %s ]' "$name"
   fi
@@ -371,6 +374,8 @@ ic_csv_contains() {
   local csv=",$(printf '%s' "${2:-}" | tr '[:upper:]' '[:lower:]'),"
   local want
   want="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
+  # FIX: If the user didn't specify a filter, don't match anything
+  [[ "$csv" == ",," ]] && return 1
   case "$csv" in *",$want,"*) return 0 ;; *) return 1 ;; esac
 }
 
@@ -391,23 +396,21 @@ ic_detect() {
 # Uses builtins / parameter expansion only (no per-file `basename` fork) so it
 # stays fast even on systems where process creation is expensive.
 ic_path_commands() {
-  local tmp
-  tmp="$(mktemp)" || { echo ""; return 1; }
-  local dir f base
-  local oldifs="$IFS"
+  local dir f base oldifs
+  oldifs="$IFS"
   IFS=':'
   for dir in $PATH; do
+    IFS="$oldifs"
+    [ -n "$dir" ] || continue
     [ -d "$dir" ] || continue
-    for f in "$dir"/* "$dir"/.[!.]*; do
+    for f in "$dir"/* "$dir"/.[!.]* "$dir"/..?*; do
       [ -e "$f" ] || [ -L "$f" ] || continue
+      [ -f "$f" ] || continue
       [ -x "$f" ] || continue
       base="${f##*/}"
-      [ -n "$base" ] && printf '%s\n' "$base" >>"$tmp"
+      [ -n "$base" ] && printf '%s\n' "$base"
     done
-  done
-  IFS="$oldifs"
-  sort -u "$tmp" 2>/dev/null
-  rm -f "$tmp"
+  done | sort -u
 }
 
 ic_json_array() {
@@ -416,7 +419,10 @@ ic_json_array() {
     [ -z "$line" ] && continue
     line="${line//\\/\\\\}"
     line="${line//\"/\\\"}"
-    if [ "$first" -eq 1 ]; then first=0; out="\"$line\""; else out="$out, \"$line\""; fi
+    if [ "$first" -eq 1 ]; then
+      first=0
+      out="\"$line\""
+    else out="$out, \"$line\""; fi
   done <<<"$items"
   printf '[%s]' "$out"
 }
@@ -426,11 +432,21 @@ ic_json_pkg_array() {
   local items="${1:-}" first=1 name ver out=''
   while IFS=$'\t' read -r name ver; do
     [ -z "$name" ] && continue
+    # Escape backslash first, then quotes, then control chars
     name="${name//\\/\\\\}"
     name="${name//\"/\\\"}"
+    name="${name//$'\n'/\\n}"
+    name="${name//$'\t'/\\t}"
+    name="${name//$'\r'/\\r}"
     ver="${ver//\\/\\\\}"
     ver="${ver//\"/\\\"}"
-    if [ "$first" -eq 1 ]; then first=0; out="{\"name\": \"$name\", \"version\": \"$ver\"}"; else out="$out, {\"name\": \"$name\", \"version\": \"$ver\"}"; fi
+    ver="${ver//$'\n'/\\n}"
+    ver="${ver//$'\t'/\\t}"
+    ver="${ver//$'\r'/\\r}"
+    if [ "$first" -eq 1 ]; then
+      first=0
+      out="{\"name\": \"$name\", \"version\": \"$ver\"}"
+    else out="$out, {\"name\": \"$name\", \"version\": \"$ver\"}"; fi
   done <<<"$items"
   printf '[%s]' "$out"
 }
@@ -440,6 +456,12 @@ ic_main() {
   # Relax errexit for the duration of this run. ic_main is always invoked
   # inside a subshell by main.sh, so this never affects the caller.
   set +e
+
+  local tmpfiles=()
+  cleanup() {
+    rm -f "${tmpfiles[@]}" 2>/dev/null
+  }
+  trap cleanup EXIT
 
   # Local color aliases — respect tty / NO_COLOR / --export => plain.
   local C_B C_D C_G C_Y C_C C_R C_M C_W C_RESET
@@ -456,7 +478,10 @@ ic_main() {
     case "${1:-}" in
     --packages) IC_DO_PACKAGES=1 ;;
     --commands) IC_DO_COMMANDS=1 ;;
-    --all) IC_DO_PACKAGES=1; IC_DO_COMMANDS=1 ;;
+    --all)
+      IC_DO_PACKAGES=1
+      IC_DO_COMMANDS=1
+      ;;
     --count) IC_COUNT_ONLY=1 ;;
     --json) IC_JSON=1 ;;
     --no-color) IC_PLAIN=1 ;;
@@ -469,7 +494,10 @@ ic_main() {
       IC_EXPORT="${1:-}"
       IC_PLAIN=1
       ;;
-    --export=*) IC_EXPORT="${1#*=}"; IC_PLAIN=1 ;;
+    --export=*)
+      IC_EXPORT="${1#*=}"
+      IC_PLAIN=1
+      ;;
     --category)
       shift
       if [ $# -eq 0 ] || [ -z "${1:-}" ]; then
@@ -519,7 +547,10 @@ ic_main() {
     for c in $cats; do
       found=0
       for idx in $idxs; do
-        [ "${PM_CAT[$idx]}" = "$c" ] && { found=1; break; }
+        [ "${PM_CAT[$idx]}" = "$c" ] && {
+          found=1
+          break
+        }
       done
       [ "$found" -eq 0 ] && continue
 
@@ -533,13 +564,9 @@ ic_main() {
         [ -n "$IC_ONLY_CATEGORIES" ] && ! ic_csv_contains "$c" "$IC_ONLY_CATEGORIES" && continue
 
         parse="${PM_PARSE[$idx]}"
-        tmpfile="$(mktemp)" || return 1
-        if ! ic_query_manager "$idx" "$tmpfile"; then
-          report="${report}  ${C_R}${UK_I_ERR}${C_RESET} ${id}${C_D} — query failed${C_RESET}"$'\n'
-          query_failed=1
-          rm -f "$tmpfile" || return 1
-          continue
-        fi
+        tmpfile="$(mktemp "${TMPDIR:-/tmp}/ic.XXXXXX")"
+        tmpfiles+=("$tmpfile")
+        ic_query_manager "$idx" "$tmpfile"
         # Normalize to "name<TAB>version", drop empties, dedupe by name.
         # A parser producing zero rows (e.g. empty global npm / newer pipx
         # output) is not a query failure; only the manager rc drives
@@ -585,7 +612,6 @@ ic_main() {
       done <<<"$cmds"
     fi
   fi
-
   # ---- render ----
   if [ "$IC_JSON" -eq 1 ]; then
     printf '{\n'
@@ -593,19 +619,25 @@ ic_main() {
     printf '  "commands": %s,\n' "$json_cmds"
     printf '  "counts": { "commands": %s }\n' "$cmd_count"
     printf '}\n'
-    return 0
+  else
+    printf '%s' "$report"
   fi
-
-  printf '%s' "$report"
 
   if [ -n "$IC_EXPORT" ]; then
-    printf '%s' "$report" >"$IC_EXPORT" 2>/dev/null || {
-      echo "Cannot write report file: $IC_EXPORT" >&2
-      return 2
-    }
+    if [ "$IC_JSON" -eq 1 ]; then
+      printf '{\n  "managers": {%s},\n  "commands": %s,\n  "counts": { "commands": %s }\n}\n' \
+        "$json_managers" "$json_cmds" "$cmd_count" >"$IC_EXPORT" 2>/dev/null || {
+        echo "Cannot write report file: $IC_EXPORT" >&2
+        return 2
+      }
+    else
+      printf '%s' "$report" >"$IC_EXPORT" 2>/dev/null || {
+        echo "Cannot write report file: $IC_EXPORT" >&2
+        return 2
+      }
+    fi
     [ "$IC_PLAIN" -eq 0 ] && printf '  %s report written to %s%s\n' "$C_G" "$IC_EXPORT" "$C_RESET"
   fi
-  return "$query_failed"
 }
 
 # Entry point (standalone-safe). When executed directly we run ic_main; when
