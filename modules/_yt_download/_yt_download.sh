@@ -27,11 +27,22 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
     local label="${1:-}" default="${2:-}" reply
     printf "  %s" "$label" >&2
     [[ -n "$default" ]] && printf " [default: %s]" "$default" >&2
+    # Print hints if provided (args 3+)
+    if [[ $# -ge 3 ]]; then
+      printf "\n" >&2
+      local i
+      for ((i = 3; i <= $#; i++)); do
+        printf "    hint: %s\n" "${!i}" >&2
+      done
+      printf "  %s" "$label" >&2
+      [[ -n "$default" ]] && printf " [default: %s]" "$default" >&2
+    fi
     printf ": " >&2
     read -r reply
     printf "%s\n" "${reply:-$default}"
   }
 fi
+
 if ! declare -f uk_section_title >/dev/null 2>&1; then
   uk_section_title() { printf "\n--- %s ---\n" "$1"; }
 fi
@@ -107,14 +118,9 @@ yd_check_deps() {
     uk_info "  sudo apt install yt-dlp (Linux)"
     return 1
   fi
-}
-
-yd_yesno() {
-  local val="${1:-}"
-  if [[ "$val" =~ ^[Yy1] ]]; then
-    printf "Yes"
-  else
-    printf "No"
+  if ! uk_has_cmd ffmpeg; then
+    uk_warn "ffmpeg not found. Audio extraction and format merging may fail."
+    uk_info "Install: sudo apt install ffmpeg  (or brew install ffmpeg)"
   fi
 }
 
@@ -122,6 +128,9 @@ yd_spinner() {
   local label="$1" tmpfile pid rc spin i
   shift
   tmpfile=$(mktemp "${TMPDIR:-/tmp}/ytdl.XXXXXX")
+  # Clean up tmpfile even if user hits Ctrl-C
+  trap 'rm -f "$tmpfile" 2>/dev/null' EXIT INT TERM
+
   "$@" >"$tmpfile" 2>&1 &
   pid=$!
   spin='-\|/'
@@ -133,48 +142,65 @@ yd_spinner() {
   done
   wait "$pid" 2>/dev/null
   rc=$?
-  printf "\r%*s\r" 60 "" >&2
+
+  # Clear the spinner line properly regardless of length
+  local clear_width
+  clear_width=$(tput cols 2>/dev/null || echo 80)
+  printf "\r%*s\r" "$clear_width" "" >&2
+
   cat "$tmpfile"
   rm -f "$tmpfile"
+  trap - EXIT INT TERM
   return $rc
 }
 
 # CLI Subcommands
 yd_list() {
   local url="${1:-}"
+  url="${url//\"/}"
+  url="${url//\'/}"
   if [[ -z "$url" ]]; then
     uk_error "Usage: ytdl list <URL>"
     return 1
   fi
   yd_check_deps || return 1
   uk_section_title "Available formats for: $url"
-  yt-dlp -F -- "$url"
+  yt-dlp --no-warnings -F "$url"
 }
 
 yd_info() {
   local url="${1:-}"
+  url="${url//\"/}"
+  url="${url//\'/}"
   if [[ -z "$url" ]]; then
     uk_error "Usage: ytdl info <URL>"
     return 1
   fi
   yd_check_deps || return 1
 
-  local title duration upload_date views likes channel metadata yd_err
-  # One tab-delimited --print template keeps stdout as pure data; stderr is
-  # captured separately so WARNING/ERROR lines can never shift the field
-  # mapping the way they did when stderr was folded into the output.
-  yd_err="$(mktemp)" || return 1
-  if ! metadata="$(yt-dlp --print '%(title)s\t%(duration_string)s\t%(upload_date)s\t%(view_count)s\t%(like_count)s\t%(channel)s' -- "$url" 2>"$yd_err")"; then
-    uk_error "Unable to fetch video metadata: $(cat "$yd_err")"
-    rm -f "$yd_err"
+  local title duration upload_date views likes channel
+  local raw_info
+
+  # Removed 2>/dev/null so we can capture and see the error if it fails!
+  raw_info=$(yt-dlp --no-warnings --print title --print duration_string --print upload_date \
+    --print view_count --print like_count --print channel "$url" 2>&1)
+  local info_rc=$?
+
+  if [[ $info_rc -ne 0 ]] || [[ -z "$raw_info" ]]; then
+    uk_error "Failed to fetch video info."
+    if [[ -n "$raw_info" ]]; then
+      uk_warn "yt-dlp returned this error:"
+      printf "\033[31m%s\033[0m\n" "$raw_info" | sed 's/^/  /' >&2
+    fi
     return 1
   fi
-  rm -f "$yd_err"
-  IFS=$'\t' read -r title duration upload_date views likes channel <<<"$metadata"
-  title="${title:-N/A}"
-  views="${views:-N/A}"
-  likes="${likes:-N/A}"
-  channel="${channel:-N/A}"
+
+  title=$(printf '%s\n' "$raw_info" | sed -n '1p')
+  duration=$(printf '%s\n' "$raw_info" | sed -n '2p')
+  upload_date=$(printf '%s\n' "$raw_info" | sed -n '3p')
+  views=$(printf '%s\n' "$raw_info" | sed -n '4p')
+  likes=$(printf '%s\n' "$raw_info" | sed -n '5p')
+  channel=$(printf '%s\n' "$raw_info" | sed -n '6p')
 
   uk_section_title "Video Info"
   printf "  Title:      %s\n" "$title"
@@ -199,6 +225,7 @@ yd_audio() {
       return 0
       ;;
     --*)
+      uk_warn "Unknown option: $1"
       shift
       ;;
     *)
@@ -207,6 +234,9 @@ yd_audio() {
       ;;
     esac
   done
+
+  url="${url//\"/}"
+  url="${url//\'/}"
 
   if [[ -z "$url" ]]; then
     uk_error "Usage: ytdl audio <URL> [--audio-format FMT]"
@@ -225,7 +255,7 @@ yd_audio() {
 }
 
 yd_download() {
-  local url="" format="bv*+ba/b" audio_only=0 audio_fmt="mp3"
+  local url="" format="" audio_only=0 audio_fmt="mp3"
   local subs=0 no_thumb=0 no_meta=0 playlist=0 output="$YD_DEFAULT_DIR"
 
   while [[ $# -gt 0 ]]; do
@@ -266,12 +296,25 @@ yd_download() {
       yd_dl_usage
       return 0
       ;;
+    --*)
+      uk_warn "Unknown option: $1"
+      shift
+      ;;
     *)
       url="$1"
       shift
       ;;
     esac
   done
+
+  url="${url//\"/}"
+  url="${url//\'/}"
+
+  if ((audio_only)) && [[ -z "$format" ]]; then
+    format="bestaudio/best"
+  elif [[ -z "$format" ]]; then
+    format="bv*+ba/b"
+  fi
 
   if [[ -z "$url" ]]; then
     uk_error "Usage: ytdl download <URL> [options]"
@@ -341,6 +384,11 @@ yd_wizard() {
       "https://youtube.com/watch?v=..." \
       "Supports YouTube, YouTube Music, and many other sites")
   fi
+
+  # Strip quotes in case user pasted the URL wrapped in literal quotes
+  url="${url//\"/}"
+  url="${url//\'/}"
+
   if [[ -z "$url" ]]; then
     uk_warn "No URL provided."
     return 1
@@ -350,11 +398,30 @@ yd_wizard() {
   echo ""
   uk_info "Fetching video information..."
   local title duration channel raw_info
-  raw_info=$(yd_spinner "Please wait" yt-dlp --print title --print duration_string --print channel -- "$url") || { uk_error 'Failed to fetch video information.'; return 1; }
+
+  raw_info=$(yd_spinner "Please wait" yt-dlp --no-warnings --print title --print duration_string --print channel "$url")
+  local info_rc=$?
+
+  if [[ $info_rc -ne 0 ]] || [[ -z "$raw_info" ]]; then
+    uk_error "Failed to fetch video information. Check the URL and your connection."
+
+    # >>> THE CRITICAL FIX: EXPOSE THE YT-DLP ERROR TO THE USER <<<
+    if [[ -n "$raw_info" ]]; then
+      echo ""
+      uk_warn "yt-dlp returned this error:"
+      printf "\033[31m%s\033[0m\n" "$raw_info" | sed 's/^/  /' >&2
+    fi
+    echo ""
+    uk_info "Troubleshooting:"
+    uk_info "1. yt-dlp might be out of date. Try updating it with: yt-dlp -U"
+    uk_info "2. The video might be private, age-restricted, or geo-blocked."
+    return 1
+  fi
+
   if [[ -n "$raw_info" ]]; then
-    title=$(echo "$raw_info" | sed -n '1p')
-    duration=$(echo "$raw_info" | sed -n '2p')
-    channel=$(echo "$raw_info" | sed -n '3p')
+    title=$(printf '%s\n' "$raw_info" | sed -n '1p')
+    duration=$(printf '%s\n' "$raw_info" | sed -n '2p')
+    channel=$(printf '%s\n' "$raw_info" | sed -n '3p')
   fi
   : "${title:=N/A}" "${channel:=N/A}" "${duration:=}"
 
@@ -364,36 +431,49 @@ yd_wizard() {
   printf "  Channel: %s\n" "$channel"
   [[ -n "$duration" ]] && printf "  Length:  %s\n" "$duration"
 
-  # --- List formats ---
-  echo ""
-  uk_section_title "Available Formats"
-  echo ""
-  local formats_raw
-  formats_raw=$(yd_spinner "Fetching formats" yt-dlp -F -- "$url") || { uk_error 'Failed to fetch formats.'; return 1; }
-  if [[ -z "$formats_raw" ]]; then
-    uk_error "Failed to fetch formats."
-    return 1
-  fi
-  printf '%s\n' "$formats_raw" | sed 's/^/  /'
-  echo ""
-
-  # --- Format selection ---
-  uk_info "Enter one or more format codes from the table above."
-  uk_info "Common patterns:"
-  printf "  %s  bv*+ba/b    (default) Best video + best audio, fallback to combined\n" "$UK_I_ARROW"
-  printf "  %s  137+140      Video codec + audio codec (yt-dlp merges them)\n" "$UK_I_ARROW"
-  printf "  %s  bestvideo+bestaudio  Explicit best of each, will merge\n" "$UK_I_ARROW"
-  printf "  %s  best         Best single-file combined stream\n" "$UK_I_ARROW"
-  echo ""
-
-  local format
-  format=$(uk_prompt "Format code(s)" "bv*+ba/b" "137+140" "Enter codes space-separated if you want multiple (e.g. 137+140)")
-
   # --- Audio only ---
   echo ""
   local audio_only=0
   if uk_confirm "Extract audio only?" "N"; then
     audio_only=1
+  fi
+
+  # --- Format selection (only if video) ---
+  local format="bestaudio/best"
+  if ! ((audio_only)); then
+    # --- List formats ---
+    echo ""
+    uk_section_title "Available Formats"
+    echo ""
+    local formats_raw
+
+    formats_raw=$(yd_spinner "Fetching formats" yt-dlp --no-warnings -F "$url")
+    local fmt_rc=$?
+
+    if [[ $fmt_rc -ne 0 ]] || [[ -z "$formats_raw" ]]; then
+      uk_error "Failed to fetch formats."
+      if [[ -n "$formats_raw" ]]; then
+        echo ""
+        uk_warn "yt-dlp returned this error:"
+        printf "\033[31m%s\033[0m\n" "$formats_raw" | sed 's/^/  /' >&2
+      fi
+      return 1
+    fi
+
+    printf '%s\n' "$formats_raw" | sed 's/^/  /'
+    echo ""
+
+    uk_info "Enter one or more format codes from the table above."
+    uk_info "Common patterns:"
+    printf "  %s  bv*+ba/b    (default) Best video + best audio, fallback to combined\n" "$UK_I_ARROW"
+    printf "  %s  137+140      Video codec + audio codec (yt-dlp merges them)\n" "$UK_I_ARROW"
+    printf "  %s  bestvideo+bestaudio  Explicit best of each, will merge\n" "$UK_I_ARROW"
+    printf "  %s  best         Best single-file combined stream\n" "$UK_I_ARROW"
+    echo ""
+
+    format=$(uk_prompt "Format code(s)" "bv*+ba/b" \
+      "137+140" \
+      "Enter codes space-separated if you want multiple (e.g. 137+140)")
   fi
 
   local audio_fmt="mp3"
@@ -485,12 +565,17 @@ yd_wizard() {
   fi
 
   # --- Execute ---
-  mkdir -p "$output"
+  mkdir -p "$output" || {
+    uk_error "Cannot create output directory: $output"
+    return 1
+  }
 
   local -a cmd=(yt-dlp)
 
   if ((audio_only)); then
     cmd+=(-x --audio-format "$audio_fmt")
+    # Override format for audio-only if user left the video default
+    [[ "$format" == "bv*+ba/b" ]] && format="bestaudio/best"
   fi
 
   cmd+=(-f "$format")
@@ -563,7 +648,7 @@ yd_main() {
     ;;
   *)
     # If it looks like a URL, launch the wizard with it
-    if [[ "$first" =~ ^https?:// || "$first" =~ ^www\. || "$first" =~ ^youtu\. ]]; then
+    if [[ "$first" =~ ^https?:// || "$first" =~ ^www\. || "$first" =~ ^youtu ]]; then
       yd_wizard "$first"
     else
       uk_error "Unknown subcommand: $first"
