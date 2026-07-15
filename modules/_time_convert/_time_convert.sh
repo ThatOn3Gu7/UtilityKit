@@ -110,41 +110,42 @@ tc_date_is_gnu() {
 # Convert epoch to various formats
 tc_epoch_to_formats() {
   local epoch="$1" tz="${2:-}"
-  local tz_flag=''
+  local -a tz_env=()
   if [[ -n "$tz" ]]; then
-    tz_flag="TZ=$tz"
+    [[ "$tz" =~ ^[A-Za-z0-9_+:/.-]+$ ]] || { uk_error "Invalid timezone: $tz"; return 1; }
+    tz_env=("TZ=$tz")
   fi
 
   local iso='' rfc3339='' rfc2822='' human=''
   if tc_date_is_gnu; then
-    iso="$(env $tz_flag date -d "@$epoch" --iso-8601=seconds 2>/dev/null || true)"
-    rfc3339="$(env $tz_flag date -d "@$epoch" --rfc-3339=seconds 2>/dev/null || true)"
-    rfc2822="$(env $tz_flag date -d "@$epoch" -R 2>/dev/null || true)"
-    human="$(env $tz_flag date -d "@$epoch" '+%A, %B %d, %Y at %H:%M:%S %Z' 2>/dev/null || true)"
+    iso="$(env "${tz_env[@]}" date -d "@$epoch" --iso-8601=seconds || return 1)"
+    rfc3339="$(env "${tz_env[@]}" date -d "@$epoch" --rfc-3339=seconds || return 1)"
+    rfc2822="$(env "${tz_env[@]}" date -d "@$epoch" -R || return 1)"
+    human="$(env "${tz_env[@]}" date -d "@$epoch" '+%A, %B %d, %Y at %H:%M:%S %Z' || return 1)"
   elif date -r "$epoch" '+%s' >/dev/null 2>&1; then
     local f
-    f="$(env $tz_flag date -r "$epoch" '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null || true)"
+    f="$(env "${tz_env[@]}" date -r "$epoch" '+%Y-%m-%dT%H:%M:%S%z' || return 1)"
     iso="$f"
     rfc3339="${f%+*}+${f##*+}"
-    rfc2822="$(env $tz_flag date -r "$epoch" -R 2>/dev/null || true)"
-    human="$(env $tz_flag date -r "$epoch" '+%A, %B %d, %Y at %H:%M:%S %Z' 2>/dev/null || true)"
+    rfc2822="$(env "${tz_env[@]}" date -r "$epoch" -R || return 1)"
+    human="$(env "${tz_env[@]}" date -r "$epoch" '+%A, %B %d, %Y at %H:%M:%S %Z' || return 1)"
   elif uk_has_cmd python3; then
     iso="$(python3 -c "
 from datetime import datetime, timezone
 dt = datetime.fromtimestamp($epoch, tz=timezone.utc)
 print(dt.isoformat())
-" 2>/dev/null || true)"
+" || return 1)"
     rfc3339="$iso"
     rfc2822="$(python3 -c "
 from datetime import datetime, timezone
 dt = datetime.fromtimestamp($epoch, tz=timezone.utc)
 print(dt.strftime('%a, %d %b %Y %H:%M:%S %z'))
-" 2>/dev/null || true)"
+" || return 1)"
     human="$(python3 -c "
 from datetime import datetime, timezone
 dt = datetime.fromtimestamp($epoch, tz=timezone.utc)
 print(dt.strftime('%A, %B %d, %Y at %H:%M:%S %Z'))
-" 2>/dev/null || true)"
+" || return 1)"
   fi
   printf '%s\n%s\n%s\n%s\n' "$iso" "$rfc3339" "$rfc2822" "$human"
 }
