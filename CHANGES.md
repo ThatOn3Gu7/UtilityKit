@@ -1,5 +1,35 @@
 # Changelog
 
+## [5.3.0] - 2026-07-15
+
+### Security
+- **Fail-fast error propagation.** Tools no longer return false success when a subcommand, traversal, parser, or cleanup step fails. Enumeration, scanning, conversion, rendering, and write-back stages now propagate real exit statuses across `_api_tester`, `_backup_sync`, `_cron_manager`, `_disk_health`, `_dotenv_vault`, `_dns_probe`, `_file_watcher`, `_git_sweep`, `_hash_tools`, `_http_bench`, `_image_tool`, `_installed`, `_link_checker`, `_log_inspector`, `_media_convert`, `_move_in_batch`, `_open_files`, `_pdf_toolkit`, `_port_inspector`, `_project_search`, `_release_helper`, `_secret_scan`, `_service_watcher`, `_ssl_checker`, `_update_managers`, `_yt_download`, and the core `uk_load`/`uk_source_tool` paths.
+- **Injection & word-splitting.** Command/arithmetic injection closed via `--` terminators before user URLs and filenames (`_api_tester`, `_move_in_batch`, `_ssh_assistant`, `_ssh_tunnel`, `_yt_download`), `printf -v` instead of `eval` for prompt assignment (`_tmux_session`, `_weather`), and a single quoted `TZ=…` `env` assignment in `_time_convert`. Host/port/alias/field validators tightened (`_ssl_checker`, `_ssh_assistant`, `_ip_info`, `_dns_probe`, `_port_inspector`).
+- **Path traversal & containment.** Project/path names confined to their directories (`_env_manager`, `_cheat_sheet`, `_rename_batch`, `_symlink_manager`, `_apply_changes`, `_cache_clean`, `_service_watcher`), and archive member names/types validated in Python with symlink/hardlink/device/FIFO rejection before extraction (`_archive_manager`).
+- **NUL-safe traversal.** Switched to `find -print0` / `while IFS= read -r -d ''` records (instead of tab/newline) in `_apply_changes`, `_backup_sync`, `_duplicate_finder`, `_hash_tools`, `_move_in_batch`, `_rename_batch`, `_secret_scan`, `_git_hooks`, and `_cron_manager` (NUL-safe pre-commit loop).
+- **Transport security.** TLS verified by default with explicit `--insecure` opt-in (`_service_watcher`); GeoIP moved from plaintext HTTP to verified HTTPS (`_ip_info`); connection failures separated from protocol rejection (`_ssl_checker`).
+- **Least-privilege files & PIDs.** Temp/state files created with mode `600`/`700` and non-predictable paths (`_clipboard_history`, `_password_gen`, `_ssh_assistant`, `_ssh_tunnel`, `_log_inspector`, `_markdown_toc`); PID-identity checks before signaling to avoid unrelated-process kills (`_ssh_tunnel`, `_process_killer`, `_port_inspector`).
+- **Stronger randomness & permissions.** Password generation uses rejection sampling from `/dev/urandom` (no `$RANDOM` modulo bias) with `700`/`600` saved-file modes (`_password_gen`).
+
+### Fixed
+- **`_ssh_tunnel`** — a stopped tunnel can once again be killed or restarted (dead-PID config entries were previously refused).
+- **`_ip_info`** — `--json` no longer emits truncated/empty JSON when a transient GeoIP fetch fails.
+- **`_installed`** — a benign empty parser result (empty global npm, newer pipx) no longer aborts the whole inventory or mislabels it "query failed".
+- **`_secret_scan`** — a single unreadable subdirectory no longer aborts the entire scan; traversal errors are surfaced as a warning while still scanning what was enumerated.
+- **`_cache_clean`** — `wc -c` whitespace padding no longer trips the `^[0-9]+$` size validation and falsely fails the scan.
+- **`_yt_download`** — metadata fields are parsed from a single tab-delimited `--print` template with stderr captured separately, so `WARNING`/`ERROR` lines can no longer shift the field mapping.
+- **`_cron_manager`** — adding the first entry to a fresh crontab still works; empty-read is treated as an empty crontab.
+- **`_project_scaffold`** — removed a dead `slug` computation.
+- **`_duplicate_finder`** — removed a no-op `awk` substitution and replaced O(n²) size grouping with O(n) associative-array bucketing.
+- **`_docker_janitor`** — `dj_count` counts only stdout so a stderr warning cannot inflate the preview count.
+- **`_clipboard_history`** — a corrupt trailing record no longer blocks new adds.
+- **`_main.sh`** — restored the width-gate bail guard so pressing `q` drops into the dashboard instead of exiting the program.
+- **`_archive_manager`** — no longer prints a misleading "unsafe paths" header when validation fails for a missing dependency or exception.
+
+### Changed
+- `lib/uk_common.sh` and `main.sh` gained defensive error handling for platform/data/state directory creation, `read`/`source` failures, terminal-dimension validation (`_uk_valid_term_dimension`), and the dispatch now uses explicit `if/else` (a failed tool no longer silently launches its wizard).
+- `_cache_clean` plugins normalized `command -v` probes.
+
 ## [5.2.5] - 2026-07-13
 
 ### Added

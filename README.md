@@ -17,7 +17,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-5.2.5-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-5.3.0-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -434,7 +434,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.2.5** - current — Upgraded from 5.2.1: added the `_installed` tool (read-only package & PATH inventory with a live per-manager spinner and per-package version detection); refreshed documentation and doc-site entry.
+**v5.3.0** - current — Security & stability hardening pass across the entire toolkit, plus follow-up bug fixes from the review. Highlights: fail-fast error propagation (no more false-success diagnostics), command/arithmetic injection and word-splitting fixes (`--` terminators, `printf -v` instead of `eval`, quoted `TZ=`/`env` assignments), NUL-delimited filename traversal, path-traversal/containment guards, secure temp/state file modes (600/700) and non-predictable PID paths, archive link/special-file extraction validation, TLS-by-default and verified-HTTPS transports, PID-reuse/unrelated-process signal protection, and removal of suppressed stderr / masked exit statuses. Notable fixes: `_ssh_tunnel` can again kill/restart stopped tunnels; `_ip_info --json` no longer truncates on a transient GeoIP error; `_installed` no longer aborts the whole inventory on a benign empty parse; `_secret_scan` tolerates a single unreadable directory; `_cache_clean` size validation no longer false-fails on `wc -c` padding; `_yt_download` metadata parsing is immune to stderr contamination; `_cron_manager` preserves first-entry adds; `_main.sh` restores the width-gate bail behavior.
+
+**v5.2.5** — Upgraded from 5.2.1: added the `_installed` tool (read-only package & PATH inventory with a live per-manager spinner and per-package version detection); refreshed documentation and doc-site entry.
 
 **v5.2.1** — Interactive directory pickers hardened and expanded across `_apply_changes`, `_move_in_batch`, and `_rename_batch` (banner-safe redraw, 📁/🔗 icons, two-step source+destination wizard, surgical flicker-free pointer redraw, full CSI escape parsing, `stty -echo`, DSR-based banner-aware viewport, `exit 130` on Ctrl+C, and safe `mv` rollback). Replaced the `UK_I_STAR` (✦) glyph with `UK_I_CLAUDE` (✽). Documentation promoted to a canonical React + Vite + Tailwind single-file site in `docs-site/` (formerly `webAPP/`), deployed to GitHub Pages.
 
