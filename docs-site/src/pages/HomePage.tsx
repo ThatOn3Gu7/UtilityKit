@@ -273,7 +273,7 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-16 items-center">
             {/* Left */}
-            <div>
+            <div className="min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -410,7 +410,7 @@ export function HomePage() {
             </div>
 
             {/* Right */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <TerminalMockup />
             </div>
           </div>
