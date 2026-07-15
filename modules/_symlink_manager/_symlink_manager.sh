@@ -116,9 +116,12 @@ sm_main() {
   local dst_raw="${positional[1]}"
 
   # Resolve absolute source path
-  local src
-  if ! src="$(realpath "$src_raw" 2>/dev/null)"; then
+  local src resolve_error=''
+  if ! src="$(realpath "$src_raw" 2>&1)"; then
+    resolve_error="$src"
     src="$src_raw"
+    printf "  %s %sCould not canonicalize source; using the supplied path:%s %s\n" \
+      "$C_YELLOW" "$I_WARN" "$C_RESET" "$resolve_error" >&2
   fi
 
   printf "\n  %s %sSymlink Manager (%s)%s\n\n" "${C_CYAN}${I_LINK}" "${C_BOLD}" "${SM_MODE^^}" "${C_RESET}"
@@ -195,24 +198,48 @@ sm_main() {
   fi
 
   # Handle backup if needed
+  local bak_path='' backup_created=0
   if [[ "$action_needed" == "replace" ]]; then
     local timestamp
-    timestamp="$(date '+%Y%m%d_%H%M%S')"
-    local bak_path
+    timestamp="$(date '+%Y%m%d_%H%M%S')" || {
+      printf "  %s %sUnable to create backup timestamp.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+      return 1
+    }
     if [[ -n "$SM_BACKUP_DIR" ]]; then
-      mkdir -p "$SM_BACKUP_DIR"
+      mkdir -p "$SM_BACKUP_DIR" || {
+        printf "  %s %sUnable to create backup directory:%s %s\n" "$C_RED" "$I_ERROR" "$C_RESET" "$SM_BACKUP_DIR" >&2
+        return 1
+      }
       bak_path="${SM_BACKUP_DIR}/$(basename "$dst").$timestamp.bak"
     else
       bak_path="${dst}.$timestamp.bak"
     fi
+    [[ ! -e "$bak_path" && ! -L "$bak_path" ]] || {
+      printf "  %s %sBackup path already exists:%s %s\n" "$C_RED" "$I_ERROR" "$C_RESET" "$bak_path" >&2
+      return 1
+    }
 
     printf "  %s Backing up existing target to: %s\n" "${C_MAGENTA}${I_BACKUP}${C_RESET}" "${C_DIM}$bak_path${C_RESET}"
-    mv "$dst" "$bak_path"
+    mv -- "$dst" "$bak_path" || {
+      printf "  %s %sUnable to back up existing target.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+      return 1
+    }
+    backup_created=1
   fi
 
-  # Create symlink
+  # Create symlink; restore the original target if this step fails.
   printf "  %s Creating symbolic link...\n" "${C_CYAN}⚙${C_RESET}"
-  ln -s "$src" "$dst"
+  if ! ln -s -- "$src" "$dst"; then
+    printf "  %s %sSymbolic link creation failed.%s\n" "$C_RED" "$I_ERROR" "$C_RESET" >&2
+    if ((backup_created == 1)); then
+      if mv -- "$bak_path" "$dst"; then
+        printf "  %s Original target restored from backup.\n" "${C_YELLOW}${I_BACKUP}${C_RESET}" >&2
+      else
+        printf "  %s %sCRITICAL: Failed to restore original target from:%s %s\n" "$C_RED" "$I_ERROR" "$C_RESET" "$bak_path" >&2
+      fi
+    fi
+    return 1
+  fi
 
   printf "\n  %s Symbolic link successfully created!\n\n" "${C_GREEN}${C_BOLD}${I_SUCCESS}${C_RESET}"
 }

@@ -271,13 +271,20 @@ pt_cmd_split() {
   [[ "$count" -eq 0 ]] && { uk_error "No pages found."; return 1; }
 
   local -a selected_pages=()
-  mapfile -t selected_pages < <(pt_expand_pages "$pages" "$count") || return $?
+  local expanded
+  expanded="$(pt_expand_pages "$pages" "$count")" || return $?
+  [[ -n "$expanded" ]] && mapfile -t selected_pages <<<"$expanded"
+  ((${#selected_pages[@]} > 0)) || { uk_error 'No valid pages selected.'; return 1; }
   if uk_has_cmd qpdf; then
-    local i
+    local i failed=0
     for i in "${selected_pages[@]}"; do
       local outfile="$outdir/$(basename "$file" .pdf)-p$i.pdf"
-      qpdf --pages "$file" "$i" -- "$file" "$outfile" 2>/dev/null || true
+      if ! qpdf --pages "$file" "$i" -- "$file" "$outfile"; then
+        rm -f "$outfile"
+        failed=$((failed + 1))
+      fi
     done
+    ((failed == 0)) || { uk_error "$failed page split(s) failed."; return 1; }
     uk_success "Split ${#selected_pages[@]} page(s) into $outdir"
   elif uk_has_cmd python3; then
     python3 -c "

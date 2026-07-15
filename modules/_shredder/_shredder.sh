@@ -18,21 +18,21 @@ USAGE
 }
 sd_secure_delete() {
   local file="${1:-}" size pass
-  [[ -f "$file" ]] || {
-    uk_warn "Skipping missing file: $file"
-    return 0
-  }
+  [[ -f "$file" ]] || { uk_error "File not found: $file"; return 1; }
+  [[ ! -L "$file" ]] || { uk_error "Refusing to shred a symbolic link: $file"; return 1; }
   if uk_has_cmd shred; then
-    shred -n "$SD_PASSES" -z -u "$file"
-    return 0
+    shred -n "$SD_PASSES" -z -u -- "$file" || return 1
+  else
+    [[ -r /dev/urandom ]] || { uk_error "/dev/urandom is unavailable; cannot overwrite safely."; return 1; }
+    size=$(wc -c <"$file") || return 1
+    [[ "$size" =~ ^[0-9]+$ ]] || { uk_error "Unable to determine file size: $file"; return 1; }
+    for ((pass = 1; pass <= SD_PASSES; pass++)); do
+      head -c "$size" /dev/urandom >"$file" || return 1
+    done
+    : >"$file" || return 1
+    rm -f -- "$file" || return 1
   fi
-  [[ -r /dev/urandom ]] || { uk_error "/dev/urandom is unavailable; cannot overwrite safely."; return 1; }
-  size=$(wc -c <"$file")
-  for ((pass = 1; pass <= SD_PASSES; pass++)); do
-    head -c "$size" /dev/urandom >"$file"
-  done
-  : >"$file"
-  rm -f "$file"
+  [[ ! -e "$file" && ! -L "$file" ]] || { uk_error "Secure erase did not remove: $file"; return 1; }
 }
 sd_main() {
   uk_banner "shredder" "Multi-pass overwrite using shred or /dev/urandom fallback" "" "$@"
@@ -46,6 +46,11 @@ sd_main() {
       SD_PASSES="${1:-3}"
       ;;
     --apply) SD_APPLY=1 ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do SD_FILES+=("${1:-}"); shift; done
+      break
+      ;;
     -h | --help)
       sd_usage
       return 0
@@ -90,10 +95,11 @@ sd_main() {
     uk_warn "Best-effort deletion only: SSDs/snapshots/backups may retain copies."
   fi
   uk_section_title "Passes: $SD_PASSES"
-  local f
+  local f failed=0
   for f in "${SD_FILES[@]}"; do
-    if [[ ! -f "$f" ]]; then
-      uk_warn "Skipping — file not found: $f"
+    if [[ ! -f "$f" || -L "$f" ]]; then
+      uk_error "Refusing invalid or missing regular file: $f"
+      failed=$((failed + 1))
       continue
     fi
     if ((SD_APPLY == 1)); then
@@ -102,8 +108,11 @@ sd_main() {
         "$UK_C_DIM" "$f" "$UK_C_RESET"
       printf '  %s(%d overwrite pass(es) then unlink)%s\n' \
         "$UK_C_DIM" "$SD_PASSES" "$UK_C_RESET"
-      sd_secure_delete "$f"
-      uk_success "Securely erased: $f"
+      if sd_secure_delete "$f"; then
+        uk_success "Securely erased: $f"
+      else
+        failed=$((failed + 1))
+      fi
     else
       printf '\n  %s%sDry-run preview%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
       printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
@@ -115,6 +124,7 @@ sd_main() {
         "$UK_C_DIM" "$UK_C_RESET"
     fi
   done
+  ((failed == 0))
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail

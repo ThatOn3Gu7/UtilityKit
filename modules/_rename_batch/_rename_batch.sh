@@ -41,7 +41,7 @@ init_terminal_caps() {
     RB_CAP_IS_INTERACTIVE=false
   fi
 
-  RB_TERM_WIDTH="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+  RB_TERM_WIDTH="${COLUMNS:-$(tput cols || echo 80)}"
 }
 #  2.  ANSI ESCAPE CODES
 RB_C_RESET=""
@@ -339,6 +339,11 @@ normalize_extension() {
   ext="${ext#.}"
   printf "%s" "$ext"
 }
+validate_extension() {
+  local ext="${1:-}"
+  [[ "$ext" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,31}$ ]] || return 1
+  [[ "$ext" != *..* ]]
+}
 is_excluded_file() {
   # If the user forced the operation, nothing is excluded
   [[ "$OPT_ALLOW_EXCLUDED" == true ]] && return 1
@@ -444,7 +449,7 @@ rb_ac_init_terminal() {
 
   if [[ ! -t 0 || ! -t 2 || "$RB_AC_TERM" == "dumb" || "$RB_AC_TERM" == "unknown" ]]; then
     RB_AC_TERM_MODE="plain"
-  elif ! command -v tput >/dev/null 2>&1 || ! tput clear >/dev/null 2>&1 || ! tput cup 0 0 >/dev/null 2>&1; then
+  elif ! command -v tput >/dev/null || ! tput clear >/dev/null || ! tput cup 0 0 >/dev/null; then
     RB_AC_TERM_MODE="plain"
   fi
 
@@ -485,12 +490,12 @@ rb_ac_init_terminal() {
 
 rb_ac_term_size() {
   local rows='' cols='' size=''
-  if command -v tput >/dev/null 2>&1; then
-    cols="$(tput cols 2>/dev/null || true)"
-    rows="$(tput lines 2>/dev/null || true)"
+  if command -v tput >/dev/null; then
+    cols="$(tput cols || true)"
+    rows="$(tput lines || true)"
   fi
   if [[ ! "$cols" =~ ^[0-9]+$ || ! "$rows" =~ ^[0-9]+$ ]]; then
-    size="$(stty size </dev/tty 2>/dev/null || true)"
+    size="$(stty size </dev/tty || true)"
     rows="${size%% *}"
     cols="${size##* }"
   fi
@@ -501,15 +506,15 @@ rb_ac_term_size() {
 
 rb_ac_hide_cursor() {
   [[ "${RB_AC_TERM_MODE:-plain}" == full ]] || return 0
-  tput civis 2>/dev/null || true
+  tput civis || true
 }
 rb_ac_show_cursor() {
   [[ "${RB_AC_TERM_MODE:-plain}" == full ]] || return 0
-  tput cnorm 2>/dev/null || true
+  tput cnorm || true
 }
 rb_ac_clear_screen() {
   [[ "${RB_AC_TERM_MODE:-plain}" == full ]] || return 0
-  tput clear >&2 2>/dev/null || printf '\033[H\033[2J' >&2
+  tput clear >&2 || printf '\033[H\033[2J' >&2
 }
 
 rb_ac_strip_ansi() {
@@ -603,13 +608,13 @@ rb_ac_draw_pointer() {
   local row=$((3 + (window > 0 ? 1 : 0) + index - window))
 
   if [[ "${RB_AC_MENU_SAVED:-0}" -eq 1 ]]; then
-    tput rc >&2 2>/dev/null || return 1
+    tput rc >&2 || return 1
     if ((row > 0)); then
-      tput cud "$row" >&2 2>/dev/null || printf '\033[%dB' "$row" >&2
+      tput cud "$row" >&2 || printf '\033[%dB' "$row" >&2
     fi
-    tput cuf 1 >&2 2>/dev/null || printf '\033[1C' >&2
+    tput cuf 1 >&2 || printf '\033[1C' >&2
   else
-    tput cup "$row" 1 >&2 2>/dev/null || return 1
+    tput cup "$row" 1 >&2 || return 1
   fi
 
   if ((enabled)); then
@@ -619,13 +624,13 @@ rb_ac_draw_pointer() {
   fi
 
   if [[ "${RB_AC_MENU_SAVED:-0}" -eq 1 ]]; then
-    tput rc >&2 2>/dev/null || true
+    tput rc >&2 || true
     if ((prompt_row > 0)); then
-      tput cud "$prompt_row" >&2 2>/dev/null || printf '\033[%dB' "$prompt_row" >&2
+      tput cud "$prompt_row" >&2 || printf '\033[%dB' "$prompt_row" >&2
     fi
-    tput cr >&2 2>/dev/null || printf '\r' >&2
+    tput cr >&2 || printf '\r' >&2
   else
-    tput cup "$prompt_row" 0 >&2 2>/dev/null || true
+    tput cup "$prompt_row" 0 >&2 || true
   fi
 }
 
@@ -640,18 +645,18 @@ rb_ac_read_key() {
     return
   }
   if [[ "$key" == $'\033' ]]; then
-    IFS= read -rsn1 -t 0.08 seq </dev/tty 2>/dev/null || {
+    IFS= read -rsn1 -t 0.08 seq </dev/tty || {
       printf 'ESC'
       return
     }
     if [[ "$seq" == '[' || "$seq" == 'O' ]]; then
       local tail=''
-      IFS= read -rsn1 -t 0.08 tail </dev/tty 2>/dev/null || true
+      IFS= read -rsn1 -t 0.08 tail </dev/tty || true
       # Consume any remaining parameter bytes until the final letter.
       # Some terminals send longer sequences like \033[1;2A (Shift+Arrow)
       # or \033[5~ (Page Up). Without this, leftover bytes leak to screen.
       while [[ -n "$tail" && ! "$tail" =~ [A-Za-z~] ]]; do
-        IFS= read -rsn1 -t 0.01 tail </dev/tty 2>/dev/null || { tail=''; break; }
+        IFS= read -rsn1 -t 0.01 tail </dev/tty || { tail=''; break; }
       done
       case "$tail" in A) printf 'UP' ;; B) printf 'DOWN' ;; C) printf 'RIGHT' ;; D) printf 'LEFT' ;; H) printf 'HOME' ;; F) printf 'END' ;; *) printf 'ESC' ;; esac
     else
@@ -695,16 +700,16 @@ rb_ac_list_dirs() {
   local -a out=()
   if ((hidden)); then
     while IFS= read -r -d '' p; do [[ -d "$p" || -L "$p" ]] && out+=("$p"); done \
-      < <(find "$dir" -maxdepth 1 -mindepth 1 \( -type d -o -type l \) -print0 2>/dev/null)
+      < <(find "$dir" -maxdepth 1 -mindepth 1 \( -type d -o -type l \) -print0)
   else
     while IFS= read -r -d '' p; do [[ -d "$p" || -L "$p" ]] && out+=("$p"); done \
-      < <(find "$dir" -maxdepth 1 -mindepth 1 \( -type d -o -type l \) ! -name '.*' -print0 2>/dev/null)
+      < <(find "$dir" -maxdepth 1 -mindepth 1 \( -type d -o -type l \) ! -name '.*' -print0)
   fi
   ((${#out[@]})) && printf '%s\0' "${out[@]}"
 }
 
 rb_ac_abs_path() {
-  if command -v realpath >/dev/null 2>&1; then
+  if command -v realpath >/dev/null; then
     realpath "${1:-}"
   else
     (cd "$(dirname "${1:-}")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "${1:-}")")
@@ -811,10 +816,10 @@ rb_ac_pick_dir() {
   # Save terminal settings and disable echoing so held-key escape fragments
   # never appear on screen between read calls.
   local _ac_old_stty=''
-  _ac_old_stty=$(stty -g </dev/tty 2>/dev/null) || _ac_old_stty=''
-  stty -echo </dev/tty 2>/dev/null || true
+  _ac_old_stty=$(stty -g </dev/tty) || _ac_old_stty=''
+  stty -echo </dev/tty || true
   if [[ "$RB_AC_TERM_MODE" != full ]]; then
-    [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
+    [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty || true
     rb_ac_show_cursor
     rb_ac_pick_dir_plain "$label" "$start"
     return $?
@@ -828,15 +833,15 @@ rb_ac_pick_dir() {
 
   RB_AC_MENU_SAVED=0
   if [[ "$RB_AC_TERM_MODE" == full ]]; then
-    tput sc >&2 2>/dev/null && RB_AC_MENU_SAVED=1
+    tput sc >&2 && RB_AC_MENU_SAVED=1
   fi
 
   # Query cursor row so vis accounts for banners/messages already printed
   # above us, without clearing the screen.
   local _ac_start_row=1
-  printf '\033[6n' >/dev/tty 2>/dev/null
+  printf '\033[6n' >/dev/tty
   local _dsr=''
-  IFS= read -rs -d 'R' -t 0.1 _dsr </dev/tty 2>/dev/null || true
+  IFS= read -rs -d 'R' -t 0.1 _dsr </dev/tty || true
   _ac_start_row="${_dsr#*\[}"
   _ac_start_row="${_ac_start_row%%;*}"
   [[ "$_ac_start_row" =~ ^[0-9]+$ ]] || _ac_start_row=1
@@ -850,7 +855,7 @@ rb_ac_pick_dir() {
 
     if ((AC_COLS < 24 || AC_ROWS < 10)); then
       RB_AC_MENU_SAVED=0
-      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
+      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty || true
       rb_ac_show_cursor
       rb_ac_pick_dir_plain "$label" "$cur_dir"
       return $?
@@ -877,7 +882,7 @@ rb_ac_pick_dir() {
         [[ ! -r "$p" || ! -x "$p" ]] && lock=1
         if [[ "$kind" == symlink ]]; then
           lab="$RB_AC_SYMLINK $base"
-          lab+=" $RB_AC_LINK $(readlink "$p" 2>/dev/null || true)"
+          lab+=" $RB_AC_LINK $(readlink "$p" || true)"
         else
           lab="$RB_AC_DIR $base"
         fi
@@ -922,8 +927,8 @@ rb_ac_pick_dir() {
 
       if [[ "$RB_AC_TERM_MODE" == full ]]; then
         if [[ "${RB_AC_MENU_SAVED:-0}" -eq 1 ]]; then
-          tput rc >&2 2>/dev/null || true
-          tput ed >&2 2>/dev/null || printf '\033[J' >&2
+          tput rc >&2 || true
+          tput ed >&2 || printf '\033[J' >&2
         else
           rb_ac_clear_screen
         fi
@@ -1033,7 +1038,7 @@ rb_ac_pick_dir() {
       ;;
     q | Q | EOF)
       RB_AC_MENU_SAVED=0
-      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
+      [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty || true
       rb_ac_show_cursor
       return 1
       ;;
@@ -1042,7 +1047,7 @@ rb_ac_pick_dir() {
     esac
   done
   RB_AC_MENU_SAVED=0
-  [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty 2>/dev/null || true
+  [[ -n "${_ac_old_stty:-}" ]] && stty "$_ac_old_stty" </dev/tty || true
   rb_ac_show_cursor
   [[ -n "$chosen" ]] && printf '%s\n' "$chosen"
 }
@@ -1113,19 +1118,54 @@ show_version() {
 }
 #  8.  MAIN
 rb_file_size() {
-  local path="${1:-}"
-  stat -c '%s' -- "$path" 2>/dev/null || stat -f '%z' -- "$path" 2>/dev/null || wc -c <"$path"
+  local path="${1:-}" size='' stat_error=''
+  if size="$(stat -c '%s' -- "$path" 2>&1)"; then
+    printf '%s\n' "$size"
+    return 0
+  fi
+  stat_error="$size"
+  if size="$(stat -f '%z' -- "$path" 2>&1)"; then
+    [[ -n "$stat_error" ]] && msg_info "GNU stat unavailable for '$path'; used BSD stat."
+    printf '%s\n' "$size"
+    return 0
+  fi
+  msg_warning "stat failed for '$path' (${size:-$stat_error}); using wc -c."
+  wc -c <"$path"
 }
 
 rb_scan_files() {
-  local source_dir="${1:-}" filepath file_size
-  if find "$source_dir" -type f -printf '' >/dev/null 2>&1; then
-    find "$source_dir" -type f ! -path '*/\.*' -printf '%p\t%s\0' 2>/dev/null | sort -z
+  local source_dir="${1:-}" filepath file_size probe_error='' probe_file
+  probe_file="$(mktemp)" || {
+    msg_error "Unable to create temporary file for find capability probe."
+    return 1
+  }
+  if find "$source_dir" -maxdepth 0 -printf '' >/dev/null 2>"$probe_file"; then
+    rm -f "$probe_file" || { msg_error "Unable to remove find probe log: $probe_file"; return 1; }
+    find "$source_dir" -type f ! -path '*/\.*' -printf '%s\0%p\0'
   else
+    probe_error="$(cat "$probe_file")" || probe_error='unable to read find probe error'
+    rm -f "$probe_file" || { msg_error "Unable to remove find probe log: $probe_file"; return 1; }
+    [[ -n "$probe_error" ]] && printf '  [INFO] GNU find -printf unavailable; using portable scan: %s\n' "$probe_error" >&2
+    local scan_file
+    scan_file="$(mktemp)" || {
+      msg_error "Unable to create temporary file for source scan."
+      return 1
+    }
+    if ! find "$source_dir" -type f ! -path '*/\.*' -print0 >"$scan_file"; then
+      rm -f "$scan_file" || msg_warning "Unable to remove failed scan file: $scan_file"
+      return 1
+    fi
     while IFS= read -r -d '' filepath; do
-      file_size="$(rb_file_size "$filepath" 2>/dev/null || printf '0')"
-      printf '%s\t%s\0' "$filepath" "$file_size"
-    done < <(find "$source_dir" -type f ! -path '*/\.*' -print0 2>/dev/null | sort -z)
+      file_size="$(rb_file_size "$filepath")" || {
+        rm -f "$scan_file" || msg_warning "Unable to remove failed scan file: $scan_file"
+        return 1
+      }
+      printf '%s\0%s\0' "$file_size" "$filepath"
+    done <"$scan_file"
+    rm -f "$scan_file" || {
+      msg_error "Unable to remove source scan file: $scan_file"
+      return 1
+    }
   fi
 }
 rb_main() {
@@ -1219,8 +1259,19 @@ rb_main() {
   fi
 
   # 3. Path & Normalization Logic Continues ...
+  [[ -d "$source_dir" ]] || {
+    msg_error "Source directory does not exist: $source_dir"
+    return 1
+  }
   local new_ext
-  new_ext="$(normalize_extension "$new_ext_raw")"
+  new_ext="$(normalize_extension "$new_ext_raw")" || {
+    msg_error "Unable to normalize target extension."
+    return 1
+  }
+  validate_extension "$new_ext" || {
+    msg_error "Unsafe target extension '$new_ext_raw'. Use 1-32 letters, numbers, dot, underscore, plus, or dash; slashes and '..' are not allowed."
+    return 1
+  }
 
   if [[ -z "$output_dir" ]]; then
     mode="in-place"
@@ -1238,17 +1289,36 @@ rb_main() {
   local total_size=0
   local file_count=0
 
-  # High-Performance Scan: Zero external process forks inside the loop!
-  while IFS=$'\t' read -r -d '' filepath file_size; do
+  # High-Performance Scan: NUL-delimited size/path pairs preserve every valid filename.
+  local scan_file
+  scan_file="$(mktemp)" || {
+    msg_error "Unable to create temporary file for rename scan."
+    return 1
+  }
+  if ! rb_scan_files "$source_dir" >"$scan_file"; then
+    rm -f "$scan_file" || msg_warning "Unable to remove failed scan file: $scan_file"
+    msg_error "Source scan failed; refusing to continue with a partial file list."
+    return 1
+  fi
+  while IFS= read -r -d '' file_size && IFS= read -r -d '' filepath; do
     local base="${filepath##*/}"
 
     [[ "$base" == .* ]] && continue
     [[ ! -f "$filepath" ]] && continue
+    [[ "$file_size" =~ ^[0-9]+$ ]] || {
+      rm -f "$scan_file" || msg_warning "Unable to remove failed scan file: $scan_file"
+      msg_error "Invalid file size returned for: $filepath"
+      return 1
+    }
 
     file_old_names+=("$filepath")
     total_size=$((total_size + file_size))
     file_count=$((file_count + 1))
-  done < <(rb_scan_files "$source_dir")
+  done <"$scan_file"
+  rm -f "$scan_file" || {
+    msg_error "Unable to remove rename scan file: $scan_file"
+    return 1
+  }
 
   if ((file_count == 0)); then
     msg_warning "No files found in $(colorize "$RB_C_BOLD" "$source_dir")"
@@ -1535,7 +1605,12 @@ rb_main() {
     else
       dst_dir="."
     fi
-    mkdir -p "$dst_dir"
+    if ! mkdir -p "$dst_dir"; then
+      failed_count=$((failed_count + 1))
+      failed_files+=("$src_name (cannot create destination directory)")
+      msg_error "Failed to create destination directory: $dst_dir"
+      continue
+    fi
     if [[ "$mode" == "copy" ]]; then
       if cp -- "$src" "$dst"; then
         : # success

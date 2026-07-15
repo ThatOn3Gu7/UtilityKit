@@ -68,13 +68,16 @@ USAGE
 
 gh_git_dir() {
   local path="${1:-.}"
-  git -C "$path" rev-parse --git-dir 2>/dev/null || { uk_error "Not a git repo: $path"; return 1; }
+  local git_dir
+  git_dir="$(git -C "$path" rev-parse --absolute-git-dir 2>&1)" || { uk_error "Not a git repo: $path ($git_dir)"; return 1; }
+  printf '%s\n' "$git_dir"
 }
 
 gh_template() {
   local name="$1"
+  case "$name" in pre-commit | commit-msg | pre-push) ;; *) uk_error "Unknown template: $name"; return 1 ;; esac
   local file="$GH_TEMPLATES_DIR/$name"
-  if [[ -f "$file" ]]; then
+  if [[ -s "$file" ]]; then
     cat "$file"
     return 0
   fi
@@ -87,12 +90,12 @@ gh_template() {
 set -euo pipefail
 
 echo "→ pre-commit: linting staged files..."
-for f in $(git diff --cached --name-only --diff-filter=ACM); do
+while IFS= read -r -d '' f; do
   case "$f" in
-    *.sh) bash -n "$f" 2>/dev/null || { echo "✗ bash syntax error: $f"; exit 1; } ;;
-    *.py) python3 -m py_compile "$f" 2>/dev/null || { echo "✗ python syntax error: $f"; exit 1; } ;;
+    *.sh) bash -n "$f" || { echo "✗ bash syntax error: $f"; exit 1; } ;;
+    *.py) python3 -m py_compile "$f" || { echo "✗ python syntax error: $f"; exit 1; } ;;
   esac
-done
+done < <(git diff --cached --name-only --diff-filter=ACM -z)
 echo "✓ pre-commit passed"
 HOOK
       ;;
@@ -284,11 +287,7 @@ gh_main() {
     remove)  gh_remove "$path";;
     list)    if (( json )); then gh_list "$path" --json; else gh_list "$path"; fi;;
     show)    [[ -z "$name" ]] && name="$path"
-             if [[ -f "$GH_TEMPLATES_DIR/$name" ]]; then
-               cat "$GH_TEMPLATES_DIR/$name"
-             else
-               gh_template "$name"
-             fi;;
+             gh_template "$name";;
     *)       gh_usage; return 2;;
   esac
 }
