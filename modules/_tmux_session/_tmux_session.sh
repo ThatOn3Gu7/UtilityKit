@@ -77,10 +77,11 @@ ask_user() {
   echo -ne "${C_WHITE}${PROMPT_CHAR}${C_RESET} "
   read -r user_input
 
+  [[ "$result_var" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { printf 'Invalid result variable: %s\n' "$result_var" >&2; return 1; }
   if [[ -z "$user_input" ]]; then
-    eval "$result_var=\"\$default\""
+    printf -v "$result_var" '%s' "$default"
   else
-    eval "$result_var=\"\$user_input\""
+    printf -v "$result_var" '%s' "$user_input"
   fi
 }
 # CORE FUNCTIONS

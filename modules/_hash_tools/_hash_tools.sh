@@ -21,9 +21,12 @@ fi
 # Wrapper function to handle command differences correctly
 ht_run_hash() {
   if uk_has_cmd sha256sum; then
-    sha256sum "$@"
+    sha256sum -- "$@"
+  elif uk_has_cmd shasum; then
+    shasum -a 256 -- "$@"
   else
-    shasum -a 256 "$@"
+    uk_error 'sha256sum or shasum is required.'
+    return 1
   fi
 }
 ht_usage() {
@@ -41,20 +44,30 @@ ht_main() {
     return 1
   fi
 
+  local failed=0 scan_file path
   for f in "$@"; do
     if [[ ! -e "$f" ]]; then
       uk_error "File or directory not found: $f"
+      failed=1
       continue
     fi
 
     if [[ -d "$f" ]]; then
-      # Use find with -print0 and xargs -0 to handle filenames with spaces correctly.
-      # Guard the pipeline with '|| true' so non-zero exits don't trip set -e.
-      find "$f" -type f -print0 | xargs -0 -r bash -c 'ht_run_hash "$@"' _ || true
+      scan_file="$(mktemp)" || return 1
+      if ! find "$f" -type f -print0 >"$scan_file"; then
+        rm -f "$scan_file"
+        uk_error "Directory traversal failed: $f"
+        return 1
+      fi
+      while IFS= read -r -d '' path; do
+        ht_run_hash "$path" || { rm -f "$scan_file"; return 1; }
+      done <"$scan_file"
+      rm -f "$scan_file" || return 1
     else
-      ht_run_hash "$f"
+      ht_run_hash "$f" || return 1
     fi
   done
+  return "$failed"
 }
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail

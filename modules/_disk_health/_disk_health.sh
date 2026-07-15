@@ -58,11 +58,15 @@ dh_main() {
     shift
   done
 
+  # Ensure smartctl is available before attempting detection.
+  dh_require_smartctl || return 1
+
   # If no device and not list, try to auto‑detect
   if [[ -z "$dev" && "$action" != 'list' ]]; then
     # Try to get first non‑removable disk
-    local detected
-    detected=$(smartctl --scan 2>/dev/null | head -1 | awk '{print $1}')
+    local detected scan_output
+    scan_output="$(smartctl --scan 2>&1)" || { uk_error "SMART device scan failed: $scan_output"; return 1; }
+    detected=$(awk 'NR==1 {print $1; exit}' <<<"$scan_output") || return 1
     if [[ -n "$detected" ]]; then
       dev="$detected"
       uk_note "Auto‑detected device: $dev"
@@ -72,13 +76,10 @@ dh_main() {
     fi
   fi
 
-  # Ensure smartctl is available
-  dh_require_smartctl || return 1
-
   # Action: list
   if [[ "$action" == 'list' ]]; then
     uk_section_title 'Available devices'
-    smartctl --scan 2>/dev/null || true
+    smartctl --scan || { uk_error 'Unable to scan SMART devices.'; return 1; }
     return 0
   fi
 
@@ -107,15 +108,13 @@ dh_main() {
   fi
 
   # Show health and attributes
+  local health_status=0
   uk_section_title "SMART health for $dev"
-  if ! smartctl -H "$dev" 2>/dev/null; then
-    uk_warn "Could not get health status (permissions or unsupported device)."
-  fi
+  smartctl -H "$dev" || { uk_error "Could not get health status (permissions or unsupported device)."; health_status=1; }
   echo
   uk_section_title "SMART attributes"
-  if ! smartctl -A "$dev" 2>/dev/null; then
-    uk_warn "Could not get attributes."
-  fi
+  smartctl -A "$dev" || { uk_error "Could not get attributes."; health_status=1; }
+  return "$health_status"
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail

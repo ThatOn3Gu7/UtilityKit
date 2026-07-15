@@ -21,10 +21,17 @@ rel_main() {
     esac
     shift
   done
-  git -C "$repo" status --short
-  git -C "$repo" log --oneline -5
-  if [[ -n "$tag" ]]; then if ((apply == 1)); then git -C "$repo" tag "$tag"; else uk_note "Would create tag $tag. Use --apply to create it."; fi; fi
-  return 0
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null || { uk_error "Not a Git repository: $repo"; return 1; }
+  git -C "$repo" status --short || return 1
+  git -C "$repo" log --oneline -5 || return 1
+  if [[ -n "$tag" ]]; then
+    git check-ref-format "refs/tags/$tag" || { uk_error "Invalid tag name: $tag"; return 1; }
+    if ((apply == 1)); then
+      git -C "$repo" tag "$tag" || return 1
+    else
+      uk_note "Would create tag $tag. Use --apply to create it."
+    fi
+  fi
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
