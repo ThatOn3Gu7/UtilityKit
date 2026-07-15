@@ -148,7 +148,7 @@ yd_list() {
   fi
   yd_check_deps || return 1
   uk_section_title "Available formats for: $url"
-  yt-dlp -F "$url"
+  yt-dlp -F -- "$url"
 }
 
 yd_info() {
@@ -159,13 +159,22 @@ yd_info() {
   fi
   yd_check_deps || return 1
 
-  local title duration upload_date views likes channel
-  title=$(yt-dlp --print title "$url" 2>/dev/null || echo "N/A")
-  duration=$(yt-dlp --print duration_string "$url" 2>/dev/null || echo "")
-  upload_date=$(yt-dlp --print upload_date "$url" 2>/dev/null || echo "")
-  views=$(yt-dlp --print view_count "$url" 2>/dev/null || echo "N/A")
-  likes=$(yt-dlp --print like_count "$url" 2>/dev/null || echo "N/A")
-  channel=$(yt-dlp --print channel "$url" 2>/dev/null || echo "N/A")
+  local title duration upload_date views likes channel metadata yd_err
+  # One tab-delimited --print template keeps stdout as pure data; stderr is
+  # captured separately so WARNING/ERROR lines can never shift the field
+  # mapping the way they did when stderr was folded into the output.
+  yd_err="$(mktemp)" || return 1
+  if ! metadata="$(yt-dlp --print '%(title)s\t%(duration_string)s\t%(upload_date)s\t%(view_count)s\t%(like_count)s\t%(channel)s' -- "$url" 2>"$yd_err")"; then
+    uk_error "Unable to fetch video metadata: $(cat "$yd_err")"
+    rm -f "$yd_err"
+    return 1
+  fi
+  rm -f "$yd_err"
+  IFS=$'\t' read -r title duration upload_date views likes channel <<<"$metadata"
+  title="${title:-N/A}"
+  views="${views:-N/A}"
+  likes="${likes:-N/A}"
+  channel="${channel:-N/A}"
 
   uk_section_title "Video Info"
   printf "  Title:      %s\n" "$title"
@@ -212,7 +221,7 @@ yd_audio() {
     --embed-thumbnail \
     --embed-metadata \
     -o "${YD_DEFAULT_DIR}/%(title)s.%(ext)s" \
-    "$url"
+    -- "$url"
 }
 
 yd_download() {
@@ -305,7 +314,7 @@ yd_download() {
   fi
 
   cmd+=(-o "${output}/%(title)s.%(ext)s")
-  cmd+=("$url")
+  cmd+=(-- "$url")
 
   uk_section_title "Downloading..."
   uk_info "Command: ${cmd[*]}"
@@ -341,7 +350,7 @@ yd_wizard() {
   echo ""
   uk_info "Fetching video information..."
   local title duration channel raw_info
-  raw_info=$(yd_spinner "Please wait" yt-dlp --print title --print duration_string --print channel "$url")
+  raw_info=$(yd_spinner "Please wait" yt-dlp --print title --print duration_string --print channel -- "$url") || { uk_error 'Failed to fetch video information.'; return 1; }
   if [[ -n "$raw_info" ]]; then
     title=$(echo "$raw_info" | sed -n '1p')
     duration=$(echo "$raw_info" | sed -n '2p')
@@ -360,7 +369,7 @@ yd_wizard() {
   uk_section_title "Available Formats"
   echo ""
   local formats_raw
-  formats_raw=$(yd_spinner "Fetching formats" yt-dlp -F "$url")
+  formats_raw=$(yd_spinner "Fetching formats" yt-dlp -F -- "$url") || { uk_error 'Failed to fetch formats.'; return 1; }
   if [[ -z "$formats_raw" ]]; then
     uk_error "Failed to fetch formats."
     return 1
@@ -509,7 +518,7 @@ yd_wizard() {
   fi
 
   cmd+=(-o "${output}/${template}")
-  cmd+=("$url")
+  cmd+=(-- "$url")
 
   echo ""
   uk_section_title "Downloading..."
