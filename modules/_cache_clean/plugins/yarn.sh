@@ -5,7 +5,7 @@ yarn_plugin_info() {
   printf 'yarn|yarn|🧶\n'
 }
 yarn_detect() {
-  command -v yarn >/dev/null 2>&1
+  command -v yarn >/dev/null
 }
 yarn_get_cache_dirs() {
   local cache_dir

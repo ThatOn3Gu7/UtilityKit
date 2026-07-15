@@ -5,7 +5,7 @@ pip_plugin_info() {
   printf 'pip|pip|🐍\n'
 }
 pip_detect() {
-  command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1
+  command -v pip >/dev/null || command -v pip3 >/dev/null
 }
 pip_get_cache_dirs() {
   local dirs=""

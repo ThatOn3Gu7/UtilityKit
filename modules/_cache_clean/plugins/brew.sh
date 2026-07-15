@@ -5,7 +5,7 @@ brew_plugin_info() {
   printf 'brew|brew|🍺\n'
 }
 brew_detect() {
-  command -v brew >/dev/null 2>&1
+  command -v brew >/dev/null
 }
 brew_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then

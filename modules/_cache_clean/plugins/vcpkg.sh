@@ -5,7 +5,7 @@ vcpkg_plugin_info() {
   printf 'vcpkg|vcpkg|🎒\n'
 }
 vcpkg_detect() {
-  command -v vcpkg >/dev/null 2>&1
+  command -v vcpkg >/dev/null
 }
 vcpkg_get_cache_dirs() {
   if [ -n "${VCPKG_ROOT:-}" ]; then

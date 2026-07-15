@@ -5,7 +5,7 @@ bun_plugin_info() {
   printf 'bun|bun|🥯\n'
 }
 bun_detect() {
-  command -v bun >/dev/null 2>&1
+  command -v bun >/dev/null
 }
 bun_get_cache_dirs() {
   printf '%s\n' "$HOME/.bun/install/cache"

@@ -13,8 +13,10 @@ CS_TERM=''
 
 # Data directory
 cs_dir() {
-  local dir="$(uk_data_dir)/cheat_sheets"
-  mkdir -p "$dir"
+  local dir
+  dir="$(uk_data_dir)" || return 1
+  dir="$dir/cheat_sheets"
+  mkdir -p "$dir" || return 1
   printf '%s\n' "$dir"
 }
 # Usage
@@ -38,14 +40,27 @@ USAGE
 }
 # Utility functions
 cs_path() {
-  printf '%s/%s.md\n' "$(cs_dir)" "$(uk_slugify "${1:-}")"
+  local dir slug
+  dir="$(cs_dir)" || return 1
+  slug="$(uk_slugify "${1:-}")" || return 1
+  [[ -n "$slug" && "$slug" != "." && "$slug" != ".." ]] || { uk_error "Snippet name has no safe slug: ${1:-}"; return 1; }
+  printf '%s/%s.md\n' "$dir" "$slug"
 }
 cs_confirm_overwrite() {
   local path="${1:-}"
-  if [[ -f "$path" && -t 0 ]]; then
+  if [[ -f "$path" ]]; then
+    if [[ ! -t 0 ]]; then
+      local slug
+      slug="$(uk_slugify "$CS_NAME")" || return 1
+      if [[ "$CS_NAME" == "$slug" ]]; then
+        return 0
+      fi
+      uk_error "Snippet name normalizes to an existing path; refusing collision overwrite: $path"
+      return 1
+    fi
     printf '%sSnippet "%s" already exists. Overwrite? [y/N] %s' \
       "${UK_C_YELLOW:-}" "$CS_NAME" "${UK_C_RESET:-}"
-    read -r response
+    read -r response || return 1
     [[ "$response" =~ ^[Yy]$ ]] || return 1
   fi
   return 0
@@ -53,7 +68,7 @@ cs_confirm_overwrite() {
 # Core actions
 cs_add() {
   local path
-  path=$(cs_path "$CS_NAME")
+  path=$(cs_path "$CS_NAME") || return 1
 
   # Validate input source
   if [[ -n "$CS_FILE" ]]; then
@@ -78,7 +93,7 @@ cs_add() {
     else
       printf '%s\n' "$CS_TEXT"
     fi
-  } >"$path"
+  } >"$path" || { uk_error "Unable to save cheat sheet: $path"; return 1; }
   uk_success "Saved cheat sheet: $path"
 }
 cs_list() {
@@ -93,7 +108,7 @@ cs_list() {
 }
 cs_show() {
   local path
-  path=$(cs_path "$CS_NAME")
+  path=$(cs_path "$CS_NAME") || return 1
   if [[ ! -f "$path" ]]; then
     uk_warn "Snippet not found: $CS_NAME"
     return 0
@@ -103,11 +118,18 @@ cs_show() {
 }
 cs_search() {
   uk_section_title "Search results for: $CS_TERM"
-  grep -Rin --color=never "$CS_TERM" "$(cs_dir)" || printf '%sNo matches found.%s\n' "$UK_C_DIM" "$UK_C_RESET"
+  local dir status=0
+  dir="$(cs_dir)" || return 1
+  grep -Rin --color=never -- "$CS_TERM" "$dir" || status=$?
+  if ((status == 1)); then
+    printf '%sNo matches found.%s\n' "$UK_C_DIM" "$UK_C_RESET"
+  elif ((status != 0)); then
+    return "$status"
+  fi
 }
 cs_delete() {
   local path
-  path=$(cs_path "$CS_NAME")
+  path=$(cs_path "$CS_NAME") || return 1
   if [[ ! -f "$path" ]]; then
     uk_warn "Snippet not found: $CS_NAME"
     return 0

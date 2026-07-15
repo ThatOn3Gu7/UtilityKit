@@ -39,11 +39,16 @@ dv_encrypt_value() {
   rm -f "$tmp" "$out"
 }
 dv_decrypt_token() {
-  local token="${1:-}" tmp
-  tmp=$(mktemp)
-  printf '%s' "$token" | dv_b64_decode >"$tmp"
-  gpg --quiet --decrypt "$tmp"
-  rm -f "$tmp"
+  local token="${1:-}" tmp rc=0
+  tmp=$(mktemp) || return 1
+  if ! printf '%s' "$token" | dv_b64_decode >"$tmp"; then
+    rm -f "$tmp" || uk_warn "Unable to remove failed decrypt temporary file."
+    uk_error 'Invalid encrypted token encoding.'
+    return 1
+  fi
+  gpg --quiet --decrypt "$tmp" || rc=$?
+  rm -f "$tmp" || { uk_error 'Unable to remove decrypt temporary file.'; return 1; }
+  return "$rc"
 }
 dv_main() {
   uk_banner "dotenv-vault" "Encrypt .env values to ENC:: tokens with gpg" "" "$@"

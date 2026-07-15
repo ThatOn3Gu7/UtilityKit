@@ -16,6 +16,18 @@ Options:
   -h, --help            Show this help
 USAGE
 }
+bs_is_excluded() {
+  local rel="${1:-}" pattern component
+  local -a components=()
+  shift
+  for pattern in "$@"; do
+    [[ -n "$pattern" ]] || continue
+    [[ "$rel" == $pattern || "/$rel/" == *"/$pattern/"* ]] && return 0
+    IFS='/' read -r -a components <<<"$rel"
+    for component in "${components[@]}"; do [[ "$component" == $pattern ]] && return 0; done
+  done
+  return 1
+}
 # Main
 bs_main() {
   uk_banner "backup-sync" "Dry-run-first backup wrapper around rsync" "" "$@"
@@ -61,7 +73,14 @@ bs_main() {
     return 1
   fi
 
-  mkdir -p "$dst"
+  local real_src real_dst
+  real_src="$(cd "$src" && pwd -P)" || { uk_error "Unable to resolve source: $src"; return 1; }
+  mkdir -p "$dst" || { uk_error "Unable to create destination: $dst"; return 1; }
+  real_dst="$(cd "$dst" && pwd -P)" || { uk_error "Unable to resolve destination: $dst"; return 1; }
+  [[ "$real_src" != "$real_dst" ]] || { uk_error 'Source and destination must differ.'; return 1; }
+  [[ "$real_dst" != "$real_src"/* ]] || { uk_error 'Destination must not be inside source.'; return 1; }
+  src="$real_src"
+  dst="$real_dst"
 
   uk_section_title "$src → $dst"
 
@@ -84,41 +103,50 @@ bs_main() {
     return 0
   fi
 
-  # Fallback: cp + find (no --delete support)
+  # Fallback: cp + checked find traversal (no --delete support)
   if ((delete == 1)); then
-    uk_warn 'rsync is not available; --delete will be ignored.'
+    uk_error 'rsync is required for --delete; refusing to silently ignore deletion semantics.'
+    return 1
   fi
 
-  # Build find prune expression for all excludes
-  local find_prune=()
-  for pattern in "${all_excludes[@]}"; do
-    # Simple pattern: we assume no wildcards or paths; just name-based pruning
-    find_prune+=(-name "$pattern" -prune -o)
-  done
+  local scan_file item rel target pattern copy_error=''
+  local -a item_list=()
+  scan_file="$(mktemp)" || { uk_error 'Unable to create backup scan file.'; return 1; }
+  if ! find "$src" -mindepth 1 -print0 >"$scan_file"; then
+    rm -f "$scan_file"
+    uk_error 'Source traversal failed; refusing a partial backup.'
+    return 1
+  fi
+  mapfile -d '' item_list <"$scan_file" || { rm -f "$scan_file"; return 1; }
+  rm -f "$scan_file" || return 1
 
   if ((apply == 1)); then
     uk_note 'Copying files using cp (rsync not available)...'
-
-    mapfile -d '' item_list < <(find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print0 2>/dev/null)
     for item in "${item_list[@]}"; do
-      local rel="${item#"$src"/}"
-      local target="$dst/$rel"
+      rel="${item#"$src"/}"
+      bs_is_excluded "$rel" "${all_excludes[@]}" && continue
+      target="$dst/$rel"
       if [[ -d "$item" && ! -L "$item" ]]; then
-        mkdir -p "$target"
-        # copy permissions if needed? but we will copy files later.
+        mkdir -p "$target" || return 1
       elif [[ -f "$item" || -L "$item" ]]; then
-        mkdir -p "$(dirname "$target")"
-        cp -a "$item" "$target" 2>/dev/null || cp -p "$item" "$target"
+        mkdir -p "$(dirname "$target")" || return 1
+        if ! copy_error="$(cp -a "$item" "$target" 2>&1)"; then
+          uk_warn "cp -a failed; retrying with cp -p: $copy_error"
+          cp -p "$item" "$target" || return 1
+        fi
       fi
     done
     uk_success "Copy completed."
   else
     uk_note 'Dry-run: files that would be copied (excluding patterns):'
-    find "$src" -mindepth 1 \( "${find_prune[@]}" \) -print 2>/dev/null | while IFS= read -r item; do
-      echo "  would copy: ${item#"$src"/}"
+    for item in "${item_list[@]}"; do
+      rel="${item#"$src"/}"
+      bs_is_excluded "$rel" "${all_excludes[@]}" && continue
+      printf '  would copy: %s\n' "$rel"
     done
     uk_note 'Dry-run only. Re-run with --apply to perform the copy (rsync not available).'
   fi
+
 }
 # Entry point
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

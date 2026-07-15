@@ -5,7 +5,7 @@ pacman_plugin_info() {
   printf 'pacman|pacman|🐧\n'
 }
 pacman_detect() {
-  command -v pacman >/dev/null 2>&1
+  command -v pacman >/dev/null
 }
 pacman_get_cache_dirs() {
   if [ "$CC_OS" = "termux" ] && [ -n "${PREFIX:-}" ]; then

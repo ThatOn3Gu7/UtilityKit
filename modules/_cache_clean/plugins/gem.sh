@@ -5,7 +5,7 @@ gem_plugin_info() {
   printf 'gem|gem|💎\n'
 }
 gem_detect() {
-  command -v gem >/dev/null 2>&1
+  command -v gem >/dev/null
 }
 gem_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then
