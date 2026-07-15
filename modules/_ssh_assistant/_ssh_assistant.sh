@@ -6,6 +6,7 @@ SA_CONFIG="$HOME/.ssh/config"
 SA_CONNECT=''
 SA_COPY_ID=''
 SA_ADD_HOST=''
+SA_ADD_REQUESTED=0
 
 sa_usage() {
   cat <<'USAGE'
@@ -13,6 +14,11 @@ Usage:
   _ssh_assistant.sh [--connect HOST] [--copy-id HOST] [--add [HOST]] [--config FILE]
 USAGE
 }
+
+sa_valid_alias() { [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; }
+sa_valid_destination() { [[ "${1:-}" =~ ^([A-Za-z0-9][A-Za-z0-9._-]*@)?[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; }
+sa_valid_user() { [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]]; }
+sa_single_line() { [[ "${1:-}" != *$'\n'* && "${1:-}" != *$'\r'* ]]; }
 
 sa_hosts() {
   [[ -f "$SA_CONFIG" ]] || return 0
@@ -33,7 +39,8 @@ sa_maybe_explain_host_auth() {
 
 sa_run_ssh() {
   local host="${1:-}" code=0
-  ssh "$host" || code=$?
+  sa_valid_destination "$host" || { uk_error "Invalid SSH destination: $host"; return 1; }
+  ssh -- "$host" || code=$?
   sa_maybe_explain_host_auth "$host" "$code"
   return "$code"
 }
@@ -42,9 +49,10 @@ sa_run_ssh() {
 sa_add_host() {
   local hostname="${1:-}"
   local config_dir
-  config_dir="$(dirname "$SA_CONFIG")"
-  mkdir -p "$config_dir"
-  touch "$SA_CONFIG"
+  config_dir="$(dirname "$SA_CONFIG")" || return 1
+  mkdir -p "$config_dir" || { uk_error "Unable to create SSH config directory: $config_dir"; return 1; }
+  touch "$SA_CONFIG" || { uk_error "Unable to create SSH config: $SA_CONFIG"; return 1; }
+  chmod 600 "$SA_CONFIG" || { uk_error "Unable to secure SSH config: $SA_CONFIG"; return 1; }
 
   # If hostname not provided, prompt for it
   if [[ -z "$hostname" ]]; then
@@ -56,8 +64,10 @@ sa_add_host() {
     }
   fi
 
-  # Check if host already exists
-  if grep -q "^Host[[:space:]]\+$hostname\([[:space:]]\|$\)" "$SA_CONFIG"; then
+  sa_valid_alias "$hostname" || { uk_error "Invalid Host alias: $hostname"; return 1; }
+
+  # Check if host already exists using exact token comparison.
+  if awk -v h="$hostname" '/^Host[[:space:]]+/ {for (i=2; i<=NF; i++) if ($i==h) found=1} END{exit found?0:1}' "$SA_CONFIG"; then
     uk_warn "Host '$hostname' already exists in $SA_CONFIG."
     if ! uk_confirm 'Do you want to edit/overwrite it?' 'N'; then
       return 0
@@ -66,50 +76,62 @@ sa_add_host() {
     # We'll use sed to delete lines from that Host line until next Host line or end.
     # This is a bit tricky; we'll use awk to remove the block.
     local tmp_file
-    tmp_file="$(mktemp)"
-    awk -v h="$hostname" '
-      BEGIN { skip=0 }
+    tmp_file="$(mktemp)" || { uk_error 'Unable to create SSH config temporary file.'; return 1; }
+    if ! awk -v h="$hostname" '
       /^Host[[:space:]]+/ {
-        # Check if this Host line contains our hostname as a separate word
-        if ($0 ~ "Host[[:space:]]+" h "([[:space:]]|$)") {
-          skip=1
-          next
+        out=""; keep=0
+        for (i=2; i<=NF; i++) {
+          if ($i==h) continue
+          out=out (out=="" ? "Host " : " ") $i
+          keep=1
         }
+        if (keep) print out
+        next
       }
-      skip && /^Host[[:space:]]+/ { skip=0 }
-      !skip { print }
-    ' "$SA_CONFIG" >"$tmp_file"
-    mv "$tmp_file" "$SA_CONFIG"
+      { print }
+    ' "$SA_CONFIG" >"$tmp_file"; then
+      rm -f "$tmp_file"
+      uk_error "Unable to update SSH config."
+      return 1
+    fi
+    chmod 600 "$tmp_file" || { rm -f "$tmp_file"; uk_error 'Unable to secure SSH config temporary file.'; return 1; }
+    mv "$tmp_file" "$SA_CONFIG" || { rm -f "$tmp_file"; uk_error 'Unable to replace SSH config.'; return 1; }
   fi
 
   # Prompt for details
   printf '\n  %sEnter HostName (IP or domain): %s' "$UK_I_ARROW" "$UK_C_RESET"
-  read -r hostname_val </dev/tty
-  [[ -n "$hostname_val" ]] || {
-    uk_warn 'HostName required.'
+  read -r hostname_val </dev/tty || { uk_error 'Unable to read HostName.'; return 1; }
+  [[ "$hostname_val" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]] || {
+    uk_error "Invalid HostName: $hostname_val"
     return 1
   }
 
   printf '  %sEnter User (default: current user): %s' "$UK_I_ARROW" "$UK_C_RESET"
-  read -r user_val </dev/tty
+  read -r user_val </dev/tty || { uk_error 'Unable to read SSH user.'; return 1; }
   [[ -z "$user_val" ]] && user_val="$USER"
+  sa_valid_user "$user_val" || { uk_error "Invalid SSH user: $user_val"; return 1; }
 
   printf '  %sEnter Port (default: 22): %s' "$UK_I_ARROW" "$UK_C_RESET"
-  read -r port_val </dev/tty
+  read -r port_val </dev/tty || { uk_error 'Unable to read SSH port.'; return 1; }
   [[ -z "$port_val" ]] && port_val=22
+  [[ "$port_val" =~ ^[0-9]+$ ]] && ((port_val >= 1 && port_val <= 65535)) || { uk_error "Invalid SSH port: $port_val"; return 1; }
 
   printf '  %sEnter IdentityFile path (optional, leave blank to skip): %s' "$UK_I_ARROW" "$UK_C_RESET"
-  read -r identity_val </dev/tty
+  read -r identity_val </dev/tty || { uk_error 'Unable to read IdentityFile.'; return 1; }
+  sa_single_line "$identity_val" || { uk_error 'IdentityFile must be a single line.'; return 1; }
 
   # Build the block
-  {
-    echo ""
-    echo "Host $hostname"
-    echo "  HostName $hostname_val"
-    echo "  User $user_val"
-    echo "  Port $port_val"
-    [[ -n "$identity_val" ]] && echo "  IdentityFile $identity_val"
-  } >>"$SA_CONFIG"
+  if ! {
+    printf '\nHost %s\n' "$hostname"
+    printf '  HostName %s\n' "$hostname_val"
+    printf '  User %s\n' "$user_val"
+    printf '  Port %s\n' "$port_val"
+    [[ -n "$identity_val" ]] && printf '  IdentityFile %s\n' "$identity_val"
+  } >>"$SA_CONFIG"; then
+    uk_error "Unable to write SSH config: $SA_CONFIG"
+    return 1
+  fi
+  chmod 600 "$SA_CONFIG" || { uk_error "Unable to secure SSH config: $SA_CONFIG"; return 1; }
 
   uk_success "Added host '$hostname' to $SA_CONFIG"
 }
@@ -117,6 +139,11 @@ sa_add_host() {
 # ----- Main ---------------------------------------------------------
 sa_main() {
   uk_banner "ssh-assistant" "Parse ~/.ssh/config and connect to named hosts" "" "$@"
+  SA_CONFIG="$HOME/.ssh/config"
+  SA_CONNECT=''
+  SA_COPY_ID=''
+  SA_ADD_HOST=''
+  SA_ADD_REQUESTED=0
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
     --connect)
@@ -128,8 +155,11 @@ sa_main() {
       SA_COPY_ID="${1:-}"
       ;;
     --add)
-      shift
-      SA_ADD_HOST="${1:-}" # may be empty
+      SA_ADD_REQUESTED=1
+      if [[ $# -gt 1 && "${2:-}" != --* ]]; then
+        shift
+        SA_ADD_HOST="${1:-}"
+      fi
       ;;
     --config)
       shift
@@ -147,23 +177,26 @@ sa_main() {
     shift
   done
 
+  sa_single_line "$SA_CONFIG" && [[ -n "$SA_CONFIG" ]] || { uk_error 'SSH config path must be a non-empty single line.'; return 1; }
+
   # Handle direct actions first
   if [[ -n "$SA_CONNECT" ]]; then
     sa_run_ssh "$SA_CONNECT"
-    return 0
+    return $?
   fi
   if [[ -n "$SA_COPY_ID" ]]; then
     uk_has_cmd ssh-copy-id || {
       uk_error 'ssh-copy-id not installed.'
       return 1
     }
-    ssh-copy-id "$SA_COPY_ID"
-    return 0
+    sa_valid_destination "$SA_COPY_ID" || { uk_error "Invalid ssh-copy-id destination: $SA_COPY_ID"; return 1; }
+    ssh-copy-id -- "$SA_COPY_ID"
+    return $?
   fi
-  if [[ -n "$SA_ADD_HOST" ]] || [[ "$SA_ADD_HOST" == "" && "${1:-}" == "--add" ]]; then
+  if ((SA_ADD_REQUESTED == 1)); then
     # --add was given with optional hostname
     sa_add_host "$SA_ADD_HOST"
-    return 0
+    return $?
   fi
 
   # Interactive mode

@@ -178,7 +178,7 @@ hb_run_native() {
     [[ -z "$line" ]] && continue
     completed=$((completed + 1))
     IFS=$'\t' read -r code time size <<<"$line"
-    if [[ "$code" == "ERR" ]]; then
+    if [[ "$code" == "ERR" || ! "$code" =~ ^[23][0-9][0-9]$ ]]; then
       errors=$((errors + 1))
       continue
     fi
@@ -217,7 +217,8 @@ hb_report() {
     printf '{"url":%s,"requests":%s,"completed":%s,"errors":%s,"elapsed_ms":%s,"rps":%s,"backend":%s}\n' \
       "$(hb_json_escape "$url")" "$requests" "$completed" "$errors" "$elapsed_ms" "$rps" \
       "$(hb_json_escape "$backend")"
-    return 0
+    ((errors == 0 && completed == requests))
+    return $?
   fi
 
   hb_section "Results"
@@ -253,6 +254,7 @@ print(f"{pct(50)*1000:.1f} {pct(95)*1000:.1f} {pct(99)*1000:.1f} {vals[0]*1000:.
   fi
 
   printf '  %s%-14s%s  %s\n\n' "${UK_C_DIM:-}" "backend" "${UK_C_RESET:-}" "$backend"
+  ((errors == 0 && completed == requests))
 }
 
 # ---- External backends (hey / wrk) -----------------------------------------
@@ -277,7 +279,7 @@ hb_run_hey() {
   if ((json)); then
     # Pipe through our own JSON schema
     local raw
-    raw="$(hey "${args[@]}" "$url" 2>/dev/null || true)"
+    raw="$(hey "${args[@]}" "$url" 2>&1)" || { uk_error "hey failed: $raw"; return 1; }
     local rps errors
     rps="$(printf '%s\n' "$raw" | grep 'Requests/sec' | grep -oP '[\d.]+' | head -n1)"
     errors="$(printf '%s\n' "$raw" | grep '\[error\]' | grep -oP '\d+' | head -n1)"
@@ -300,7 +302,7 @@ hb_run_wrk() {
   local -a args=(-t "$concurrency" -c "$concurrency" -d "${timeout}s" -L)
   if ((json)); then
     local raw
-    raw="$(wrk "${args[@]}" "$url" 2>/dev/null || true)"
+    raw="$(wrk "${args[@]}" "$url" 2>&1)" || { uk_error "wrk failed: $raw"; return 1; }
     local rps errors
     rps="$(printf '%s\n' "$raw" | grep 'Requests/sec' | awk '{print $2}')"
     printf '{"url":%s,"requests":-1,"rps":%s,"backend":"wrk","note":"wrk does dynamic duration, not fixed count"}\n' \

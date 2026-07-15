@@ -21,14 +21,22 @@ now = datetime.datetime.now(expiry.tzinfo)
 print((expiry-now).days)
 PY2
 }
+sc_endpoint() {
+  if [[ "$SC_HOST" == *:* && "$SC_HOST" != \[*\] ]]; then
+    printf '[%s]:%s\n' "$SC_HOST" "$SC_PORT"
+  else
+    printf '%s:%s\n' "$SC_HOST" "$SC_PORT"
+  fi
+}
 sc_dns() {
   printf '\n  %s%sDNS records for %s%s\n' \
     "$UK_C_BOLD" "$UK_C_CYAN" "$SC_HOST" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   if uk_has_cmd dig; then
-    local result
+    local result output
     for t in A AAAA MX TXT; do
-      result="$(dig +short "$SC_HOST" "$t" 2>/dev/null | paste -sd '; ' - || true)"
+      output="$(dig +short "$SC_HOST" "$t" 2>&1)" || { uk_error "DNS query failed for $t: $output"; return 1; }
+      result="$(printf '%s\n' "$output" | paste -sd '; ' -)" || return 1
       if [[ -n "$result" ]]; then
         printf '  %s%-6s%s %s\n' "$UK_C_BOLD" "$t" "$UK_C_RESET" "$result"
       else
@@ -36,26 +44,38 @@ sc_dns() {
       fi
     done
   elif uk_has_cmd nslookup; then
-    nslookup "$SC_HOST" 2>/dev/null | sed 's/^/  /' || true
+    local output
+    output="$(nslookup "$SC_HOST" 2>&1)" || { uk_error "DNS lookup failed: $output"; return 1; }
+    printf '%s\n' "$output" | sed 's/^/  /'
   else
     printf '  %s(dig and nslookup unavailable — skipping DNS checks)%s\n' "$UK_C_DIM" "$UK_C_RESET"
   fi
 }
+sc_tls_probe() {
+  local flag="$1" label="$2" output endpoint
+  endpoint="$(sc_endpoint)" || return 1
+  if output="$(openssl s_client -connect "$endpoint" -servername "$SC_HOST" "$flag" </dev/null 2>&1)"; then
+    uk_warn "Server still accepts $label."
+    return 0
+  fi
+  if grep -Eqi 'alert protocol version|wrong version number|unsupported protocol' <<<"$output"; then
+    uk_success "$label rejected by the server."
+    return 0
+  fi
+  uk_error "$label probe failed for a non-protocol reason: ${output##*$'\n'}"
+  return 1
+}
 sc_tls_checks() {
   uk_note 'Legacy TLS support probe:'
-  if openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" -tls1 </dev/null >/dev/null 2>&1; then
-    uk_warn 'Server still accepts TLS 1.0.'
-  else
-    uk_success 'TLS 1.0 rejected.'
-  fi
-  if openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" -tls1_1 </dev/null >/dev/null 2>&1; then
-    uk_warn 'Server still accepts TLS 1.1.'
-  else
-    uk_success 'TLS 1.1 rejected.'
-  fi
+  sc_tls_probe -tls1 'TLS 1.0' || return 1
+  sc_tls_probe -tls1_1 'TLS 1.1' || return 1
 }
 sc_main() {
   uk_banner "ssl-checker" "Certificate expiry, DNS records, legacy TLS probe" "" "$@"
+  SC_HOST=''
+  SC_PORT=443
+  SC_DNS=1
+  SC_TLS=1
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
     --port)
@@ -93,31 +113,48 @@ sc_main() {
       return 1
     fi
   fi
+  [[ "$SC_PORT" =~ ^[0-9]+$ ]] && ((SC_PORT >= 1 && SC_PORT <= 65535)) || { uk_error "Port must be in 1..65535: $SC_PORT"; return 1; }
+  [[ "$SC_HOST" != -* && "$SC_HOST" != *$'\n'* && "$SC_HOST" != *$'\r'* && "$SC_HOST" != *[[:space:]]* ]] || { uk_error "Invalid host: $SC_HOST"; return 1; }
   uk_has_cmd openssl || {
     uk_error 'openssl is required.'
     return 1
   }
-  uk_section_title "$SC_HOST:$SC_PORT"
-  local cert_info expiry issuer subject days
-  cert_info=$(openssl s_client -connect "$SC_HOST:$SC_PORT" -servername "$SC_HOST" </dev/null 2>/dev/null | openssl x509 -noout -dates -issuer -subject 2>/dev/null) || {
-    uk_error 'Failed to retrieve certificate.'
+  local endpoint
+  endpoint="$(sc_endpoint)" || return 1
+  uk_section_title "$endpoint"
+  local handshake cert_info expiry issuer subject days health_status=0
+  handshake="$(openssl s_client -connect "$endpoint" -servername "$SC_HOST" </dev/null 2>&1)" || {
+    uk_error "Failed to establish TLS connection: ${handshake##*$'\n'}"
+    return 1
+  }
+  cert_info="$(printf '%s\n' "$handshake" | openssl x509 -noout -dates -issuer -subject 2>&1)" || {
+    uk_error "Failed to parse certificate: $cert_info"
     return 1
   }
   printf '%s\n' "$cert_info" | sed 's/^/  /'
-  expiry=$(printf '%s\n' "$cert_info" | awk -F= '/notAfter/ {print $2}')
-  subject=$(printf '%s\n' "$cert_info" | awk -F= '/subject=/ {$1=""; sub(/^ /,""); print}')
-  issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {$1=""; sub(/^ /,""); print}')
-  days=$(sc_days_left "$expiry")
+  expiry=$(printf '%s\n' "$cert_info" | awk -F= '/notAfter/ {print $2}') || return 1
+  subject=$(printf '%s\n' "$cert_info" | awk -F= '/subject=/ {$1=""; sub(/^ /,""); print}') || return 1
+  issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {$1=""; sub(/^ /,""); print}') || return 1
+  days=$(sc_days_left "$expiry") || { uk_error "Unable to parse certificate expiry."; return 1; }
+  [[ "$days" =~ ^-?[0-9]+$ ]] || { uk_error "Invalid certificate lifetime: $days"; return 1; }
   printf '\nSubject: %s\nIssuer : %s\nDays left: %s\n' "$subject" "$issuer" "$days"
-  ((days < 0)) && uk_error 'Certificate is expired.' || ((days < 30)) && uk_warn 'Certificate expires in less than 30 days.' || uk_success 'Certificate lifetime looks healthy.'
-  ((SC_DNS == 1)) && {
+  if ((days < 0)); then
+    uk_error 'Certificate is expired.'
+    health_status=1
+  elif ((days < 30)); then
+    uk_warn 'Certificate expires in less than 30 days.'
+  else
+    uk_success 'Certificate lifetime looks healthy.'
+  fi
+  if ((SC_DNS == 1)); then
     printf '\n'
-    sc_dns
-  }
-  ((SC_TLS == 1)) && {
+    sc_dns || return 1
+  fi
+  if ((SC_TLS == 1)); then
     printf '\n'
-    sc_tls_checks
-  }
+    sc_tls_checks || return 1
+  fi
+  return "$health_status"
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail

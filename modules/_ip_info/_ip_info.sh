@@ -92,7 +92,7 @@ ii_kv() {
 ii_curl() {
   local url="$1" timeout="$2"
   uk_has_cmd curl || return 1
-  curl -sS -m "$timeout" -A "utilitykit-ip-info/1.0" "$url" 2>/dev/null
+  curl -fsS -m "$timeout" -A "utilitykit-ip-info/1.0" --url "$url"
 }
 
 ii_json_escape() {
@@ -237,7 +237,7 @@ ii_get_public_v6() {
 # Returns key=value lines (one per field) to stdout.
 ii_enrich() {
   local ip="$1" timeout="$2" body
-  body="$(ii_curl "http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query,reverse" "$timeout")"
+  body="$(ii_curl "https://ipapi.co/${ip}/json/" "$timeout")"
   [[ -z "$body" ]] && return 1
 
   if uk_has_cmd python3; then
@@ -247,14 +247,17 @@ try:
     d = json.load(sys.stdin)
 except Exception as e:
     print(f"error={e}"); sys.exit(0)
-if d.get("status") != "success":
-    print("error={}".format(d.get("message", "unknown"))); sys.exit(0)
-order = ["query","reverse","country","countryCode","regionName","city","zip",
-         "lat","lon","timezone","isp","org","as"]
-for k in order:
-    v = d.get(k)
+if d.get("error"):
+    print("error={}".format(d.get("reason", "unknown"))); sys.exit(1)
+mapping = [
+    ("query", "ip"), ("country", "country_name"), ("countryCode", "country_code"),
+    ("regionName", "region"), ("city", "city"), ("zip", "postal"),
+    ("lat", "latitude"), ("lon", "longitude"), ("timezone", "timezone"),
+    ("org", "org"), ("as", "asn")]
+for out_key, in_key in mapping:
+    v = d.get(in_key)
     if v is None or v == "": continue
-    print(f"{k}={v}")
+    print(f"{out_key}={v}")
 '
   else
     # Minimal grep-based fallback.
@@ -413,7 +416,7 @@ ii_report_json() {
       ip_for_geo="$(ii_resolve_host "$ip_for_geo")"
     fi
     local body
-    body="$(ii_curl "http://ip-api.com/json/${ip_for_geo}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query,reverse" "$timeout")"
+    body="$(ii_curl "https://ipapi.co/${ip_for_geo}/json/" "$timeout" || true)"
     body="$(printf '%s' "$body" | ii_valid_json_or_null)"
     parts+=("$(printf '"geo":%s' "${body:-null}")")
   fi

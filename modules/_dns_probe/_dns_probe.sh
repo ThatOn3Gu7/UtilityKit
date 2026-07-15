@@ -94,37 +94,31 @@ dp_pick_backend() {
 # Perform ONE query. Prints one answer per line (record data only).
 # Args: backend, domain, type, resolver ('' = system), timeout, tries
 dp_query() {
-  local backend="$1" domain="$2" rtype="$3" resolver="$4" timeout="$5" tries="$6"
+  local backend="$1" domain="$2" rtype="$3" resolver="$4" timeout="$5" tries="$6" output
   case "$backend" in
     dig)
       local -a args=(+short +time="$timeout" +tries="$tries" +noall +answer)
       [[ -n "$resolver" ]] && args=("@$resolver" "${args[@]}")
-      dig "${args[@]}" "$domain" "$rtype" 2>/dev/null \
-        | sed 's/[[:space:]]*$//' \
-        | grep -v '^$' \
-        | awk 'NF>=5 {for(i=5;i<=NF;i++) printf "%s%s", $i, (i==NF?"\n":" "); next} {print}'
+      output="$(dig "${args[@]}" "$domain" "$rtype" 2>&1)" || { uk_error "dig query failed: $output"; return 1; }
+      printf '%s\n' "$output" | sed 's/[[:space:]]*$//' | awk 'NF {if (NF>=5) {for(i=5;i<=NF;i++) printf "%s%s",$i,(i==NF?"\n":" ")} else print}'
       ;;
     drill)
-      local -a args=(-Q -t)
       if [[ -n "$resolver" ]]; then
-        drill -Q "$domain" "$rtype" "@$resolver" 2>/dev/null \
-          | grep -v '^$'
+        output="$(drill -Q "$domain" "$rtype" "@$resolver" 2>&1)" || { uk_error "drill query failed: $output"; return 1; }
       else
-        drill -Q "$domain" "$rtype" 2>/dev/null \
-          | grep -v '^$'
+        output="$(drill -Q "$domain" "$rtype" 2>&1)" || { uk_error "drill query failed: $output"; return 1; }
       fi
+      awk 'NF' <<<"$output"
       ;;
     host)
       if [[ -n "$resolver" ]]; then
-        host -W "$timeout" -t "$rtype" "$domain" "$resolver" 2>/dev/null \
-          | sed -n 's/.* has address //p; s/.* has IPv6 address //p; s/.* mail is handled by //p; s/.* descriptive text //p; s/.* name server //p' \
-          | grep -v '^$'
+        output="$(host -W "$timeout" -t "$rtype" "$domain" "$resolver" 2>&1)" || { uk_error "host query failed: $output"; return 1; }
       else
-        host -W "$timeout" -t "$rtype" "$domain" 2>/dev/null \
-          | sed -n 's/.* has address //p; s/.* has IPv6 address //p; s/.* mail is handled by //p; s/.* descriptive text //p; s/.* name server //p' \
-          | grep -v '^$'
+        output="$(host -W "$timeout" -t "$rtype" "$domain" 2>&1)" || { uk_error "host query failed: $output"; return 1; }
       fi
+      sed -n 's/.* has address //p; s/.* has IPv6 address //p; s/.* mail is handled by //p; s/.* descriptive text //p; s/.* name server //p' <<<"$output"
       ;;
+    *) uk_error "Unknown DNS backend: $backend"; return 1 ;;
   esac
 }
 
@@ -182,9 +176,9 @@ dp_run_standard() {
 
     for rtype in "${types_ref[@]}"; do
       answers=()
-      while IFS= read -r answer; do
-        [[ -n "$answer" ]] && answers+=("$answer")
-      done < <(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")
+      local query_output
+      query_output="$(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")" || return 1
+      while IFS= read -r answer; do [[ -n "$answer" ]] && answers+=("$answer"); done <<<"$query_output"
       dp_print_records "$rtype" "${answers[@]}"
     done
   done
@@ -225,13 +219,14 @@ dp_run_json() {
       (( first_t )) || printf ','
       first_t=0
       printf '%s:[' "$(dp_json_escape "$rtype")"
-      local first_a=1
+      local first_a=1 query_output
+      query_output="$(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")" || return 1
       while IFS= read -r answer; do
         [[ -z "$answer" ]] && continue
         (( first_a )) || printf ','
         first_a=0
         printf '%s' "$(dp_json_escape "$answer")"
-      done < <(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")
+      done <<<"$query_output"
       printf ']'
     done
     printf '}}'
@@ -264,7 +259,7 @@ dp_run_propagation() {
     for r in "${resolvers[@]}"; do
       rlabel="${r%%|*}"; rip="${r#*|}"
       local raw sorted fp
-      raw="$(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")"
+      raw="$(dp_query "$backend" "$domain" "$rtype" "$rip" "$timeout" "$tries")" || return 1
       # Normalize: sort, strip whitespace on each line, drop blanks.
       sorted="$(printf '%s\n' "$raw" | awk 'NF' | sort -u | paste -sd$'\n' -)"
       fp="$(printf '%s' "$sorted" | md5sum 2>/dev/null | cut -d' ' -f1)"
@@ -402,10 +397,10 @@ dp_main() {
 
   if (( as_json )); then
     dp_run_json "$backend" "$domain" "$timeout" "$tries" types resolvers
-    return 0
+    return $?
   fi
 
-  dp_run_standard "$backend" "$domain" "$timeout" "$tries" types resolvers
+  dp_run_standard "$backend" "$domain" "$timeout" "$tries" types resolvers || return 1
   printf '\n'
   dp_hr
   printf '  backend: %s   timeout: %ss   tries: %s\n\n' "$backend" "$timeout" "$tries"

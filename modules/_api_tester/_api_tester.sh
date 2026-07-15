@@ -12,8 +12,10 @@ AT_EXPECT='2xx,3xx'
 declare -a AT_HEADERS=()
 
 at_profiles_dir() {
-  local dir="$(uk_data_dir)/api_profiles"
-  mkdir -p "$dir"
+  local dir
+  dir="$(uk_data_dir)" || return 1
+  dir="$dir/api_profiles"
+  mkdir -p "$dir" || { uk_error "Unable to create API profile directory: $dir"; return 1; }
   printf '%s\n' "$dir"
 }
 at_usage() {
@@ -109,18 +111,26 @@ at_status_expected() {
   done
   return 1
 }
+at_cleanup_request() {
+  trap - RETURN
+  rm -f -- "${tmp_body:-}" "${tmp_meta:-}" "${tmp_timing:-}" "${tmp_meta:-}.jq" || uk_warn 'Unable to remove API request temporary files.'
+}
 at_run_request() {
   uk_has_cmd curl || {
     uk_error 'curl is required.'
     return 1
   }
+  AT_METHOD="${AT_METHOD^^}"
+  [[ "$AT_METHOD" =~ ^[A-Z]+$ ]] || { uk_error "Invalid HTTP method: $AT_METHOD"; return 1; }
+  [[ "$AT_URL" =~ ^https?:// ]] || { uk_error "URL must begin with http:// or https://: $AT_URL"; return 1; }
+  [[ -z "$AT_BODY_FILE" || -r "$AT_BODY_FILE" ]] || { uk_error "Body file is not readable: $AT_BODY_FILE"; return 1; }
   local tmp_body tmp_meta tmp_timing curl_args=() hdr
-  tmp_body=$(mktemp)
-  tmp_meta=$(mktemp)
-  tmp_timing=$(mktemp)
-  trap "rm -f '$tmp_body' '$tmp_meta' '$tmp_timing'" RETURN
+  tmp_body=$(mktemp) || { uk_error 'Unable to create response-body temporary file.'; return 1; }
+  tmp_meta=$(mktemp) || { rm -f "$tmp_body"; uk_error 'Unable to create curl-stderr temporary file.'; return 1; }
+  tmp_timing=$(mktemp) || { rm -f "$tmp_body" "$tmp_meta"; uk_error 'Unable to create timing temporary file.'; return 1; }
+  trap 'at_cleanup_request' RETURN
 
-  curl_args=(-sS -X "$AT_METHOD" "$AT_URL"
+  curl_args=(-sS -X "$AT_METHOD" --url "$AT_URL"
     -o "$tmp_body"
     -w 'dns=%{time_namelookup}\ntcp=%{time_connect}\nttfb=%{time_starttransfer}\ntotal=%{time_total}\ncode=%{http_code}\n')
   for hdr in "${AT_HEADERS[@]}"; do
@@ -148,14 +158,17 @@ at_run_request() {
   printf '\n  %s%s◆ Timing%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
   local code dns tcp ttfb total
-  code=$(grep '^code=' "$tmp_timing" | cut -d= -f2)
-  dns=$(grep '^dns=' "$tmp_timing" | cut -d= -f2)
-  tcp=$(grep '^tcp=' "$tmp_timing" | cut -d= -f2)
-  ttfb=$(grep '^ttfb=' "$tmp_timing" | cut -d= -f2)
-  total=$(grep '^total=' "$tmp_timing" | cut -d= -f2)
+  code=$(awk -F= '$1=="code" {print $2; exit}' "$tmp_timing") || return 1
+  dns=$(awk -F= '$1=="dns" {print $2; exit}' "$tmp_timing") || return 1
+  tcp=$(awk -F= '$1=="tcp" {print $2; exit}' "$tmp_timing") || return 1
+  ttfb=$(awk -F= '$1=="ttfb" {print $2; exit}' "$tmp_timing") || return 1
+  total=$(awk -F= '$1=="total" {print $2; exit}' "$tmp_timing") || return 1
   local code_color="$UK_C_GREEN"
-  [[ "$code" -ge 400 ]] 2>/dev/null && code_color="$UK_C_RED"
-  [[ "$code" -ge 300 && "$code" -lt 400 ]] 2>/dev/null && code_color="$UK_C_YELLOW"
+  if [[ "$code" =~ ^[0-9]{3}$ ]] && ((code >= 400)); then
+    code_color="$UK_C_RED"
+  elif [[ "$code" =~ ^[0-9]{3}$ ]] && ((code >= 300)); then
+    code_color="$UK_C_YELLOW"
+  fi
   printf '  %sStatus:%s  %s%s%s\n' "$UK_C_BOLD" "$UK_C_RESET" "$code_color" "$code" "$UK_C_RESET"
   printf '  %sDNS:%s     %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$dns"
   printf '  %sTCP:%s     %ss\n' "$UK_C_BOLD" "$UK_C_RESET" "$tcp"
@@ -166,20 +179,31 @@ at_run_request() {
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
 
   # --- Beautiful output: bat → jq -C → plain cat ---
+  local rendered=0 render_error=''
   if uk_has_cmd bat; then
-    # bat with syntax highlighting, no line numbers, force colour
-    bat --language=json --style=plain --color=always "$tmp_body" 2>/dev/null | sed 's/^/  /'
-  elif uk_has_cmd jq; then
-    # Check if the response is valid JSON, then pretty‑print with colour
-    if jq -e . "$tmp_body" >/dev/null 2>&1; then
-      jq -C . "$tmp_body" 2>/dev/null | sed 's/^/  /'
+    if render_error="$(bat --language=json --style=plain --color=always "$tmp_body" 2>&1)"; then
+      printf '%s\n' "$render_error" | sed 's/^/  /'
+      rendered=1
     else
-      # Not JSON – fall back to plain cat
-      cat "$tmp_body" 2>/dev/null | sed 's/^/  /'
+      uk_warn "bat rendering failed; falling back: $render_error"
     fi
-  else
-    # No bat, no jq – plain cat
-    cat "$tmp_body" 2>/dev/null | sed 's/^/  /'
+  fi
+  if ((rendered == 0)) && uk_has_cmd jq; then
+    if jq -e . "$tmp_body" >/dev/null 2>"${tmp_meta}.jq"; then
+      if render_error="$(jq -C . "$tmp_body" 2>&1)"; then
+        printf '%s\n' "$render_error" | sed 's/^/  /'
+        rendered=1
+      else
+        uk_warn "jq rendering failed; falling back: $render_error"
+      fi
+    fi
+    if [[ -s "${tmp_meta}.jq" ]]; then
+      uk_note "Response is not JSON; using plain rendering."
+      rm -f "${tmp_meta}.jq" || uk_warn "Unable to remove jq diagnostic file."
+    fi
+  fi
+  if ((rendered == 0)); then
+    sed 's/^/  /' "$tmp_body" || { uk_error "Unable to render response body."; return 1; }
   fi
 
   if [[ -s "$tmp_meta" ]]; then
