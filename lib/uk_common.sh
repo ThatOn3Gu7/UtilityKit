@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.2.5'
+readonly UK_VERSION='5.3.0'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -65,7 +65,14 @@ uk_is_interactive() { [[ -t 0 && -t 1 ]]; }
 uk_platform() {
   if [[ -n "${TERMUX_VERSION:-}" ]]; then
     printf 'termux\n'
-  elif [[ "$(uname -s 2>/dev/null || printf unknown)" == "Darwin" ]]; then
+    return 0
+  fi
+  local system
+  if ! system="$(uname -s 2>/dev/null)"; then
+    uk_error 'Unable to determine the current platform.'
+    return 1
+  fi
+  if [[ "$system" == "Darwin" ]]; then
     printf 'macos\n'
   else
     printf 'linux\n'
@@ -90,12 +97,18 @@ PY
 }
 uk_data_dir() {
   local dir="${XDG_DATA_HOME:-$HOME/.local/share}/utilitykit"
-  mkdir -p "$dir"
+  if ! mkdir -p "$dir"; then
+    uk_error "Unable to create data directory: $dir"
+    return 1
+  fi
   printf '%s\n' "$dir"
 }
 uk_state_dir() {
   local dir="${XDG_STATE_HOME:-$HOME/.local/state}/utilitykit"
-  mkdir -p "$dir"
+  if ! mkdir -p "$dir"; then
+    uk_error "Unable to create state directory: $dir"
+    return 1
+  fi
   printf '%s\n' "$dir"
 }
 uk_note() { printf ' %s%s%s %s\n' "$UK_C_BLUE" "$UK_I_INFO" "$UK_C_RESET" "$*"; }
@@ -118,9 +131,15 @@ uk_confirm() {
     printf ' %s %s [y/N]: ' "$UK_I_ARROW" "$prompt" >&2
   fi
   if [[ -r /dev/tty ]]; then
-    read -r reply </dev/tty
+    if ! read -r reply </dev/tty; then
+      uk_error 'Unable to read confirmation input.'
+      return 2
+    fi
   else
-    read -r reply
+    if ! read -r reply; then
+      uk_error 'Unable to read confirmation input.'
+      return 2
+    fi
   fi
   if [[ -z "$reply" ]]; then
     if [[ "$default" =~ ^[Yy]$ ]]; then
@@ -146,9 +165,15 @@ uk_prompt() {
   [[ -n "$note" ]] && printf '   %s%s%s\n' "$UK_C_DIM" "$note" "$UK_C_RESET" >&2
   printf ' %s ' "$UK_I_ARROW" >&2
   if [[ -r /dev/tty ]]; then
-    read -r reply </dev/tty
+    if ! read -r reply </dev/tty; then
+      uk_error 'Unable to read prompt input.'
+      return 1
+    fi
   else
-    read -r reply
+    if ! read -r reply; then
+      uk_error 'Unable to read prompt input.'
+      return 1
+    fi
   fi
   if [[ -z "$reply" && -n "$default" ]]; then
     printf '\033[1A\r\033[K %s %s\n' "$UK_I_ARROW" "$default" >&2
@@ -252,18 +277,20 @@ uk_banner() {
   n3="$(uk_visible_len "$l3")"
 
   if uk_has_cmd tput; then
-    term_width="$(tput cols 2>/dev/null)"
+    term_width="$(tput cols 2>/dev/null || true)"
   fi
   if [[ -z "$term_width" ]] && uk_has_cmd stty; then
-    term_width="$(stty size 2>/dev/null | cut -d' ' -f2)"
+    term_width="$(stty size 2>/dev/null | cut -d' ' -f2 || true)"
   fi
   if [[ -z "$term_width" ]]; then
     term_width="${COLUMNS:-80}"
   fi
 
-  # Failsafe in case term_width is still somehow empty or not a number
-  if ! [[ "$term_width" =~ ^[0-9]+$ ]]; then
+  # Failsafe in case term_width is still somehow invalid or unreasonable.
+  if ! _uk_valid_term_dimension "$term_width"; then
     term_width=80
+  else
+    term_width=$((10#$term_width))
   fi
 
   inner=$((term_width - 2))
@@ -314,6 +341,11 @@ uk_banner() {
 
   UK_BANNER_PRINTED=1
 }
+_uk_valid_term_dimension() {
+  local value="${1:-}"
+  [[ "$value" =~ ^[0-9]{1,5}$ ]] || return 1
+  ((10#$value >= 1 && 10#$value <= 10000))
+}
 # uk_term_size — write "$cols $rows" to stdout. Falls back through tput → stty
 # → $COLUMNS/$LINES → 80x24, matching the pattern already used by uk_banner.
 uk_term_size() {
@@ -322,7 +354,7 @@ uk_term_size() {
     cols="$(tput cols 2>/dev/null || true)"
     rows="$(tput lines 2>/dev/null || true)"
   fi
-  if [[ -z "$cols" || -z "$rows" ]] && uk_has_cmd stty; then
+  if { ! _uk_valid_term_dimension "$cols" || ! _uk_valid_term_dimension "$rows"; } && uk_has_cmd stty; then
     local size
     size="$(stty size 2>/dev/null || true)"
     if [[ -n "$size" ]]; then
@@ -330,8 +362,12 @@ uk_term_size() {
       cols="${size##* }"
     fi
   fi
-  [[ "$cols" =~ ^[0-9]+$ ]] || cols="${COLUMNS:-80}"
-  [[ "$rows" =~ ^[0-9]+$ ]] || rows="${LINES:-24}"
+  _uk_valid_term_dimension "$cols" || cols="${COLUMNS:-}"
+  _uk_valid_term_dimension "$rows" || rows="${LINES:-}"
+  _uk_valid_term_dimension "$cols" || cols=80
+  _uk_valid_term_dimension "$rows" || rows=24
+  cols=$((10#$cols))
+  rows=$((10#$rows))
   printf '%s %s\n' "$cols" "$rows"
 }
 
@@ -346,11 +382,19 @@ uk_term_size() {
 #   - the width is already exactly right
 uk_require_width() {
   local required="${UK_REQUIRED_COLS:-78}"
+  if ! _uk_valid_term_dimension "$required"; then
+    uk_error "UK_REQUIRED_COLS must be an integer from 1 to 10000: $required"
+    return 2
+  fi
+  required=$((10#$required))
   [[ -t 1 ]] || return 0
   [[ -n "${UK_NO_WIDTH_GATE:-}" ]] && return 0
 
   local cols rows size
-  size="$(uk_term_size)"
+  if ! size="$(uk_term_size)"; then
+    uk_error 'Unable to determine terminal size.'
+    return 1
+  fi
   cols="${size%% *}"
   rows="${size##* }"
   [[ "$cols" == "$required" ]] && return 0
@@ -387,7 +431,11 @@ uk_require_width() {
   _UK_WG_TOP=0 _UK_WG_LEFT=0 _UK_WG_INNER=0 _UK_WG_DYN_ROW=0
 
   while :; do
-    size="$(uk_term_size)"
+    if ! size="$(uk_term_size)"; then
+      tput cnorm 2>/dev/null || printf '\033[?25h'
+      uk_error 'Unable to refresh terminal size.'
+      return 1
+    fi
     cols="${size%% *}"
     rows="${size##* }"
 

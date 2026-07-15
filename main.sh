@@ -7,11 +7,14 @@ source "$UK_ROOT_DIR/lib/uk_common.sh"
 uk_source_tool() {
   local path="${1:-}"
   [[ -f "$path" ]] || {
-    uk_warn "Missing tool: $path"
-    return 0
+    uk_error "Missing tool: $path"
+    return 1
   }
   # shellcheck disable=SC1090
-  source "$path"
+  if ! source "$path"; then
+    uk_error "Failed to load tool: $path"
+    return 1
+  fi
 }
 # =============================================================================
 # UNIFIED TOOL REGISTRY  (single source of truth)
@@ -118,15 +121,18 @@ uk_load() {
   [[ -n "${UK_TOOL_LOADED[$key]:-}" ]] && return 0
   local path="${UK_TOOL_PATHS[$key]:-}"
   if [[ -z "$path" ]]; then
-    uk_warn "uk_load: unknown tool key '$key'"
+    uk_error "uk_load: unknown tool key '$key'"
     return 1
   fi
   if [[ ! -f "$path" ]]; then
-    uk_warn "uk_load: missing script: $path"
+    uk_error "uk_load: missing script: $path"
     return 1
   fi
   # shellcheck disable=SC1090
-  source "$path"
+  if ! source "$path"; then
+    uk_error "uk_load: failed to source script: $path"
+    return 1
+  fi
   UK_TOOL_LOADED[$key]=1
 }
 uk_expand_path() {
@@ -158,7 +164,7 @@ EOF
 }
 
 run_apply_wizard() {
-  uk_load apply_changes
+  uk_load apply_changes || return $?
   ac_wizard
 }
 run_rename_wizard() {
@@ -474,7 +480,8 @@ run_setup_wizard() {
 }
 uk_demo_file() {
   local kind="${1:-}" dir path
-  dir="$(uk_state_dir)/demo-fixtures"
+  dir="$(uk_state_dir)" || return $?
+  dir="$dir/demo-fixtures"
   mkdir -p "$dir"
   case "$kind" in
   json)
@@ -571,9 +578,10 @@ run_new_utility_wizard() {
     ;;
   backup)
     uk_banner "backup-sync" "Dry-run-first backup wrapper around rsync" ""
-    local src dst apply delete
+    local src dst apply delete state_dir
     src="$(uk_prompt 'Source directory to back up' '.' '~/project' 'The contents of this directory are copied into the destination.')"
-    dst="$(uk_prompt 'Destination directory' "$(uk_state_dir)/backup-demo" '~/backup/project' 'Created if missing. Dry-run is default.')"
+    state_dir="$(uk_state_dir)" || return $?
+    dst="$(uk_prompt 'Destination directory' "$state_dir/backup-demo" '~/backup/project' 'Created if missing. Dry-run is default.')"
     delete="$(uk_prompt 'Mirror delete files missing from source? (y/N)' 'N' 'y' 'Dangerous; only enable when destination is dedicated backup storage.')"
     apply="$(uk_prompt 'Apply backup now? (y/N)' 'N' 'y' 'No files are copied unless you answer yes.')"
     local args=(--source "$(uk_expand_path "$src")" --dest "$(uk_expand_path "$dst")")
@@ -762,7 +770,14 @@ run_installed_wizard() {
 }
 uk_menu_execute() {
   local status=0
-  run_tool "$@" || status=$?
+  local -
+  set +e
+  (
+    set -e
+    run_tool "$@"
+  )
+  status=$?
+  set -e
   if ((status != 0)); then
     uk_warn "The selected tool exited with status $status."
   fi
@@ -773,7 +788,7 @@ run_tool() {
   shift || true
   case "$cmd" in
   apply | apply-changes)
-    uk_load apply_changes
+    uk_load apply_changes || return $?
     if [[ $# -eq 0 ]]; then
       run_apply_wizard
     else
@@ -781,266 +796,516 @@ run_tool() {
     fi
     ;;
   rename | rename-batch)
-    uk_load rename_batch
-    ([[ $# -gt 0 ]] && rb_main "$@" || run_rename_wizard)
+    uk_load rename_batch || return $?
+    if [[ $# -gt 0 ]]; then
+      rb_main "$@"
+    else
+      run_rename_wizard
+    fi
     ;;
   move | move-in-batch | move-batch)
-    uk_load move_in_batch
-    ([[ $# -gt 0 ]] && mib_main "$@" || run_move_wizard)
+    uk_load move_in_batch || return $?
+    if [[ $# -gt 0 ]]; then
+      mib_main "$@"
+    else
+      run_move_wizard
+    fi
     ;;
   cacheclean | cache-clean)
-    uk_load cache_clean
-    ([[ $# -gt 0 ]] && cc_main "$@" || cc_main)
+    uk_load cache_clean || return $?
+    if [[ $# -gt 0 ]]; then
+      cc_main "$@"
+    else
+      cc_main
+    fi
     ;;
   symlink | symlink-manager)
-    uk_load symlink_manager
-    ([[ $# -gt 0 ]] && sm_main "$@" || run_symlink_wizard)
+    uk_load symlink_manager || return $?
+    if [[ $# -gt 0 ]]; then
+      sm_main "$@"
+    else
+      run_symlink_wizard
+    fi
     ;;
   disk | disk-analyzer)
-    uk_load disk_analyzer
-    ([[ $# -gt 0 ]] && da_main "$@" || run_disk_wizard)
+    uk_load disk_analyzer || return $?
+    if [[ $# -gt 0 ]]; then
+      da_main "$@"
+    else
+      run_disk_wizard
+    fi
     ;;
   env | env-manager)
-    uk_load env_manager
-    ([[ $# -gt 0 ]] && em_main "$@" || run_env_wizard)
+    uk_load env_manager || return $?
+    if [[ $# -gt 0 ]]; then
+      em_main "$@"
+    else
+      run_env_wizard
+    fi
     ;;
   git | git-sweep)
-    uk_load git_sweep
-    ([[ $# -gt 0 ]] && gs_main "$@" || run_git_wizard)
+    uk_load git_sweep || return $?
+    if [[ $# -gt 0 ]]; then
+      gs_main "$@"
+    else
+      run_git_wizard
+    fi
     ;;
   docker | docker-janitor)
-    uk_load docker_janitor
-    if [[ "$(uk_platform)" == 'termux' && $# -eq 0 ]]; then
+    uk_load docker_janitor || return $?
+    local platform
+    platform="$(uk_platform)" || return $?
+    if [[ "$platform" == 'termux' && $# -eq 0 ]]; then
       uk_warn 'Docker Janitor is not useful in Termux because Docker is usually unavailable there.'
       return 0
     fi
     (dj_main "$@")
     ;;
   scaffold | project-scaffold)
-    uk_load project_scaffold
-    ([[ $# -gt 0 ]] && ps_main "$@" || run_scaffold_wizard)
+    uk_load project_scaffold || return $?
+    if [[ $# -gt 0 ]]; then
+      ps_main "$@"
+    else
+      run_scaffold_wizard
+    fi
     ;;
   dup | duplicate-finder)
-    uk_load duplicate_finder
-    ([[ $# -gt 0 ]] && df_main "$@" || run_duplicate_wizard)
+    uk_load duplicate_finder || return $?
+    if [[ $# -gt 0 ]]; then
+      df_main "$@"
+    else
+      run_duplicate_wizard
+    fi
     ;;
   proc | process-killer)
-    uk_load process_killer
-    ([[ $# -gt 0 ]] && pk_main "$@" || run_process_wizard)
+    uk_load process_killer || return $?
+    if [[ $# -gt 0 ]]; then
+      pk_main "$@"
+    else
+      run_process_wizard
+    fi
     ;;
   port | port-inspector)
-    uk_load port_inspector
-    ([[ $# -gt 0 ]] && pi_main "$@" || run_port_wizard)
+    uk_load port_inspector || return $?
+    if [[ $# -gt 0 ]]; then
+      pi_main "$@"
+    else
+      run_port_wizard
+    fi
     ;;
   ssl | ssl-checker)
-    uk_load ssl_checker
-    ([[ $# -gt 0 ]] && sc_main "$@" || run_ssl_wizard)
+    uk_load ssl_checker || return $?
+    if [[ $# -gt 0 ]]; then
+      sc_main "$@"
+    else
+      run_ssl_wizard
+    fi
     ;;
   api | api-tester)
-    uk_load api_tester
-    ([[ $# -gt 0 ]] && at_main "$@" || run_api_wizard)
+    uk_load api_tester || return $?
+    if [[ $# -gt 0 ]]; then
+      at_main "$@"
+    else
+      run_api_wizard
+    fi
     ;;
   pass | password | password-gen)
-    uk_load password_gen
-    ([[ $# -gt 0 ]] && pg_main "$@" || run_password_wizard)
+    uk_load password_gen || return $?
+    if [[ $# -gt 0 ]]; then
+      pg_main "$@"
+    else
+      run_password_wizard
+    fi
     ;;
   ssh | ssh-assistant)
-    uk_load ssh_assistant
-    ([[ $# -gt 0 ]] && sa_main "$@" || run_ssh_wizard)
+    uk_load ssh_assistant || return $?
+    if [[ $# -gt 0 ]]; then
+      sa_main "$@"
+    else
+      run_ssh_wizard
+    fi
     ;;
   shred | shredder)
-    uk_load shredder
-    ([[ $# -gt 0 ]] && sd_main "$@" || run_shred_wizard)
+    uk_load shredder || return $?
+    if [[ $# -gt 0 ]]; then
+      sd_main "$@"
+    else
+      run_shred_wizard
+    fi
     ;;
   media | media-convert)
-    uk_load media_convert
-    ([[ $# -gt 0 ]] && mc_main "$@" || run_media_wizard)
+    uk_load media_convert || return $?
+    if [[ $# -gt 0 ]]; then
+      mc_main "$@"
+    else
+      run_media_wizard
+    fi
     ;;
   toc | markdown-toc)
-    uk_load markdown_toc
-    ([[ $# -gt 0 ]] && mt_main "$@" || run_toc_wizard)
+    uk_load markdown_toc || return $?
+    if [[ $# -gt 0 ]]; then
+      mt_main "$@"
+    else
+      run_toc_wizard
+    fi
     ;;
   pomodoro | pomo)
-    uk_load pomodoro
-    ([[ $# -gt 0 ]] && po_main "$@" || run_pomodoro_wizard)
+    uk_load pomodoro || return $?
+    if [[ $# -gt 0 ]]; then
+      po_main "$@"
+    else
+      run_pomodoro_wizard
+    fi
     ;;
   cheat | cheat-sheet)
-    uk_load cheat_sheet
-    ([[ $# -gt 0 ]] && cs_main "$@" || run_cheat_wizard)
+    uk_load cheat_sheet || return $?
+    if [[ $# -gt 0 ]]; then
+      cs_main "$@"
+    else
+      run_cheat_wizard
+    fi
     ;;
   net | network | network-probe)
-    uk_load network_probe
-    ([[ $# -gt 0 ]] && np_main "$@" || run_new_utility_wizard network)
+    uk_load network_probe || return $?
+    if [[ $# -gt 0 ]]; then
+      np_main "$@"
+    else
+      run_new_utility_wizard network
+    fi
     ;;
   cron | cron-manager)
-    uk_load cron_manager
-    ([[ $# -gt 0 ]] && cm_main "$@" || run_new_utility_wizard cron)
+    uk_load cron_manager || return $?
+    if [[ $# -gt 0 ]]; then
+      cm_main "$@"
+    else
+      run_new_utility_wizard cron
+    fi
     ;;
   dotenv | dotenv-vault)
-    uk_load dotenv_vault
-    ([[ $# -gt 0 ]] && dv_main "$@" || run_new_utility_wizard dotenv)
+    uk_load dotenv_vault || return $?
+    if [[ $# -gt 0 ]]; then
+      dv_main "$@"
+    else
+      run_new_utility_wizard dotenv
+    fi
     ;;
   disk-health | smart)
-    uk_load disk_health
-    ([[ $# -gt 0 ]] && dh_main "$@" || run_new_utility_wizard disk-health)
+    uk_load disk_health || return $?
+    if [[ $# -gt 0 ]]; then
+      dh_main "$@"
+    else
+      run_new_utility_wizard disk-health
+    fi
     ;;
   watch | service | service-watcher)
-    uk_load service_watcher
-    ([[ $# -gt 0 ]] && sw_main "$@" || run_new_utility_wizard service)
+    uk_load service_watcher || return $?
+    if [[ $# -gt 0 ]]; then
+      sw_main "$@"
+    else
+      run_new_utility_wizard service
+    fi
     ;;
   git-stats | gstats)
-    uk_load git_stats
-    ([[ $# -gt 0 ]] && gst_main "$@" || run_new_utility_wizard git-stats)
+    uk_load git_stats || return $?
+    if [[ $# -gt 0 ]]; then
+      gst_main "$@"
+    else
+      run_new_utility_wizard git-stats
+    fi
     ;;
   backup | backup-sync)
-    uk_load backup_sync
-    ([[ $# -gt 0 ]] && bs_main "$@" || run_new_utility_wizard backup)
+    uk_load backup_sync || return $?
+    if [[ $# -gt 0 ]]; then
+      bs_main "$@"
+    else
+      run_new_utility_wizard backup
+    fi
     ;;
   weather)
-    uk_load weather
-    ([[ $# -gt 0 ]] && wt_main "$@" || run_new_utility_wizard weather)
+    uk_load weather || return $?
+    if [[ $# -gt 0 ]]; then
+      wt_main "$@"
+    else
+      run_new_utility_wizard weather
+    fi
     ;;
   json | json-explorer)
-    uk_load json_explorer
-    ([[ $# -gt 0 ]] && jx_main "$@" || run_new_utility_wizard json)
+    uk_load json_explorer || return $?
+    if [[ $# -gt 0 ]]; then
+      jx_main "$@"
+    else
+      run_new_utility_wizard json
+    fi
     ;;
   tmux | tmux-session)
-    uk_load tmux_session
-    ([[ $# -gt 0 ]] && tms_main "$@" || run_new_utility_wizard tmux)
+    uk_load tmux_session || return $?
+    if [[ $# -gt 0 ]]; then
+      tms_main "$@"
+    else
+      run_new_utility_wizard tmux
+    fi
     ;;
   font | font-inspector)
-    uk_load font_inspector
-    ([[ $# -gt 0 ]] && fi_main "$@" || run_new_utility_wizard font)
+    uk_load font_inspector || return $?
+    if [[ $# -gt 0 ]]; then
+      fi_main "$@"
+    else
+      run_new_utility_wizard font
+    fi
     ;;
   toolbox | toolbox-bootstrap)
-    uk_load toolbox_bootstrap
-    ([[ $# -gt 0 ]] && tb_main "$@" || run_new_utility_wizard toolbox)
+    uk_load toolbox_bootstrap || return $?
+    if [[ $# -gt 0 ]]; then
+      tb_main "$@"
+    else
+      run_new_utility_wizard toolbox
+    fi
     ;;
   search | project-search)
-    uk_load project_search
-    ([[ $# -gt 0 ]] && psrch_main "$@" || run_new_utility_wizard search)
+    uk_load project_search || return $?
+    if [[ $# -gt 0 ]]; then
+      psrch_main "$@"
+    else
+      run_new_utility_wizard search
+    fi
     ;;
   github | github-helper)
-    uk_load github_helper
-    ([[ $# -gt 0 ]] && ghh_main "$@" || run_new_utility_wizard github)
+    uk_load github_helper || return $?
+    if [[ $# -gt 0 ]]; then
+      ghh_main "$@"
+    else
+      run_new_utility_wizard github
+    fi
     ;;
   links | link-checker)
-    uk_load link_checker
-    ([[ $# -gt 0 ]] && lc_main "$@" || run_new_utility_wizard links)
+    uk_load link_checker || return $?
+    if [[ $# -gt 0 ]]; then
+      lc_main "$@"
+    else
+      run_new_utility_wizard links
+    fi
     ;;
   logs | log-inspect | log-inspector)
-    uk_load log_inspector
-    ([[ $# -gt 0 ]] && li_main "$@" || run_new_utility_wizard log-inspect)
+    uk_load log_inspector || return $?
+    if [[ $# -gt 0 ]]; then
+      li_main "$@"
+    else
+      run_new_utility_wizard log-inspect
+    fi
     ;;
   csv | csv-toolkit)
-    uk_load csv_toolkit
-    ([[ $# -gt 0 ]] && csvt_main "$@" || run_new_utility_wizard csv)
+    uk_load csv_toolkit || return $?
+    if [[ $# -gt 0 ]]; then
+      csvt_main "$@"
+    else
+      run_new_utility_wizard csv
+    fi
     ;;
   hash | hash-tools)
-    uk_load hash_tools
-    ([[ $# -gt 0 ]] && ht_main "$@" || run_new_utility_wizard hash)
+    uk_load hash_tools || return $?
+    if [[ $# -gt 0 ]]; then
+      ht_main "$@"
+    else
+      run_new_utility_wizard hash
+    fi
     ;;
   archive | archive-manager)
-    uk_load archive_manager
-    ([[ $# -gt 0 ]] && am_main "$@" || run_new_utility_wizard archive)
+    uk_load archive_manager || return $?
+    if [[ $# -gt 0 ]]; then
+      am_main "$@"
+    else
+      run_new_utility_wizard archive
+    fi
     ;;
   snapshot | system-snapshot)
-    uk_load system_snapshot
-    ([[ $# -gt 0 ]] && ssn_main "$@" || run_new_utility_wizard snapshot)
+    uk_load system_snapshot || return $?
+    if [[ $# -gt 0 ]]; then
+      ssn_main "$@"
+    else
+      run_new_utility_wizard snapshot
+    fi
     ;;
   open-files | lsof)
-    uk_load open_files
-    ([[ $# -gt 0 ]] && of_main "$@" || run_new_utility_wizard open-files)
+    uk_load open_files || return $?
+    if [[ $# -gt 0 ]]; then
+      of_main "$@"
+    else
+      run_new_utility_wizard open-files
+    fi
     ;;
   battery | battery-doctor)
-    uk_load battery_doctor
-    ([[ $# -gt 0 ]] && bd_main "$@" || run_new_utility_wizard battery)
+    uk_load battery_doctor || return $?
+    if [[ $# -gt 0 ]]; then
+      bd_main "$@"
+    else
+      run_new_utility_wizard battery
+    fi
     ;;
   release | release-helper)
-    uk_load release_helper
-    ([[ $# -gt 0 ]] && rel_main "$@" || run_new_utility_wizard release)
+    uk_load release_helper || return $?
+    if [[ $# -gt 0 ]]; then
+      rel_main "$@"
+    else
+      run_new_utility_wizard release
+    fi
     ;;
   license | license-helper)
-    uk_load license_helper
-    ([[ $# -gt 0 ]] && lic_main "$@" || run_new_utility_wizard license)
+    uk_load license_helper || return $?
+    if [[ $# -gt 0 ]]; then
+      lic_main "$@"
+    else
+      run_new_utility_wizard license
+    fi
     ;;
   todo | todo-manager)
-    uk_load todo_manager
-    ([[ $# -gt 0 ]] && td_main "$@" || run_new_utility_wizard todo)
+    uk_load todo_manager || return $?
+    if [[ $# -gt 0 ]]; then
+      td_main "$@"
+    else
+      run_new_utility_wizard todo
+    fi
     ;;
   update | update-managers | upgrade)
-    uk_load update_managers
+    uk_load update_managers || return $?
     # With args, pass straight through (e.g. --list, --dry-run, --only apt,brew).
     # With no args, launch the tool's own rich interactive menu.
     (um_main "$@")
     ;;
   qr | qr-tool)
-    uk_load qr_tool
-    ([[ $# -gt 0 ]] && qr_main "$@" || qr_wizard)
+    uk_load qr_tool || return $?
+    if [[ $# -gt 0 ]]; then
+      qr_main "$@"
+    else
+      qr_wizard
+    fi
     ;;
   clipboard | clipboard-history | clip)
-    uk_load clipboard_history
-    ([[ $# -gt 0 ]] && ch_main "$@" || ch_wizard)
+    uk_load clipboard_history || return $?
+    if [[ $# -gt 0 ]]; then
+      ch_main "$@"
+    else
+      ch_wizard
+    fi
     ;;
   secret | secret-scan | secrets)
-    uk_load secret_scan
-    ([[ $# -gt 0 ]] && sec_main "$@" || sec_wizard)
+    uk_load secret_scan || return $?
+    if [[ $# -gt 0 ]]; then
+      sec_main "$@"
+    else
+      sec_wizard
+    fi
     ;;
   dns | dns-probe)
-    uk_load dns_probe
-    ([[ $# -gt 0 ]] && dp_main "$@" || dp_wizard)
+    uk_load dns_probe || return $?
+    if [[ $# -gt 0 ]]; then
+      dp_main "$@"
+    else
+      dp_wizard
+    fi
     ;;
   ipinfo | ip-info | ip)
-    uk_load ip_info
-    ([[ $# -gt 0 ]] && ii_main "$@" || ii_wizard)
+    uk_load ip_info || return $?
+    if [[ $# -gt 0 ]]; then
+      ii_main "$@"
+    else
+      ii_wizard
+    fi
     ;;
   regex | regex-lab)
-    uk_load regex_lab
-    ([[ $# -gt 0 ]] && rl_main "$@" || rl_wizard)
+    uk_load regex_lab || return $?
+    if [[ $# -gt 0 ]]; then
+      rl_main "$@"
+    else
+      rl_wizard
+    fi
     ;;
   uuid | uuid-gen)
-    uk_load uuid_gen
-    ([[ $# -gt 0 ]] && ug_main "$@" || ug_wizard)
+    uk_load uuid_gen || return $?
+    if [[ $# -gt 0 ]]; then
+      ug_main "$@"
+    else
+      ug_wizard
+    fi
     ;;
   time | time-convert | epoch)
-    uk_load time_convert
-    ([[ $# -gt 0 ]] && tc_main "$@" || tc_wizard)
+    uk_load time_convert || return $?
+    if [[ $# -gt 0 ]]; then
+      tc_main "$@"
+    else
+      tc_wizard
+    fi
     ;;
   bench | http-bench)
-    uk_load http_bench
-    ([[ $# -gt 0 ]] && hb_main "$@" || hb_wizard)
+    uk_load http_bench || return $?
+    if [[ $# -gt 0 ]]; then
+      hb_main "$@"
+    else
+      hb_wizard
+    fi
     ;;
   yaml | yaml-toolkit)
-    uk_load yaml_toolkit
-    ([[ $# -gt 0 ]] && yt_main "$@" || yt_wizard)
+    uk_load yaml_toolkit || return $?
+    if [[ $# -gt 0 ]]; then
+      yt_main "$@"
+    else
+      yt_wizard
+    fi
     ;;
   ytdl | yt-download)
-    uk_load yt_download
-    ([[ $# -gt 0 ]] && yd_main "$@" || yd_wizard)
+    uk_load yt_download || return $?
+    if [[ $# -gt 0 ]]; then
+      yd_main "$@"
+    else
+      yd_wizard
+    fi
     ;;
   pdf | pdf-toolkit)
-    uk_load pdf_toolkit
-    ([[ $# -gt 0 ]] && pt_main "$@" || pt_wizard)
+    uk_load pdf_toolkit || return $?
+    if [[ $# -gt 0 ]]; then
+      pt_main "$@"
+    else
+      pt_wizard
+    fi
     ;;
   image | image-tool)
-    uk_load image_tool
-    ([[ $# -gt 0 ]] && it_main "$@" || it_wizard)
+    uk_load image_tool || return $?
+    if [[ $# -gt 0 ]]; then
+      it_main "$@"
+    else
+      it_wizard
+    fi
     ;;
   fwatch | file-watcher)
-    uk_load file_watcher
-    ([[ $# -gt 0 ]] && fw_main "$@" || fw_wizard)
+    uk_load file_watcher || return $?
+    if [[ $# -gt 0 ]]; then
+      fw_main "$@"
+    else
+      fw_wizard
+    fi
     ;;
   tunnel | ssh-tunnel)
-    uk_load ssh_tunnel
-    ([[ $# -gt 0 ]] && st_main "$@" || st_wizard)
+    uk_load ssh_tunnel || return $?
+    if [[ $# -gt 0 ]]; then
+      st_main "$@"
+    else
+      st_wizard
+    fi
     ;;
   hooks | git-hooks)
-    uk_load git_hooks
-    ([[ $# -gt 0 ]] && gh_main "$@" || gh_wizard)
+    uk_load git_hooks || return $?
+    if [[ $# -gt 0 ]]; then
+      gh_main "$@"
+    else
+      gh_wizard
+    fi
     ;;
   installed | installed-cmds | cmds)
-    uk_load installed
-    ([[ $# -gt 0 ]] && ic_main "$@" || run_installed_wizard)
+    uk_load installed || return $?
+    if [[ $# -gt 0 ]]; then
+      ic_main "$@"
+    else
+      run_installed_wizard
+    fi
     ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
   help | --help | -h) uk_main_show_help ;;
@@ -1257,7 +1522,9 @@ load_all_tools() {
   M_ACTIONS+=("setup")
 
   # Hide Docker Janitor in Termux
-  if [[ "$(uk_platform)" == 'termux' ]]; then
+  local platform
+  platform="$(uk_platform)" || return $?
+  if [[ "$platform" == 'termux' ]]; then
     local i
     for ((i = 0; i < ${#M_ACTIONS[@]}; i++)); do
       if [[ "${M_ACTIONS[$i]}" == "docker" ]]; then
