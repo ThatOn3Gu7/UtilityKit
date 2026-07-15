@@ -34,36 +34,52 @@ pk_memory_summary() {
 pk_top() {
   printf '\n  %s%sTop processes by memory%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 |
-    awk 'NR==1 {
+  local output error=''
+  if ! output="$(ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>&1)"; then
+    error="$output"
+    output="$(ps -axo pid,user,%cpu,%mem,comm 2>&1)" || { uk_error "Unable to list processes: ${output:-$error}"; return 1; }
+    output="$(printf '%s\n' "$output" | { IFS= read -r header; printf '%s\n' "$header"; sort -k4 -rn; })" || return 1
+  fi
+  printf '%s\n' "$output" | head -n 11 | awk 'NR==1 {
       printf "  \033[1m%-8s %-12s %-6s %-6s %s\033[0m\n", $1, $2, $3, $4, $5
       next
     }
-    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }' ||
-    ps -eo pid,user,%cpu,%mem,comm --sort=-%mem 2>/dev/null | head -n 11 | sed 's/^/  /'
+    { printf "  %-8s %-12s %-6s %-6s %s\n", $1, $2, $3, $4, $5 }'
 }
 
+pk_validate_target() {
+  [[ "$PK_PID" =~ ^[1-9][0-9]*$ ]] || { uk_error "PID must be a positive integer: $PK_PID"; return 1; }
+  case "${PK_SIGNAL^^}" in TERM | KILL | INT | HUP | QUIT) PK_SIGNAL="${PK_SIGNAL^^}" ;;
+  *) uk_error "Unsupported signal: $PK_SIGNAL"; return 1 ;;
+  esac
+}
 pk_describe_pid() {
-  ps -p "$PK_PID" -o pid=,user=,%cpu=,%mem=,comm= 2>/dev/null || true
+  ps -p "$PK_PID" -o pid=,user=,%cpu=,%mem=,comm=
 }
 pk_kill() {
-  local before
-  before="$(pk_describe_pid)"
-  if [[ -z "$before" ]]; then
+  local before attempts=0
+  pk_validate_target || return 1
+  if ! before="$(pk_describe_pid)" || [[ -z "$before" ]]; then
     uk_warn "PID $PK_PID does not exist or is not visible to the current user."
     return 1
   fi
   uk_note "Target process: $before"
-  kill -s "$PK_SIGNAL" "$PK_PID"
-  sleep 0.2
-  if ps -p "$PK_PID" >/dev/null 2>&1; then
-    uk_warn "Signal sent, but PID $PK_PID is still running."
-  else
-    uk_success "Sent SIG$PK_SIGNAL to PID $PK_PID and the process exited."
-  fi
+  kill -s "$PK_SIGNAL" -- "$PK_PID" || { uk_error "Failed to send SIG$PK_SIGNAL to PID $PK_PID."; return 1; }
+  local state=''
+  while state="$(ps -p "$PK_PID" -o stat= 2>&1)" && [[ -n "$state" && "$state" != Z* ]]; do
+    ((attempts += 1))
+    if ((attempts >= 10)); then
+      uk_warn "Signal sent, but PID $PK_PID is still running."
+      return 1
+    fi
+    sleep 0.1 || return 1
+  done
+  uk_success "Sent SIG$PK_SIGNAL to PID $PK_PID and the process exited."
 }
 pk_main() {
   uk_banner "process-killer" "RAM/swap overview, top consumers, optional signal send" "" "$@"
+  PK_PID=''
+  PK_SIGNAL='TERM'
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
     --pid)

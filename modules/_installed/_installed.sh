@@ -292,24 +292,29 @@ ic_spinner_stop() {
 # network-blocked package manager (e.g. `npm ls -g` probing the registry) can
 # never hang the whole inventory. Uses GNU/BSD `timeout` when available.
 ic_run_to_file() {
-  local cmd="${1:-}" file="${2:-}"
+  local cmd="${1:-}" file="${2:-}" rc=0 err="${file}.err"
   if ic_has_cmd timeout; then
-    timeout 25 sh -c "$cmd" >"$file" 2>/dev/null
+    timeout 25 sh -c "$cmd" >"$file" 2>"$err" || rc=$?
   else
-    sh -c "$cmd" >"$file" 2>/dev/null
+    sh -c "$cmd" >"$file" 2>"$err" || rc=$?
   fi
+  if [ -s "$err" ]; then cat "$err" >&2; fi
+  rm -f "$err" || return 1
+  return "$rc"
 }
 
 # Run a manager's query, animating a spinner while it executes.
 ic_query_manager() {
   local idx="${1:-}" outfile="${2:-}" cmd="${PM_LIST[$idx]:-}" id="${PM_ID[$idx]:-}"
+  local rc=0
   if ic_should_spin; then
     ic_spinner_start "Querying ${id}"
-    ic_run_to_file "$cmd" "$outfile"
+    ic_run_to_file "$cmd" "$outfile" || rc=$?
     ic_spinner_stop
   else
-    ic_run_to_file "$cmd" "$outfile"
+    ic_run_to_file "$cmd" "$outfile" || rc=$?
   fi
+  return "$rc"
 }
 
 # Normalize a manager's raw list output into "name<TAB>version" lines. Reads
@@ -504,7 +509,7 @@ ic_main() {
 
   ic_register_managers
 
-  local report="" line="" idxs idx id cat notes parse pkgs count tmpfile
+  local report="" line="" idxs idx id cat notes parse pkgs count tmpfile query_failed=0
   local cmds="" cmd_count=0
   local json_managers="" json_cmds=""
 
@@ -528,11 +533,19 @@ ic_main() {
         [ -n "$IC_ONLY_CATEGORIES" ] && ! ic_csv_contains "$c" "$IC_ONLY_CATEGORIES" && continue
 
         parse="${PM_PARSE[$idx]}"
-        tmpfile="$(mktemp)"
-        ic_query_manager "$idx" "$tmpfile"
+        tmpfile="$(mktemp)" || return 1
+        if ! ic_query_manager "$idx" "$tmpfile"; then
+          report="${report}  ${C_R}${UK_I_ERR}${C_RESET} ${id}${C_D} — query failed${C_RESET}"$'\n'
+          query_failed=1
+          rm -f "$tmpfile" || return 1
+          continue
+        fi
         # Normalize to "name<TAB>version", drop empties, dedupe by name.
-        pkgs="$(ic_parse "$parse" <"$tmpfile" 2>/dev/null | grep -v '^$' | awk -F'\t' 'NF>=1 && $1!="" && !seen[$1]++')"
-        rm -f "$tmpfile"
+        # A parser producing zero rows (e.g. empty global npm / newer pipx
+        # output) is not a query failure; only the manager rc drives
+        # query_failed, so tolerate an empty parse here.
+        pkgs="$(ic_parse "$parse" <"$tmpfile" | awk -F'\t' 'NF>=1 && $1!="" && !seen[$1]++' || true)"
+        rm -f "$tmpfile" || return 1
         count="$(printf '%s\n' "$pkgs" | grep -c . || true)"
 
         if [ "$IC_JSON" -eq 1 ]; then
@@ -592,7 +605,7 @@ ic_main() {
     }
     [ "$IC_PLAIN" -eq 0 ] && printf '  %s report written to %s%s\n' "$C_G" "$IC_EXPORT" "$C_RESET"
   fi
-  return 0
+  return "$query_failed"
 }
 
 # Entry point (standalone-safe). When executed directly we run ic_main; when

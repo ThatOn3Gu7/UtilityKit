@@ -21,15 +21,30 @@ of_main() {
     esac
     shift
   done
-  [[ -n "$path" ]] && {
-    uk_has_cmd lsof && lsof -- "$path" || uk_error 'lsof unavailable'
-    return
-  }
-  [[ -n "$port" ]] && {
-    uk_has_cmd lsof && lsof -i ":$port" || uk_error 'lsof unavailable'
-    return
-  }
+  uk_has_cmd lsof || { uk_error 'lsof unavailable'; return 1; }
+  if [[ -n "$path" ]]; then
+    local output status=0
+    output="$(lsof -- "$path" 2>&1)" || status=$?
+    if ((status != 0)); then
+      [[ -n "$output" ]] && uk_error "lsof path lookup failed: $output" || uk_note "No process is using: $path"
+      return "$status"
+    fi
+    printf '%s\n' "$output"
+    return 0
+  fi
+  if [[ -n "$port" ]]; then
+    [[ "$port" =~ ^[0-9]+$ ]] && ((port >= 1 && port <= 65535)) || { uk_error "Invalid port: $port"; return 1; }
+    local output status=0
+    output="$(lsof -i ":$port" 2>&1)" || status=$?
+    if ((status != 0)); then
+      [[ -n "$output" ]] && uk_error "lsof port lookup failed: $output" || uk_note "No process is using port: $port"
+      return "$status"
+    fi
+    printf '%s\n' "$output"
+    return 0
+  fi
   of_usage
+  return 1
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail

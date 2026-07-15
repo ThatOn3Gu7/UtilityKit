@@ -20,6 +20,10 @@ cm_have() {
     return 1
   }
 }
+cm_cleanup() {
+  trap - RETURN
+  rm -f -- "${tmp:-}" "${tmp:-}.new" "${tmp:-}.err" || uk_warn 'Unable to remove cron temporary files.'
+}
 cm_main() {
   uk_banner "cron-manager" "List, add, and remove crontab entries with format validation" "" "$@"
   local action='list' line='' num='' apply=0
@@ -51,11 +55,22 @@ cm_main() {
 
   cm_have || return 1
 
-  local tmp
-  tmp=$(mktemp)
-  trap 'rm -f "$tmp" "$tmp.new"' EXIT
+  local tmp list_error='' list_status=0
+  tmp=$(mktemp) || { uk_error 'Unable to create crontab temporary file.'; return 1; }
+  trap 'cm_cleanup' RETURN
 
-  crontab -l >"$tmp" 2>/dev/null || true
+  crontab -l >"$tmp" 2>"${tmp}.err" || list_status=$?
+  if ((list_status != 0)); then
+    list_error="$(cat "${tmp}.err")" || return 1
+    if [[ -z "$list_error" || "$list_error" == *'no crontab for'* || "$list_error" == *'no crontab'* ]]; then
+      # No crontab yet (or a silent empty read) — safe to start from scratch.
+      : >"$tmp" || return 1
+    else
+      uk_error "Unable to read existing crontab: $list_error"
+      return 1
+    fi
+  fi
+  rm -f "${tmp}.err" || return 1
 
   case "$action" in
   list)
@@ -66,7 +81,7 @@ cm_main() {
     fi
     ;;
   add)
-    if [[ ! "$line" =~ ^([^[:space:]]+[[:space:]]+){5}[^[:space:]] ]]; then
+    if [[ "$line" == *$'\n'* || "$line" == *$'\r'* || ! "$line" =~ ^([^[:space:]]+[[:space:]]+){5}[^[:space:]].*$ ]]; then
       uk_error 'Expected five cron fields plus command (e.g., "*/5 * * * * /path/to/script")'
       return 1
     fi
@@ -84,7 +99,10 @@ cm_main() {
       uk_error 'Line number must be a positive integer.'
       return 1
     fi
-    awk -v n="$num" 'NR!=n' "$tmp" >"$tmp.new"
+    local total
+    total=$(wc -l <"$tmp") || return 1
+    ((num <= total)) || { uk_error "Line number out of range: $num (have $total)."; return 1; }
+    awk -v n="$num" 'NR!=n' "$tmp" >"$tmp.new" || return 1
     if ((apply == 1)); then
       crontab "$tmp.new"
       uk_success 'Crontab updated.'
