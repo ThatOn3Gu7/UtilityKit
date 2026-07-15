@@ -5,7 +5,7 @@ composer_plugin_info() {
   printf 'composer|composer|🎼\n'
 }
 composer_detect() {
-  command -v composer >/dev/null 2>&1
+  command -v composer >/dev/null
 }
 composer_get_cache_dirs() {
   if [ "$CC_OS" = "macos" ]; then

@@ -121,39 +121,47 @@ sec_list_files() {
   local path="$1" respect_gitignore="$2"
   local -n out_ref=$3
   out_ref=()
+  local list_file repo_root='' probe_error='' f abs_path
+  list_file="$(mktemp)" || return 1
 
-  # If inside a git repo AND we respect gitignore AND user hasn't overridden,
-  # prefer `git ls-files` which excludes ignored + untracked-but-ignored files.
   if [[ "$respect_gitignore" == "1" ]] && uk_has_cmd git; then
-    local repo_root
-    repo_root="$(git -C "$path" rev-parse --show-toplevel 2>/dev/null || true)"
-    if [[ -n "$repo_root" ]]; then
-      local -a files
-      # Include tracked + untracked (not ignored). Null-terminated for safety.
+    if repo_root="$(git -C "$path" rev-parse --show-toplevel 2>&1)"; then
+      if ! git -C "$repo_root" ls-files -z --cached --others --exclude-standard >"$list_file"; then
+        rm -f "$list_file"
+        uk_error "git file enumeration failed: $repo_root"
+        return 1
+      fi
+      abs_path="$(cd "$path" && pwd -P)" || { rm -f "$list_file"; return 1; }
       while IFS= read -r -d '' f; do
-        files+=("$repo_root/$f")
-      done < <(git -C "$repo_root" ls-files -z --cached --others --exclude-standard 2>/dev/null || true)
-      # Only keep files under $path (in case caller pointed at a subdir).
-      local abs_path
-      abs_path="$(cd "$path" 2>/dev/null && pwd)"
-      local f
-      for f in "${files[@]}"; do
+        f="$repo_root/$f"
         [[ "$f" == "$abs_path"/* || "$f" == "$abs_path" ]] && out_ref+=("$f")
-      done
+      done <"$list_file"
+      rm -f "$list_file" || return 1
       return 0
+    else
+      probe_error="$repo_root"
+      [[ -n "$probe_error" ]] && uk_note "Git enumeration unavailable for '$path'; using find."
     fi
   fi
 
-  # Non-git fallback: find, honoring default excludes so we don't drown in
-  # node_modules and .git/.
   local -a find_args=("$path" -type f)
-  local ex
-  for ex in "${SEC_DEFAULT_EXCLUDES[@]}"; do
-    find_args+=(-not -path "$ex")
-  done
-  while IFS= read -r -d '' f; do
-    out_ref+=("$f")
-  done < <(find "${find_args[@]}" -print0 2>/dev/null)
+  local ex find_err
+  for ex in "${SEC_DEFAULT_EXCLUDES[@]}"; do find_args+=(-not -path "$ex"); done
+  # Separate stderr so a single unreadable subdirectory (routine in real
+  # trees) does not abort the entire scan and hide secrets elsewhere. Only
+  # fail hard when nothing at all was enumerated.
+  find "${find_args[@]}" -print0 >"$list_file" 2>"$list_file.err" || find_err=1
+  if [[ -n "${find_err:-}" ]]; then
+    uk_warn "$(cat "$list_file.err")"
+  fi
+  rm -f "$list_file.err"
+  if [[ -n "${find_err:-}" && ! -s "$list_file" ]]; then
+    rm -f "$list_file"
+    uk_error "File traversal failed: $path"
+    return 1
+  fi
+  while IFS= read -r -d '' f; do out_ref+=("$f"); done <"$list_file"
+  rm -f "$list_file" || return 1
 }
 
 # ---- Entropy detection -----------------------------------------------------
@@ -189,8 +197,9 @@ try:
                 if e >= min_e:
                     ctx = line.strip()
                     print(f"{lineno}\t{e:.2f}\t{tok}\t{ctx}")
-except Exception:
-    pass
+except Exception as e:
+    print(f"entropy scan failed for {path}: {e}", file=sys.stderr)
+    sys.exit(2)
 PY
 }
 
@@ -287,22 +296,23 @@ sec_scan_file_regex() {
       regex="${regex//(?:/(}"
       regex="${regex//\s/[[:space:]]}"
     fi
+    local grep_output grep_status=0
+    grep_output="$(grep $grep_flag -nai -- "$regex" "$file" 2>&1)" || grep_status=$?
+    ((grep_status == 1)) && continue
+    ((grep_status == 0)) || { uk_error "Regex scan failed for $file ($rname): $grep_output"; return "$grep_status"; }
     while IFS= read -r line; do
-      # grep output: LINENO:MATCHED_LINE (we used -n and omitted -H)
       lineno="${line%%:*}"
       match="${line#*:}"
       [[ "$lineno" =~ ^[0-9]+$ ]] || continue
-      # Extract the actual matched substring using the same grep dialect.
-      local raw
-      raw="$(printf '%s' "$match" | grep $grep_flag -oi -- "$regex" | head -n1 || true)"
+      local raw raw_status=0
+      raw="$(printf '%s' "$match" | grep $grep_flag -oi -- "$regex")" || raw_status=$?
+      ((raw_status <= 1)) || { uk_error "Match extraction failed for $file ($rname)."; return "$raw_status"; }
+      raw="$(awk 'NR==1 {print; exit}' <<<"$raw")"
       [[ -z "$raw" ]] && raw="$match"
-      # Trim context.
       local ctx="$match"
-      if (( ${#ctx} > 2*ctx_len )); then
-        ctx="${ctx:0:ctx_len}…${ctx: -ctx_len}"
-      fi
+      if (( ${#ctx} > 2*ctx_len )); then ctx="${ctx:0:ctx_len}…${ctx: -ctx_len}"; fi
       sec_emit_finding "$rname" "$file" "$lineno" "$raw" "$ctx"
-    done < <(grep $grep_flag -nai -- "$regex" "$file" 2>/dev/null || true)
+    done <<<"$grep_output"
   done
 
   # Live dotenv values: KEY=<non-empty, not a placeholder>.
@@ -334,11 +344,12 @@ sec_scan_file_regex() {
 sec_scan_file_entropy() {
   local file="$1" min_e="$2" min_len="$3"
   uk_has_cmd python3 || return 0
-  local line
+  local line output
+  output="$(sec_scan_entropy_py "$file" "$min_e" "$min_len")" || { uk_error "Entropy scan failed: $file"; return 1; }
   while IFS=$'\t' read -r lineno e tok ctx; do
     [[ -z "$lineno" ]] && continue
     sec_emit_finding "high-entropy-blob" "$file" "$lineno" "$tok" "entropy=$e $ctx"
-  done < <(sec_scan_entropy_py "$file" "$min_e" "$min_len")
+  done <<<"$output"
 }
 
 # ---- Main ------------------------------------------------------------------
@@ -405,7 +416,7 @@ sec_main() {
       all_files+=("$p")
       continue
     fi
-    sec_list_files "$p" "$respect_gitignore" files
+    sec_list_files "$p" "$respect_gitignore" files || return 2
     all_files+=("${files[@]}")
   done
 
@@ -415,8 +426,8 @@ sec_main() {
     [[ -f "$f" ]] || continue
     # Size cap.
     local sz
-    sz="$(wc -c <"$f" 2>/dev/null | tr -d ' ')"
-    [[ "$sz" =~ ^[0-9]+$ ]] || sz=0
+    sz="$(wc -c <"$f" | tr -d ' ')" || { uk_error "Unable to read file size: $f"; return 2; }
+    [[ "$sz" =~ ^[0-9]+$ ]] || { uk_error "Invalid file size: $f"; return 2; }
     (( sz > max_bytes )) && continue
 
     skip=0
@@ -452,8 +463,8 @@ sec_main() {
   fi
 
   for f in "${to_scan[@]}"; do
-    sec_scan_file_regex "$f" "$ctx_len"
-    (( use_entropy )) && sec_scan_file_entropy "$f" "$entropy_min" "$entropy_len"
+    sec_scan_file_regex "$f" "$ctx_len" || return 2
+    if ((use_entropy)); then sec_scan_file_entropy "$f" "$entropy_min" "$entropy_len" || return 2; fi
   done
 
   if [[ "$SEC_JSON" != "1" ]]; then

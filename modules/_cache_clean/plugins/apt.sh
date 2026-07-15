@@ -5,7 +5,7 @@ apt_plugin_info() {
   printf 'apt|apt|🐚\n'
 }
 apt_detect() {
-  command -v apt >/dev/null 2>&1 || command -v apt-get >/dev/null 2>&1
+  command -v apt >/dev/null || command -v apt-get >/dev/null
 }
 apt_get_cache_dirs() {
   if [ "$CC_OS" = "termux" ] && [ -n "${PREFIX:-}" ]; then

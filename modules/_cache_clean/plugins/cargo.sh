@@ -5,7 +5,7 @@ cargo_plugin_info() {
   printf 'cargo|cargo|🦀\n'
 }
 cargo_detect() {
-  command -v cargo >/dev/null 2>&1
+  command -v cargo >/dev/null
 }
 cargo_get_cache_dirs() {
   local cargo_home="${CARGO_HOME:-$HOME/.cargo}"
@@ -29,7 +29,7 @@ cargo_scan_cache() {
     while IFS= read -r f; do
       [ -z "$f" ] && continue
       cc_emit_orphan "$dir" "$f" "stale .crate older than ${CC_OLDER_THAN} days"
-    done < <(find "$dir" -type f -name '*.crate' -mtime +"$CC_OLDER_THAN" 2>/dev/null)
+    done < <(find "$dir" -type f -name '*.crate' -mtime +"$CC_OLDER_THAN")
 
     # Partial / empty / temporary files.
     while IFS= read -r f; do

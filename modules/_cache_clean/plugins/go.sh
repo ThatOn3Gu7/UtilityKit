@@ -5,7 +5,7 @@ go_plugin_info() {
   printf 'go|go|🐹\n'
 }
 go_detect() {
-  command -v go >/dev/null 2>&1
+  command -v go >/dev/null
 }
 go_get_cache_dirs() {
   local gopath

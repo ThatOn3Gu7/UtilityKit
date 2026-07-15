@@ -61,18 +61,31 @@ li_main() {
     return 1
   fi
 
-  # 1. Inspect patterns (guarded against pipefail)
+  # 1. Inspect patterns; distinguish no matches from an invalid regex/read error.
   printf "\n=== Pattern Matches: %s ===\n" "$pattern"
-  grep -Ein "$pattern" "$file" | head -n 50 || true
+  local matches status=0 summary
+  matches="$(grep -Ein -- "$pattern" "$file")" || status=$?
+  if ((status == 0)); then
+    awk 'NR<=50' <<<"$matches"
+  elif ((status == 1)); then
+    printf '(no matches)\n'
+  else
+    uk_error "Pattern search failed with status $status."
+    return "$status"
+  fi
 
   # 2. Summary counts (using sort -S for memory safety)
   printf "\n=== Frequency Summary (Top 10) ===\n"
-  # Use GNU sort -S when available, with a BSD/macOS fallback.
-  if sort -S 50% </dev/null >/dev/null 2>&1; then
-    sort -S 50% "$file" | uniq -c | sort -rn | head -n 10 || true
+  local probe_log
+  probe_log="$(mktemp)" || { uk_error "Unable to create temporary file."; return 1; }
+  if sort -S 50% </dev/null >/dev/null 2>"$probe_log"; then
+    summary="$(sort -S 50% "$file" | uniq -c | sort -rn)" || { rm -f "$probe_log"; return 1; }
   else
-    sort "$file" | uniq -c | sort -rn | head -n 10 || true
+    [[ -s "$probe_log" ]] && uk_note "GNU sort memory option unavailable; using portable sort."
+    summary="$(sort "$file" | uniq -c | sort -rn)" || { rm -f "$probe_log"; return 1; }
   fi
+  rm -f "$probe_log" || return 1
+  awk 'NR<=10' <<<"$summary"
 }
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
   set -euo pipefail

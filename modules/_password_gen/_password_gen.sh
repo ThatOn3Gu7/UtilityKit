@@ -21,18 +21,35 @@ pg_entropy_words() {
 pg_entropy_string() {
   awk -v n="${1:-}" 'BEGIN { printf "%.2f", n*(log(72)/log(2)) }'
 }
+pg_random_index() {
+  local count="${1:-}" value limit
+  [[ "$count" =~ ^[1-9][0-9]*$ && "$count" -le 256 ]] || return 1
+  [[ -r /dev/urandom ]] || { uk_error '/dev/urandom is required for secure generation.'; return 1; }
+  limit=$((256 - (256 % count)))
+  while :; do
+    value="$(od -An -N1 -tu1 /dev/urandom)" || return 1
+    value="${value//[[:space:]]/}"
+    [[ "$value" =~ ^[0-9]+$ ]] || return 1
+    ((value < limit)) && { printf '%s\n' "$((value % count))"; return 0; }
+  done
+}
 pg_passphrase() {
   local out='' idx i count=${#PG_WORDLIST[@]}
   for ((i = 0; i < PG_WORDS; i++)); do
-    idx=$((RANDOM % count))
+    idx="$(pg_random_index "$count")" || return 1
     out+="${PG_WORDLIST[$idx]}"
     ((i + 1 < PG_WORDS)) && out+="$PG_SEPARATOR"
   done
   printf '%s\n' "$out"
 }
 pg_string() {
-  tr -dc 'A-Za-z0-9!@#$%^&*()_+=-' </dev/urandom | head -c "$PG_LENGTH"
-  printf '\n'
+  local alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+=-'
+  local out='' idx
+  while ((${#out} < PG_LENGTH)); do
+    idx="$(pg_random_index "${#alphabet}")" || return 1
+    out+="${alphabet:$idx:1}"
+  done
+  printf '%s\n' "$out"
 }
 pg_main() {
   uk_banner "password-gen" "XKCD-style passphrases or random strings with entropy" "" "$@"
@@ -106,15 +123,19 @@ pg_main() {
       PG_COPY=1
     fi
   fi
+  uk_has_cmd od || { uk_error 'od is required for secure random generation.'; return 1; }
+  [[ "$PG_WORDS" =~ ^[1-9][0-9]*$ ]] && ((PG_WORDS <= 64)) || { uk_error '--words must be an integer from 1 to 64.'; return 1; }
+  [[ "$PG_LENGTH" =~ ^[1-9][0-9]*$ ]] && ((PG_LENGTH <= 4096)) || { uk_error '--length must be an integer from 1 to 4096.'; return 1; }
+  [[ "$PG_SEPARATOR" != *$'\n'* && "$PG_SEPARATOR" != *$'\r'* && ${#PG_SEPARATOR} -le 8 ]] || { uk_error '--separator must be at most 8 characters with no line breaks.'; return 1; }
   local generated entropy
   case "$PG_MODE" in
   passphrase)
-    generated=$(pg_passphrase)
-    entropy=$(pg_entropy_words "$PG_WORDS" "${#PG_WORDLIST[@]}")
+    generated=$(pg_passphrase) || { uk_error 'Passphrase generation failed.'; return 1; }
+    entropy=$(pg_entropy_words "$PG_WORDS" "${#PG_WORDLIST[@]}") || return 1
     ;;
   string)
-    generated=$(pg_string)
-    entropy=$(pg_entropy_string "$PG_LENGTH")
+    generated=$(pg_string) || { uk_error 'Random-string generation failed.'; return 1; }
+    entropy=$(pg_entropy_string "$PG_LENGTH") || return 1
     ;;
   *)
     uk_error "Unsupported mode: $PG_MODE"
@@ -159,16 +180,19 @@ pg_main() {
 
   # ── Save to file ────
   if [[ -t 0 && -t 1 ]]; then
-    local save_dir save_path
-    save_dir="$(uk_data_dir)/passwords"
-    save_path="$save_dir/$(date '+%Y%m%d_%H%M%S')_${PG_MODE}.txt"
+    local save_dir save_path data_dir
+    data_dir="$(uk_data_dir)" || return 1
+    save_dir="$data_dir/passwords"
     printf ' ◆ %sSave to file?%s %s[Y/n]%s %s>%s ' \
       "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
     local save_reply
-    read -r save_reply </dev/tty
+    read -r save_reply </dev/tty || { uk_error 'Unable to read save confirmation.'; return 1; }
     if [[ ! "$save_reply" =~ ^[Nn]$ ]]; then
-      mkdir -p "$save_dir"
-      printf '%s\n' "$generated" >"$save_path"
+      mkdir -p -m 700 "$save_dir" || { uk_error "Unable to create password directory: $save_dir"; return 1; }
+      chmod 700 "$save_dir" || { uk_error "Unable to secure password directory: $save_dir"; return 1; }
+      save_path="$(mktemp "$save_dir/$(date '+%Y%m%d_%H%M%S')_${PG_MODE}.XXXXXX")" || { uk_error 'Unable to create password file.'; return 1; }
+      chmod 600 "$save_path" || { rm -f "$save_path"; uk_error 'Unable to secure password file.'; return 1; }
+      printf '%s\n' "$generated" >"$save_path" || { rm -f "$save_path"; uk_error 'Unable to write password file.'; return 1; }
       uk_success "Saved to $save_path"
     fi
   fi

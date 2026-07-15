@@ -5,7 +5,7 @@ npm_plugin_info() {
   printf 'npm|npm|🟩\n'
 }
 npm_detect() {
-  command -v npm >/dev/null 2>&1
+  command -v npm >/dev/null
 }
 npm_get_cache_dirs() {
   local cache_dir
@@ -30,7 +30,7 @@ npm_scan_cache() {
     total_kb=$(cc_du_kb "$dir")
     cc_emit_tot "$dir" "$total_kb"
 
-    # Old npm debug logs (npm i 2>&1 logs, etc.)
+    # Old npm debug logs (npm i logs, etc.)
     if [ -d "$dir/_logs" ]; then
       while IFS= read -r f; do
         [ -z "$f" ] && continue

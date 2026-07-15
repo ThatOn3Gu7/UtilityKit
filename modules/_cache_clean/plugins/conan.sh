@@ -5,7 +5,7 @@ conan_plugin_info() {
   printf 'conan|conan|🐕\n'
 }
 conan_detect() {
-  command -v conan >/dev/null 2>&1
+  command -v conan >/dev/null
 }
 conan_get_cache_dirs() {
   printf '%s\n' "$HOME/.conan/data"

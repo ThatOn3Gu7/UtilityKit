@@ -90,12 +90,13 @@ USAGE
 # ---- Storage helpers -------------------------------------------------------
 
 ch_init_store() {
-  CH_STORE="$(uk_data_dir)/clipboard.jsonl"
+  local data_dir
+  data_dir="$(uk_data_dir)" || return 1
+  CH_STORE="$data_dir/clipboard.jsonl"
   if [[ ! -f "$CH_STORE" ]]; then
-    : > "$CH_STORE" || { uk_error "Cannot create store: $CH_STORE"; return 1; }
+    (umask 077; : > "$CH_STORE") || { uk_error "Cannot create store: $CH_STORE"; return 1; }
   fi
-  # Best-effort permission lockdown; the file may hold sensitive data.
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
 }
 
 # JSON-escape a string using Python if available (handles UTF-8 + control chars
@@ -123,8 +124,9 @@ ch_json_get_data() {
 import json, sys
 try:
     print(json.loads(sys.argv[1])["data"], end="")
-except Exception:
-    pass
+except Exception as e:
+    print(f"invalid clipboard record: {e}", file=sys.stderr)
+    sys.exit(1)
 ' "$line"
   else
     # Fallback: strip prefix + suffix around "data":"..." — best-effort only.
@@ -147,8 +149,9 @@ ch_json_get_field() {
 import json, sys
 try:
     print(json.loads(sys.argv[1]).get(sys.argv[2], ""), end="")
-except Exception:
-    pass
+except Exception as e:
+    print(f"invalid clipboard record: {e}", file=sys.stderr)
+    sys.exit(1)
 ' "$line" "$field"
   else
     # naive: look for "field":<value>
@@ -173,7 +176,8 @@ ch_trim_to_max() {
   # Keep: all pinned lines, plus most recent (max - pinned) unpinned lines.
   # File is append-only, so newest lines are at the bottom.
   if uk_has_cmd python3; then
-    python3 - "$CH_STORE" "$max" "$tmp" <<'PY'
+    local rc=0
+    python3 - "$CH_STORE" "$max" "$tmp" <<'PY' || rc=$?
 import json, sys
 store, max_keep, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 lines = []
@@ -182,7 +186,8 @@ with open(store, encoding='utf-8', errors='replace') as f:
         l = l.rstrip('\n')
         if not l: continue
         try: obj = json.loads(l)
-        except Exception: continue
+        except Exception as e:
+            raise SystemExit(f"invalid clipboard record: {e}")
         lines.append((obj, l))
 pinned   = [l for o, l in lines if o.get('pin')]
 unpinned = [l for o, l in lines if not o.get('pin')]
@@ -198,12 +203,18 @@ with open(out, 'w', encoding='utf-8') as f:
     for l in kept:
         f.write(l + '\n')
 PY
-    mv "$tmp" "$CH_STORE" 2>/dev/null || rm -f "$tmp"
+    if ((rc != 0)); then
+      rm -f "$tmp"
+      uk_error 'Clipboard store contains a malformed record; trim aborted without rewriting it.'
+      return 1
+    fi
+    mv "$tmp" "$CH_STORE" || { rm -f "$tmp"; return 1; }
   else
     # awk fallback — keeps last $max lines including pins.
-    tail -n "$max" "$CH_STORE" >"$tmp" && mv "$tmp" "$CH_STORE" || rm -f "$tmp"
+    tail -n "$max" "$CH_STORE" >"$tmp" || { rm -f "$tmp"; return 1; }
+    mv "$tmp" "$CH_STORE" || { rm -f "$tmp"; return 1; }
   fi
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
 }
 
 # ---- Clipboard read/write (system) -----------------------------------------
@@ -251,17 +262,19 @@ ch_add() {
   local last
   last="$(tail -n1 "$CH_STORE" 2>/dev/null || true)"
   local last_data=""
-  [[ -n "$last" ]] && last_data="$(ch_json_get_data "$last")"
+  # A corrupt trailing record must not block new adds; treat a parse failure
+  # as "not a duplicate" rather than aborting the whole add.
+  [[ -n "$last" ]] && last_data="$(ch_json_get_data "$last" 2>/dev/null || true)"
   if [[ "$text" == "$last_data" ]]; then
     [[ "$quiet" == "1" ]] || uk_note "Duplicate of most recent entry — not added."
     return 0
   fi
 
   local esc t
-  esc="$(ch_json_esc "$text")"
-  t="$(date +%s 2>/dev/null || printf 0)"
-  printf '{"t":%s,"pin":0,"data":%s}\n' "$t" "$esc" >>"$CH_STORE"
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  esc="$(ch_json_esc "$text")" || return 1
+  t="$(date +%s)" || { uk_error 'Unable to read current time.'; return 1; }
+  printf '{"t":%s,"pin":0,"data":%s}\n' "$t" "$esc" >>"$CH_STORE" || return 1
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
   [[ "$quiet" == "1" ]] || uk_success "Added ${#text}-byte entry."
 }
 
@@ -283,7 +296,8 @@ with open(sys.argv[1], encoding='utf-8', errors='replace') as f:
         l = l.rstrip('\n')
         if not l: continue
         try: out.append(json.loads(l))
-        except Exception: pass
+        except Exception as e:
+            raise SystemExit(f"invalid clipboard record: {e}")
 out.reverse()
 print(json.dumps(out, ensure_ascii=False))
 PY
@@ -482,7 +496,7 @@ PY
       { print }
     ' "$CH_STORE" >"$tmp" && mv "$tmp" "$CH_STORE" || { rm -f "$tmp"; return 1; }
   fi
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
   if [[ "$val" == "1" ]]; then uk_success "Pinned entry #$sel."; else uk_success "Unpinned entry #$sel."; fi
 }
 
@@ -492,7 +506,7 @@ ch_remove() {
   lineno="$(ch_resolve_line_number "$sel")" || return 1
   local tmp; tmp="$(mktemp)" || return 1
   sed "${lineno}d" "$CH_STORE" >"$tmp" && mv "$tmp" "$CH_STORE" || { rm -f "$tmp"; return 1; }
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
   uk_success "Removed entry #$sel."
 }
 
@@ -509,7 +523,7 @@ ch_clear() {
     fi
   fi
   : > "$CH_STORE"
-  chmod 600 "$CH_STORE" 2>/dev/null || true
+  chmod 600 "$CH_STORE" || { uk_error "Cannot secure clipboard store: $CH_STORE"; return 1; }
   uk_success "History cleared."
 }
 

@@ -5,7 +5,7 @@ dnf_plugin_info() {
   printf 'dnf|dnf|🎩\n'
 }
 dnf_detect() {
-  command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1
+  command -v dnf >/dev/null || command -v yum >/dev/null
 }
 dnf_get_cache_dirs() {
   printf '%s\n' "/var/cache/dnf"

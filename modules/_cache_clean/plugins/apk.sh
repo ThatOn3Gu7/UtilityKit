@@ -5,7 +5,7 @@ apk_plugin_info() {
   printf 'apk|apk|🏔️\n'
 }
 apk_detect() {
-  command -v apk >/dev/null 2>&1
+  command -v apk >/dev/null
 }
 apk_get_cache_dirs() {
   printf '%s\n' "/var/cache/apk"

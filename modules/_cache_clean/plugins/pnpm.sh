@@ -5,7 +5,7 @@ pnpm_plugin_info() {
   printf 'pnpm|pnpm|🅿️\n'
 }
 pnpm_detect() {
-  command -v pnpm >/dev/null 2>&1
+  command -v pnpm >/dev/null
 }
 pnpm_get_cache_dirs() {
   printf '%s\n' "$HOME/.pnpm-store"

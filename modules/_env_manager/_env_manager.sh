@@ -56,10 +56,14 @@ Options:
   -h, --help          Show this help.
 USAGE
 }
+em_safe_project_file() {
+  local name="${1:-}"
+  [[ -n "$name" && "$name" != "." && "$name" != ".." && "$name" != */* && "$name" != *$'\n'* && "$name" != *$'\r'* ]]
+}
 em_keys() {
   local file="${1:-}"
-  [[ -f "$file" ]] || return 0
-  grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$file" | sed 's/=.*$//' | sort -u
+  [[ -f "$file" ]] || { uk_error "Missing env file: $file"; return 1; }
+  awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/ {print $1}' "$file" | sort -u
 }
 em_validate_file() {
   local file="${1:-}" invalid=0 line_no=0 line
@@ -99,24 +103,26 @@ em_compare_files() {
   tmp1=$(mktemp) || return 1
   tmp2=$(mktemp) || { rm -f "$tmp1"; return 1; }
 
-  em_keys "$active" >"$tmp1"
-  em_keys "$example" >"$tmp2"
+  em_keys "$active" >"$tmp1" || { rm -f "$tmp1" "$tmp2"; return 1; }
+  em_keys "$example" >"$tmp2" || { rm -f "$tmp1" "$tmp2"; return 1; }
 
   uk_section_title "Key comparison: active=$active example=$example"
   uk_note "Missing from active .env:"
-  comm -13 "$tmp1" "$tmp2" | sed 's/^/  - /' || true
+  comm -13 "$tmp1" "$tmp2" | sed 's/^/  - /' || { rm -f "$tmp1" "$tmp2"; return 1; }
 
   uk_note "Extra keys in active .env:"
-  comm -23 "$tmp1" "$tmp2" | sed 's/^/  - /' || true
+  comm -23 "$tmp1" "$tmp2" | sed 's/^/  - /' || { rm -f "$tmp1" "$tmp2"; return 1; }
   rm -f "$tmp1" "$tmp2"
 }
 
 em_list_profiles() {
   local dir="${1:-}"
-  find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; 2>/dev/null | sed 's/^\.env\.//' | sort
+  find "$dir" -maxdepth 1 -type f -name '.env.*' ! -name '*.enc' ! -name '*.gpg' ! -name '.env.example' -exec basename {} \; | sed 's/^\.env\.//' | sort
 }
 em_swap_profile() {
   local profile="${1:-}"
+  em_safe_project_file "$profile" || { uk_error "Unsafe profile name: $profile"; return 1; }
+  em_safe_project_file "$EM_ACTIVE" || { uk_error "Unsafe active env filename: $EM_ACTIVE"; return 1; }
   local src="$EM_DIR/.env.$profile"
   local dst="$EM_DIR/$EM_ACTIVE"
 
@@ -127,7 +133,7 @@ em_swap_profile() {
   uk_section_title "Profile switch: $src -> $dst"
 
   if ((EM_APPLY == 1)); then
-    cp "$src" "$dst"
+    cp "$src" "$dst" || { uk_error "Failed to activate profile '$profile'."; return 1; }
     uk_success "Activated profile '$profile'."
   else
     uk_note "Dry-run only. Re-run with --apply to activate profile '$profile'."
@@ -181,7 +187,7 @@ em_decrypt_file() {
 em_interactive() {
   local profiles profile
 
-  profiles="$(em_list_profiles "$EM_DIR" || true)"
+  profiles="$(em_list_profiles "$EM_DIR")" || { uk_error "Unable to list profiles in: $EM_DIR"; return 1; }
   uk_note "Scanning profiles in: $EM_DIR"
 
   if [[ -n "$profiles" ]]; then
@@ -303,6 +309,9 @@ em_main() {
     shift || true
   done
 
+  em_safe_project_file "$EM_ACTIVE" || { uk_error "--active must be a filename inside --dir: $EM_ACTIVE"; return 1; }
+  em_safe_project_file "$EM_EXAMPLE" || { uk_error "--example must be a filename inside --dir: $EM_EXAMPLE"; return 1; }
+
   [[ -n "$EM_ENCRYPT" ]] && {
     em_encrypt_file "$EM_ENCRYPT"
     return $?
@@ -325,7 +334,7 @@ em_main() {
     else
       em_validate_file "$EM_VALIDATE"
     fi
-    return 0
+    return $?
   fi
 
   if ((EM_COMPARE == 1)); then

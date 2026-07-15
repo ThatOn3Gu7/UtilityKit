@@ -5,7 +5,7 @@ dotnet_plugin_info() {
   printf 'dotnet|dotnet|🔷\n'
 }
 dotnet_detect() {
-  command -v dotnet >/dev/null 2>&1
+  command -v dotnet >/dev/null
 }
 dotnet_get_cache_dirs() {
   printf '%s\n' "$HOME/.nuget/packages"
