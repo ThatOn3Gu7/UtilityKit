@@ -50,17 +50,23 @@ dj_check() {
   return 0
 }
 dj_count() {
-  # Print count of items from a docker command
-  local count
-  count=$(docker "$@" 2>&1 | awk 'NF{c++} END{print c+0}')
-  echo "$count"
+  # Print count of items from a docker command. Count only stdout so a stderr
+  # warning (e.g. deprecation notice) cannot inflate the preview count.
+  local output err count
+  if ! output="$(docker "$@" 2>/dev/null)"; then
+    err="$(docker "$@" 2>&1)"
+    uk_error "Docker query failed: $err"
+    return 1
+  fi
+  count=$(awk 'NF{c++} END{print c+0}' <<<"$output") || return 1
+  printf '%s\n' "$count"
 }
 dj_preview() {
 
   local containers images volumes
-  containers="$(dj_count ps -aq -f status=exited)"
-  images="$(dj_count images -q -f dangling=true)"
-  volumes="$(dj_count volume ls -qf dangling=true)"
+  containers="$(dj_count ps -aq -f status=exited)" || return 1
+  images="$(dj_count images -q -f dangling=true)" || return 1
+  volumes="$(dj_count volume ls -qf dangling=true)" || return 1
 
   printf '  %s%sStopped containers%s  %s%s%s  %s(exited and no longer running)%s\n' \
     "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET" \
@@ -76,10 +82,12 @@ dj_preview() {
     "$UK_C_DIM" "$UK_C_RESET"
 
   printf '\n  %sDisk usage summary:%s\n' "$UK_C_DIM" "$UK_C_RESET"
-  if docker system df 2>/dev/null; then
-    docker system df 2>/dev/null | sed 's/^/  /'
+  local disk_usage
+  if disk_usage="$(docker system df 2>&1)"; then
+    printf '%s\n' "$disk_usage" | sed 's/^/  /'
   else
-    printf '  %sCould not retrieve disk usage summary.%s\n' "$UK_C_YELLOW" "$UK_C_RESET"
+    uk_error "Could not retrieve disk usage summary: $disk_usage"
+    return 1
   fi
 }
 dj_run() {
@@ -111,7 +119,7 @@ dj_run() {
   fi
 }
 dj_interactive() {
-  dj_preview
+  dj_preview || return 1
   printf '\n'
   uk_note 'Select which resources to prune. Nothing is deleted until you confirm at the end.'
   printf '\n'
@@ -126,6 +134,7 @@ dj_interactive() {
 }
 dj_main() {
   uk_banner "docker-janitor" "Prune stopped containers, dangling images, and orphan volumes" "" "$@"
+  DJ_APPLY=0 DJ_CONTAINERS=0 DJ_IMAGES=0 DJ_VOLUMES=0 DJ_ALL=0
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
     --containers) DJ_CONTAINERS=1 ;;
@@ -150,7 +159,7 @@ dj_main() {
   if ((DJ_CONTAINERS + DJ_IMAGES + DJ_VOLUMES + DJ_ALL == 0)); then
     dj_interactive
   else
-    dj_preview
+    dj_preview || return 1
     dj_run
   fi
 }

@@ -55,35 +55,50 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
   }
 fi
 _gs_repo_check() {
-  git -C "$GS_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
-    uk_error "Not a git repository: $GS_REPO"
+  local result
+  if ! result="$(git -C "$GS_REPO" rev-parse --is-inside-work-tree 2>&1)" || [[ "$result" != "true" ]]; then
+    uk_error "Not a git repository: $GS_REPO${result:+ ($result)}"
     return 1
-  }
+  fi
 }
 _gs_default_branch() {
-  local head
-  head=$(git -C "$GS_REPO" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
-  head=${head##*/}
-  [[ -n "$head" ]] && {
+  local head error=''
+  if head="$(git -C "$GS_REPO" symbolic-ref refs/remotes/origin/HEAD 2>&1)"; then
+    head=${head##*/}
     printf '%s\n' "$head"
     return 0
-  }
+  else
+    error="$head"
+    [[ -n "$error" ]] && uk_warn "origin/HEAD unavailable; checking local default branches."
+  fi
   for branch in main master trunk; do
-    git -C "$GS_REPO" show-ref --verify --quiet "refs/heads/$branch" && {
+    if git -C "$GS_REPO" show-ref --verify --quiet "refs/heads/$branch"; then
       printf '%s\n' "$branch"
       return 0
-    }
+    fi
   done
   git -C "$GS_REPO" rev-parse --abbrev-ref HEAD
 }
 _gs_local_merged() {
-  local base="${1:-}" current
-  current=$(git -C "$GS_REPO" rev-parse --abbrev-ref HEAD)
-  git -C "$GS_REPO" branch --merged "$base" | sed 's/^..//' | grep -Ev "^(${base}|${current}|main|master|trunk)$" || true
+  local base="${1:-}" current output branch
+  current=$(git -C "$GS_REPO" rev-parse --abbrev-ref HEAD) || return 1
+  output=$(git -C "$GS_REPO" branch --format='%(refname:short)' --merged "$base") || return 1
+  while IFS= read -r branch; do
+    [[ -n "$branch" ]] || continue
+    case "$branch" in "$base" | "$current" | main | master | trunk) continue ;; esac
+    printf '%s\n' "$branch"
+  done <<<"$output"
 }
 _gs_remote_merged() {
-  local base="${1:-}"
-  git -C "$GS_REPO" branch -r --merged "$base" | sed 's/^..//' | grep -v 'HEAD' | sed 's#^origin/##' | grep -Ev "^(${base}|main|master|trunk)$" | sort -u || true
+  local base="${1:-}" output ref remote branch
+  output=$(git -C "$GS_REPO" branch -r --format='%(refname:short)' --merged "$base") || return 1
+  while IFS= read -r ref; do
+    [[ -n "$ref" && "$ref" != *' -> '* && "$ref" == */* ]] || continue
+    remote="${ref%%/*}"
+    branch="${ref#*/}"
+    case "$branch" in "$base" | main | master | trunk) continue ;; esac
+    printf '%s/%s\n' "$remote" "$branch"
+  done <<<"$output"
 }
 gs_usage() {
   cat <<USAGE
@@ -116,51 +131,59 @@ gs_print_lines_or_none() {
   done
 }
 gs_preview() {
-  local base="${1:-}"
-  local -a local_branches remote_branches stashes clean_preview
+  local base="${1:-}" local_output remote_output stash_output clean_output repo_path
+  local -a local_branches=() remote_branches=() stashes=() clean_preview=()
 
-  # Protect the subshells with || true to prevent pipefail errors during previews
-  mapfile -t local_branches < <(_gs_local_merged "$base" 2>/dev/null || true)
-  mapfile -t remote_branches < <(_gs_remote_merged "$base" 2>/dev/null || true)
-  mapfile -t stashes < <(git -C "$GS_REPO" stash list 2>/dev/null || true)
-  mapfile -t clean_preview < <(git -C "$GS_REPO" clean -fdxn 2>/dev/null || true)
+  local_output="$(_gs_local_merged "$base")" || { uk_error "Failed to enumerate merged local branches."; return 1; }
+  remote_output="$(_gs_remote_merged "$base")" || { uk_error "Failed to enumerate merged remote branches."; return 1; }
+  stash_output="$(git -C "$GS_REPO" stash list)" || { uk_error "Failed to list stashes."; return 1; }
+  clean_output="$(git -C "$GS_REPO" clean -fdxn)" || { uk_error "Failed to preview untracked files."; return 1; }
+  [[ -n "$local_output" ]] && mapfile -t local_branches <<<"$local_output"
+  [[ -n "$remote_output" ]] && mapfile -t remote_branches <<<"$remote_output"
+  [[ -n "$stash_output" ]] && mapfile -t stashes <<<"$stash_output"
+  [[ -n "$clean_output" ]] && mapfile -t clean_preview <<<"$clean_output"
+  repo_path="$(uk_abs_path "$GS_REPO")" || return 1
 
-  uk_section_title "Repository: $(uk_abs_path "$GS_REPO") | Base branch: $base"
+  uk_section_title "Repository: $repo_path | Base branch: $base"
   gs_print_lines_or_none 'Merged local branches:' "${local_branches[@]}"
   gs_print_lines_or_none 'Merged remote branches:' "${remote_branches[@]}"
   gs_print_lines_or_none 'Git stashes:' "${stashes[@]}"
   gs_print_lines_or_none 'Untracked build artifacts preview:' "${clean_preview[@]}"
 }
 gs_run() {
-  local base="${1:-}" branch
+  local base="${1:-}" branch output remote
 
   if ((GS_LOCAL == 1)); then
+    output="$(_gs_local_merged "$base")" || { uk_error "Failed to enumerate merged local branches."; return 1; }
     while IFS= read -r branch; do
       [[ -n "$branch" ]] || continue
       if ((GS_APPLY == 1)); then
-        git -C "$GS_REPO" branch -d "$branch"
+        git -C "$GS_REPO" branch -d "$branch" || return 1
         uk_success "Deleted local branch $branch"
       else
         uk_note "Would delete local branch $branch"
       fi
-    done < <(_gs_local_merged "$base" 2>/dev/null || true)
+    done <<<"$output"
   fi
 
   if ((GS_REMOTE == 1)); then
+    output="$(_gs_remote_merged "$base")" || { uk_error "Failed to enumerate merged remote branches."; return 1; }
     while IFS= read -r branch; do
-      [[ -n "$branch" ]] || continue
+      [[ -n "$branch" && "$branch" == */* ]] || continue
+      remote="${branch%%/*}"
+      branch="${branch#*/}"
       if ((GS_APPLY == 1)); then
-        git -C "$GS_REPO" push origin --delete "$branch"
-        uk_success "Deleted remote branch origin/$branch"
+        git -C "$GS_REPO" push "$remote" --delete "$branch" || return 1
+        uk_success "Deleted remote branch $remote/$branch"
       else
-        uk_note "Would delete remote branch origin/$branch"
+        uk_note "Would delete remote branch $remote/$branch"
       fi
-    done < <(_gs_remote_merged "$base" 2>/dev/null || true)
+    done <<<"$output"
   fi
 
   if ((GS_STASH == 1)); then
     if ((GS_APPLY == 1)); then
-      git -C "$GS_REPO" stash clear
+      git -C "$GS_REPO" stash clear || return 1
       uk_success 'Cleared git stashes.'
     else
       uk_note 'Would clear git stashes.'
@@ -169,7 +192,7 @@ gs_run() {
 
   if ((GS_CLEAN == 1)); then
     if ((GS_APPLY == 1)); then
-      git -C "$GS_REPO" clean -fdx
+      git -C "$GS_REPO" clean -fdx || return 1
       uk_success 'Removed untracked build artifacts.'
     else
       uk_note 'Would run git clean -fdx.'
@@ -178,7 +201,7 @@ gs_run() {
 
   if ((GS_GC == 1)); then
     if ((GS_APPLY == 1)); then
-      git -C "$GS_REPO" gc --prune=now
+      git -C "$GS_REPO" gc --prune=now || return 1
       uk_success 'Ran git gc --prune=now.'
     else
       uk_note 'Would run git gc --prune=now.'
@@ -260,8 +283,8 @@ gs_main() {
     esac
     shift
   done
-  _gs_repo_check
-  base=$(_gs_default_branch)
+  _gs_repo_check || return 1
+  base=$(_gs_default_branch) || { uk_error "Unable to determine the base branch."; return 1; }
 
   if ((GS_LOCAL + GS_REMOTE + GS_STASH + GS_CLEAN + GS_GC == 0)); then
     gs_interactive "$base"

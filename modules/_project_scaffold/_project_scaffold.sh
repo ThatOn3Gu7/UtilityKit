@@ -163,6 +163,10 @@ __GO__
 }
 ps_main() {
   uk_banner "project-scaffold" "Starter project generator for Bash, Python, Node, Go" "" "$@"
+  PS_TYPE=''
+  PS_NAME=''
+  PS_DEST='.'
+  PS_FORCE=0
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
     --type)
@@ -199,11 +203,18 @@ ps_main() {
     ps_usage
     return 1
   }
-  if [[ "$PS_NAME" == "." || "$PS_NAME" == ".." || "$PS_NAME" == /* || "$PS_NAME" == */* || "$PS_NAME" == -* ]]; then
+  case "$PS_TYPE" in
+  bash | python-flask | node-cli | go-service) ;;
+  *)
+    uk_error "Unsupported type: $PS_TYPE"
+    return 1
+    ;;
+  esac
+  if [[ ! "$PS_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; then
     uk_error "Unsafe project name: $PS_NAME"
     return 1
   fi
-  PS_DEST="$(uk_abs_path "${PS_DEST:-.}")"
+  PS_DEST="$(uk_abs_path "${PS_DEST:-.}")" || { uk_error "Unable to resolve destination: $PS_DEST"; return 1; }
   local out="$PS_DEST/$PS_NAME"
   if [[ -e "$out" && $PS_FORCE -ne 1 ]]; then
     uk_error "Target already exists: $out"
@@ -214,18 +225,16 @@ ps_main() {
     uk_error "Refusing unsafe target path: $out"
     return 1
   }
-  rm -rf -- "$out"
-  mkdir -p -- "$out"
-  ps_write_common "$out" "$PS_NAME"
+  if [[ -e "$out" ]]; then
+    rm -rf -- "$out" || { uk_error "Unable to remove existing target: $out"; return 1; }
+  fi
+  mkdir -p -- "$out" || { uk_error "Unable to create target: $out"; return 1; }
+  ps_write_common "$out" "$PS_NAME" || return 1
   case "$PS_TYPE" in
-  bash) ps_gen_bash "$out" ;;
-  python-flask) ps_gen_python_flask "$out" ;;
-  node-cli) ps_gen_node_cli "$out" ;;
-  go-service) ps_gen_go_service "$out" ;;
-  *)
-    uk_error "Unsupported type: $PS_TYPE"
-    return 1
-    ;;
+  bash) ps_gen_bash "$out" || return 1 ;;
+  python-flask) ps_gen_python_flask "$out" || return 1 ;;
+  node-cli) ps_gen_node_cli "$out" || return 1 ;;
+  go-service) ps_gen_go_service "$out" || return 1 ;;
   esac
   uk_success "Generated $PS_TYPE scaffold at $out"
 }

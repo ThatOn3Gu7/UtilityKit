@@ -83,6 +83,15 @@ fw_detect_backend() {
 
 # ---- Watch loop -----------------------------------------------------------
 
+fw_is_ignored() {
+  local path="$1" pattern
+  shift
+  for pattern in "$@"; do
+    [[ "$path" == $pattern || "${path##*/}" == $pattern ]] && return 0
+  done
+  return 1
+}
+
 fw_watch_inotify() {
   local dir="$1" debounce="$2"
   shift 2
@@ -92,13 +101,13 @@ fw_watch_inotify() {
     patterns=("--include" ".*")
   fi
 
-  local -a inotify_args=("-m" "-r" "$dir" "-e" "modify" "-e" "create" "-e" "delete" "-e" "move")
+  local -a inotify_args=("-m" "-r" "--format" "%w%f" "$dir" "-e" "modify" "-e" "create" "-e" "delete" "-e" "move")
   local p
   for p in "${patterns[@]}"; do
     inotify_args+=("--include" "$p")
   done
 
-  inotifywait "${inotify_args[@]}" 2>/dev/null | while IFS= read -r event; do
+  inotifywait "${inotify_args[@]}" | while IFS= read -r event; do
     printf '%s\n' "$event"
   done
 }
@@ -111,7 +120,7 @@ fw_watch_fswatch() {
   local -a args=("-0" "-1" "$dir")
   [[ "$debounce" =~ ^[0-9]+(\.[0-9]+)?$ ]] && args+=("--latency=$debounce")
 
-  fswatch "${args[@]}" 2>/dev/null | while IFS= read -r -d '' path; do
+  fswatch "${args[@]}" | while IFS= read -r -d '' path; do
     printf '%s\n' "$path"
   done
 }
@@ -133,7 +142,7 @@ fw_watch_poll() {
       snap[$file]="$mtime"
     done < <(find "$dir" -type f -not -path '*/\.*' -print0 2>/dev/null)
 
-    sleep "$interval" 2>/dev/null || sleep "$((interval))"
+    sleep "$interval" || return 1
   done
 }
 
@@ -171,6 +180,10 @@ fw_main() {
 
   [[ -z "$cmd" ]] && { uk_error "Command required (--cmd or trailing --)."; fw_usage; return 2; }
   [[ ! -d "$dir" ]] && { uk_error "Directory not found: $dir"; return 2; }
+  [[ "$debounce" =~ ^[0-9]+([.][0-9]+)?$ ]] || { uk_error "Invalid debounce interval: $debounce"; return 2; }
+  if [[ -n "$poll_interval" ]]; then
+    [[ "$poll_interval" =~ ^[0-9]+([.][0-9]+)?$ && "$poll_interval" != 0 && "$poll_interval" != 0.0 ]] || { uk_error "Invalid polling interval: $poll_interval"; return 2; }
+  fi
 
   local backend
   if [[ -n "$poll_interval" ]]; then
@@ -196,7 +209,8 @@ fw_main() {
 
   case "$backend" in
     inotifywait)
-      fw_watch_inotify "$dir" "$debounce" "${patterns[@]}" 2>/dev/null | while IFS= read -r event; do
+      fw_watch_inotify "$dir" "$debounce" "${patterns[@]}" | while IFS= read -r event; do
+        fw_is_ignored "$event" "${ignores[@]}" && continue
         printf '  %schange detected:%s %s\n' "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "$event"
         sleep "$debounce" 2>/dev/null || true
         eval "$cmd" 2>&1 | while IFS= read -r line; do printf '    [output] %s\n' "$line"; done
@@ -204,6 +218,7 @@ fw_main() {
       ;;
     fswatch)
       fw_watch_fswatch "$dir" "$debounce" "${patterns[@]}" | while IFS= read -r path; do
+        fw_is_ignored "$path" "${ignores[@]}" && continue
         printf '  %schange detected:%s %s\n' "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "$path"
         sleep "$debounce" 2>/dev/null || true
         eval "$cmd" 2>&1 | while IFS= read -r line; do printf '    [output] %s\n' "$line"; done
@@ -216,6 +231,7 @@ fw_main() {
         while IFS= read -r -d '' file; do
           local mtime
           mtime="$(stat -c '%Y' "$file" 2>/dev/null || stat -f '%m' "$file" 2>/dev/null || echo '0')"
+          fw_is_ignored "$file" "${ignores[@]}" && continue
           if [[ -n "${snap[$file]:-}" ]] && [[ "${snap[$file]}" != "$mtime" ]]; then
             printf '  %schange detected:%s %s\n' "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "$file"
             eval "$cmd" 2>&1 | while IFS= read -r line; do printf '    [output] %s\n' "$line"; done
@@ -223,7 +239,7 @@ fw_main() {
           fi
           snap[$file]="$mtime"
         done < <(find "$dir" -type f -not -path '*/\.*' -print0 2>/dev/null)
-        sleep "$poll_interval" 2>/dev/null || sleep "$((poll_interval))"
+        sleep "$poll_interval" || { uk_error "Polling sleep failed: $poll_interval"; return 1; }
       done
       ;;
   esac

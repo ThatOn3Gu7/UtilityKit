@@ -21,11 +21,20 @@ psrch_main() {
     *) dir="${1:-}" ;; esac
     shift
   done
-  [[ -n "$text" ]] && {
-    uk_has_cmd rg && rg "$text" "$dir" || grep -RIn "$text" "$dir" || true
-    return
-  }
-  [[ -n "$name" ]] && find "$dir" -name "$name"
+  if [[ -n "$text" ]]; then
+    if uk_has_cmd rg; then
+      rg -- "$text" "$dir"
+      return $?
+    fi
+    grep -RIn -- "$text" "$dir"
+    return $?
+  fi
+  if [[ -n "$name" ]]; then
+    find "$dir" -name "$name"
+    return $?
+  fi
+  uk_error 'Specify --text or --name.'
+  return 1
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
