@@ -22,11 +22,11 @@ mc_collect() {
   for p in "${MC_PATHS[@]}"; do
     if [[ -d "$p" ]]; then
       case "$MC_KIND" in
-      image) find "$p" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) ;;
-      video) find "$p" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' \) ;;
+      image) find "$p" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) -print0 || return 1 ;;
+      video) find "$p" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' \) -print0 || return 1 ;;
       esac
     elif [[ -f "$p" ]]; then
-      printf '%s\n' "$p"
+      printf '%s\0' "$p" || return 1
     fi
   done
 }
@@ -48,7 +48,7 @@ mc_require_tool() {
   esac
 }
 mc_fake_progress() {
-  local pid="${1:-}" width=28 pct=0 fill empty
+  local pid="${1:-}" width=28 pct=0 fill empty rc=0
   local ch_fill ch_empty
   if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
     ch_fill='█'
@@ -100,7 +100,7 @@ mc_fake_progress() {
       "$UK_C_BOLD" "$pct" "$UK_C_RESET"
   done
 
-  wait "$pid" 2>/dev/null || true
+  wait "$pid" || rc=$?
 
   # Final 100% bar
   fill=$width
@@ -111,6 +111,7 @@ mc_fake_progress() {
     "$UK_C_GREEN" "$UK_C_RESET" \
     "$c_done" "$bar_fill" "$UK_C_RESET" \
     "$UK_C_BOLD" "$UK_C_RESET" 12 ''
+  return "$rc"
 }
 mc_convert_one() {
   local src="${1:-}" base out
@@ -126,36 +127,46 @@ mc_convert_one() {
     return 0
   fi
 
-  mkdir -p "$MC_OUTPUT"
+  mkdir -p "$MC_OUTPUT" || { uk_error "Unable to create output directory: $MC_OUTPUT"; return 1; }
   printf '  %sConverting:%s %s%s%s\n' \
     "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$src" "$UK_C_RESET"
 
+  local error_log
+  error_log="$(mktemp)" || { uk_error 'Unable to create conversion error log.'; return 1; }
   if [[ "$MC_KIND" == 'image' ]]; then
     if uk_has_cmd magick; then
       if ((MC_STRIP_EXIF == 1)); then
-        magick "$src" -strip -quality "$MC_QUALITY" "$out" >/dev/null 2>&1 &
+        magick "$src" -strip -quality "$MC_QUALITY" "$out" >/dev/null 2>"$error_log" &
       else
-        magick "$src" -quality "$MC_QUALITY" "$out" >/dev/null 2>&1 &
+        magick "$src" -quality "$MC_QUALITY" "$out" >/dev/null 2>"$error_log" &
       fi
     else
-      ffmpeg -y -i "$src" -qscale:v 3 "$out" >/dev/null 2>&1 &
+      ffmpeg -y -i "$src" -qscale:v 3 "$out" >/dev/null 2>"$error_log" &
     fi
   else
     printf '  %s(using ffmpeg libx264 crf=26)%s\n' "$UK_C_DIM" "$UK_C_RESET"
-    ffmpeg -y -i "$src" -vcodec libx264 -crf 26 -preset medium -movflags +faststart "$out" >/dev/null 2>&1 &
+    ffmpeg -y -i "$src" -vcodec libx264 -crf 26 -preset medium -movflags +faststart "$out" >/dev/null 2>"$error_log" &
   fi
 
-  local _mc_bg=$!
+  local _mc_bg=$! convert_status=0
   if [[ -t 1 ]]; then
-    mc_fake_progress "$_mc_bg"
+    mc_fake_progress "$_mc_bg" || convert_status=$?
   else
-    wait "$_mc_bg"
+    wait "$_mc_bg" || convert_status=$?
   fi
 
-  if [[ -f "$out" ]]; then
+  if ((convert_status != 0)); then
+    [[ -s "$error_log" ]] && cat "$error_log" >&2
+    rm -f "$error_log" || uk_warn "Unable to remove conversion error log: $error_log"
+    uk_error "Conversion failed (exit $convert_status): $src"
+    return "$convert_status"
+  fi
+  rm -f "$error_log" || { uk_error "Unable to remove conversion error log: $error_log"; return 1; }
+  if [[ -s "$out" ]]; then
     uk_success "Created: $out"
   else
-    uk_error "Conversion failed: $out"
+    uk_error "Conversion produced no output: $out"
+    return 1
   fi
 }
 mc_main() {
@@ -257,6 +268,9 @@ mc_main() {
 
   # Set default output directory if still empty
   MC_OUTPUT=${MC_OUTPUT:-"$(pwd)/converted_${MC_KIND}"}
+  [[ "$MC_KIND" == image || "$MC_KIND" == video ]] || { uk_error "--kind must be image or video."; return 1; }
+  [[ "$MC_TO" =~ ^[A-Za-z0-9]+$ ]] || { uk_error "Invalid target format: $MC_TO"; return 1; }
+  [[ "$MC_QUALITY" =~ ^[0-9]+$ ]] && ((MC_QUALITY >= 1 && MC_QUALITY <= 100)) || { uk_error "--quality must be in 1..100."; return 1; }
 
   # Validate that the input path exists
   local path_exists=0
@@ -271,20 +285,29 @@ mc_main() {
     return 1
   fi
 
-  # Collect files into an array
-  mapfile -t files < <(mc_collect)
+  # Collect files into an array using NUL-delimited paths.
+  local collect_file
+  collect_file="$(mktemp)" || { uk_error 'Unable to create media scan file.'; return 1; }
+  if ! mc_collect >"$collect_file"; then
+    rm -f "$collect_file" || uk_warn "Unable to remove failed media scan file."
+    uk_error 'Media traversal failed; refusing a partial conversion list.'
+    return 1
+  fi
+  local files=() file
+  mapfile -d '' files <"$collect_file" || { rm -f "$collect_file"; return 1; }
+  rm -f "$collect_file" || { uk_error 'Unable to remove media scan file.'; return 1; }
   if ((${#files[@]} == 0)); then
     uk_error "No matching files found in the provided paths. Check extensions and that the path contains supported files."
     return 1
   fi
 
   # Check required tools before proceeding
-  mc_require_tool || exit 1
+  mc_require_tool || return 1
 
   uk_section_title "$MC_KIND -> $MC_TO | output: $MC_OUTPUT | ${#files[@]} file(s) found"
 
   for file in "${files[@]}"; do
-    mc_convert_one "$file"
+    mc_convert_one "$file" || return $?
   done
 }
 

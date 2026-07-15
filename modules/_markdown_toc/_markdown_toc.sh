@@ -40,27 +40,31 @@ mt_generate_toc() {
   done <"$MT_FILE"
 }
 mt_insert_toc() {
-  local toc_lines tmp
-  toc_lines=$(mt_generate_toc)
-  MT_TOC_COUNT=$(printf '%s\n' "$toc_lines" | grep -c . || true)
+  local toc_lines tmp toc_tmp
+  toc_lines=$(mt_generate_toc) || return 1
+  MT_TOC_COUNT=$(awk 'NF {count++} END {print count+0}' <<<"$toc_lines") || return 1
 
   if ((MT_TOC_COUNT == 0)); then
     uk_warn 'No markdown headings were found; TOC would be empty.'
     return 0
   fi
 
-  tmp=$(mktemp)
+  tmp=$(mktemp) || return 1
+  toc_tmp=$(mktemp) || { rm -f "$tmp"; return 1; }
+  printf '%s\n' "$toc_lines" >"$toc_tmp" || { rm -f "$tmp" "$toc_tmp"; return 1; }
 
-  python3 - "$MT_FILE" "$tmp" "$MT_START" "$MT_END" <<PYEOF
+  local py_status=0
+  python3 - "$MT_FILE" "$tmp" "$MT_START" "$MT_END" "$toc_tmp" <<'PYEOF' || py_status=$?
 import sys
 
 src_path  = sys.argv[1]
 dst_path  = sys.argv[2]
 start_tag = sys.argv[3]
 end_tag   = sys.argv[4]
+toc_path  = sys.argv[5]
 
-toc_block = """$toc_lines"""
-toc_lines = toc_block.splitlines()
+with open(toc_path, 'r', encoding='utf-8') as f:
+    toc_lines = f.read().splitlines()
 
 with open(src_path, 'r', encoding='utf-8') as f:
     lines = f.read().splitlines()
@@ -106,7 +110,7 @@ with open(dst_path, 'w', encoding='utf-8') as f:
     f.write('\n'.join(out) + '\n')
 PYEOF
 
-  local py_status=$?
+  rm -f "$toc_tmp" || { rm -f "$tmp"; uk_error 'Unable to remove TOC staging file.'; return 1; }
   if ((py_status != 0)); then
     rm -f "$tmp"
     uk_error 'TOC insertion failed.'
@@ -145,7 +149,7 @@ PY2
 }
 mt_align_tables() {
   local tmp
-  tmp=$(mktemp)
+  tmp=$(mktemp) || { uk_error "Unable to create temporary file."; return 1; }
   trap "rm -f '$tmp'" RETURN
   python3 - "$MT_FILE" "$tmp" <<'PY2'
 import sys,re
@@ -228,16 +232,19 @@ mt_main() {
     return 1
   fi
 
+  [[ -f "$MT_FILE" && -r "$MT_FILE" ]] || { uk_error "Markdown file is not readable: $MT_FILE"; return 1; }
+  uk_has_cmd python3 || { uk_error 'python3 is required.'; return 1; }
   uk_section_title "File: $MT_FILE"
-  mt_insert_toc
-  ((MT_CHECK_LINKS == 1)) && {
+  mt_insert_toc || return 1
+  if ((MT_CHECK_LINKS == 1)); then
     printf '\n'
-    mt_check_links
-  }
-  ((MT_ALIGN_TABLES == 1)) && {
+    mt_check_links || return 1
+  fi
+  if ((MT_ALIGN_TABLES == 1)); then
     printf '\n'
-    mt_align_tables
-  }
+    mt_align_tables || return 1
+  fi
+  return 0
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail

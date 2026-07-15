@@ -1172,12 +1172,12 @@ move_in_batch() {
     method_label="move  (mv)"
   fi
 
-  mkdir -p "$output"
+  mkdir -p "$output" || { msg_error "Unable to create output directory: $output"; return 1; }
 
   # Resolve once, reuse for both checks.
   local real_target real_output
-  real_target="$(realpath "$target" 2>/dev/null || (cd "$target" && pwd -P))"
-  real_output="$(realpath "$output" 2>/dev/null || (cd "$output" && pwd -P))"
+  real_target="$(realpath "$target" 2>&1)" || { msg_error "Unable to resolve source directory: $real_target"; return 1; }
+  real_output="$(realpath "$output" 2>&1)" || { msg_error "Unable to resolve output directory: $real_output"; return 1; }
 
   # ---- same-directory guard ----
   if [[ "$real_target" == "$real_output" ]]; then
@@ -1198,27 +1198,48 @@ move_in_batch() {
   local files=()
   local total_size=0
   # Prefer GNU find's -printf for size+path in one syscall pass.
-  # Fall back to per-file stat on BSD/macOS.
-  if find "$target" -type f -printf '' >/dev/null 2>&1; then
-    local file_size filepath
-    while IFS=$'\t' read -r -d '' file_size filepath; do
-      files+=("$filepath")
-      total_size=$((total_size + file_size))
-    done < <(find "$target" -type f -printf '%s\t%p\0' 2>/dev/null | sort -z)
+  # Use NUL-delimited field pairs and a checked scan file so traversal errors propagate.
+  local scan_file probe_file probe_error='' filepath file_size
+  scan_file="$(mktemp)" || { msg_error "Unable to create transfer scan file."; return 1; }
+  probe_file="$(mktemp)" || { rm -f "$scan_file"; msg_error "Unable to create find probe log."; return 1; }
+  if find "$target" -maxdepth 0 -printf '' >/dev/null 2>"$probe_file"; then
+    rm -f "$probe_file" || { rm -f "$scan_file"; return 1; }
+    if ! find "$target" -type f -printf '%s\0%p\0' >"$scan_file"; then
+      rm -f "$scan_file"
+      msg_error "Source traversal failed; refusing a partial transfer list."
+      return 1
+    fi
   else
+    probe_error="$(cat "$probe_file")" || probe_error='unable to read find probe error'
+    rm -f "$probe_file" || { rm -f "$scan_file"; return 1; }
+    [[ -n "$probe_error" ]] && msg_warning "GNU find -printf unavailable; using portable stat scan: $probe_error"
+    local path_file
+    path_file="$(mktemp)" || { rm -f "$scan_file"; return 1; }
+    if ! find "$target" -type f -print0 >"$path_file"; then
+      rm -f "$scan_file" "$path_file"
+      msg_error "Source traversal failed; refusing a partial transfer list."
+      return 1
+    fi
     while IFS= read -r -d '' filepath; do
-      local file_size
-      if file_size=$(stat -c '%s' "$filepath" 2>/dev/null); then
+      if file_size="$(stat -c '%s' "$filepath" 2>&1)"; then
         :
-      elif file_size=$(stat -f '%z' "$filepath" 2>/dev/null); then
+      elif file_size="$(stat -f '%z' "$filepath" 2>&1)"; then
         :
       else
-        file_size=0
+        rm -f "$scan_file" "$path_file"
+        msg_error "Unable to read file size: $filepath ($file_size)"
+        return 1
       fi
-      files+=("$filepath")
-      total_size=$((total_size + file_size))
-    done < <(find "$target" -type f -print0 2>/dev/null | sort -z)
+      printf '%s\0%s\0' "$file_size" "$filepath" >>"$scan_file" || return 1
+    done <"$path_file"
+    rm -f "$path_file" || { rm -f "$scan_file"; return 1; }
   fi
+  while IFS= read -r -d '' file_size && IFS= read -r -d '' filepath; do
+    [[ "$file_size" =~ ^[0-9]+$ ]] || { rm -f "$scan_file"; msg_error "Invalid file size for: $filepath"; return 1; }
+    files+=("$filepath")
+    total_size=$((total_size + file_size))
+  done <"$scan_file"
+  rm -f "$scan_file" || { msg_error "Unable to remove transfer scan file."; return 1; }
 
   local total_files=${#files[@]}
 
@@ -1276,7 +1297,7 @@ move_in_batch() {
       fi
       local dest_dir="$output"
       [[ -n "$parent_dir" ]] && dest_dir="${output}/${parent_dir}"
-      mkdir -p "$dest_dir"
+      mkdir -p "$dest_dir" || { msg_error "Unable to create destination directory: $dest_dir"; return 1; }
 
       local candidate="${dest_dir}/${basename}"
       if [[ -e "$candidate" ]] || [[ -n "${_seen_dests[$candidate]:-}" ]]; then
@@ -1511,7 +1532,12 @@ move_in_batch() {
     else
       dst_dir="."
     fi
-    mkdir -p "$dst_dir"
+    if ! mkdir -p "$dst_dir"; then
+      failed_count=$((failed_count + 1))
+      failed_files+=("$src_name (cannot create destination directory)")
+      msg_error "Unable to create destination directory: $dst_dir"
+      continue
+    fi
 
     local op_status=0
     if [[ "$MIB_METHOD" == "cp" ]]; then

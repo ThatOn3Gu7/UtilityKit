@@ -43,13 +43,13 @@ if ! declare -f uk_success >/dev/null 2>&1; then uk_success() { printf "Success:
 if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 _df_hash() {
   if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "${1:-}" | awk '{print $1}'
+    sha256sum -- "${1:-}" | awk '{print $1}'
   elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "${1:-}" | awk '{print $1}'
+    shasum -a 256 -- "${1:-}" | awk '{print $1}'
   elif command -v md5sum >/dev/null 2>&1; then
-    md5sum "${1:-}" | awk '{print $1}'
+    md5sum -- "${1:-}" | awk '{print $1}'
   elif command -v md5 >/dev/null 2>&1; then
-    md5 -q "${1:-}" 2>/dev/null || md5 "${1:-}" | awk '{print $NF}'
+    md5 -q "${1:-}"
   else
     uk_error "No hash command found (sha256sum, shasum, md5sum, or md5)."
     return 1
@@ -68,69 +68,63 @@ Options:
 USAGE
 }
 df_scan() {
-  if ! command -v find >/dev/null; then
+  command -v find >/dev/null || {
     uk_error "find command is required."
+    return 1
+  }
+  [[ -d "$DF_DIR" ]] || { uk_error "Directory not found: $DF_DIR"; return 1; }
+
+  local scan_file file size hash candidate canonical duplicate link_tmp
+  local -a files=() sizes=() canonicals=() duplicates=()
+  scan_file="$(mktemp)" || { uk_error "Unable to create duplicate-scan temporary file."; return 1; }
+  if ! find "$DF_DIR" \( -path '*/.git/*' -o -path '*/.git' -o -path '*/.hg/*' -o -path '*/.hg' -o -path '*/.svn/*' -o -path '*/.svn' \) -prune -o -type f -print0 >"$scan_file"; then
+    rm -f "$scan_file" || uk_warn "Unable to remove failed scan file: $scan_file"
+    uk_error "Directory traversal failed; refusing a partial duplicate report."
     return 1
   fi
 
-  local current_size='' file size
-  sizes_file=''
-  duplicates_file=''
-
-  trap 'rm -f -- "$sizes_file" "$duplicates_file"' EXIT
-
-  sizes_file=$(mktemp)
-  duplicates_file=$(mktemp)
-
-  uk_section_title "Directory: $(uk_abs_path "$DF_DIR")"
+  local abs_dir
+  abs_dir="$(uk_abs_path "$DF_DIR")" || { rm -f "$scan_file"; return 1; }
+  uk_section_title "Directory: $abs_dir"
   uk_note 'Scanning files by size first, then hashing exact-size matches...'
 
   while IFS= read -r -d '' file; do
-    size=$(wc -c <"$file" 2>/dev/null || echo "0")
-    printf '%s\t%s\n' "$size" "$file" >>"$sizes_file"
-  done < <(find "$DF_DIR" \( -path '*/.git/*' -o -path '*/.git' -o -path '*/.hg/*' -o -path '*/.hg' -o -path '*/.svn/*' -o -path '*/.svn' \) -prune -o -type f -print0)
+    size="$(wc -c <"$file")" || {
+      rm -f "$scan_file" || uk_warn "Unable to remove failed scan file: $scan_file"
+      uk_error "Unable to read file size: $file"
+      return 1
+    }
+    [[ "$size" =~ ^[0-9]+$ ]] || { uk_error "Invalid file size for: $file"; rm -f "$scan_file"; return 1; }
+    files+=("$file")
+    sizes+=("$size")
+  done <"$scan_file"
+  rm -f "$scan_file" || { uk_error "Unable to remove duplicate-scan temporary file."; return 1; }
 
-  sort -n "$sizes_file" -o "$sizes_file"
-
-  local -a group=()
-  current_size=''
-
-  while IFS=$'\t' read -r size file; do
-    if [[ "$size" != "$current_size" && ${#group[@]} -gt 0 ]]; then
-      if ((${#group[@]} > 1)); then
-        local candidate hash
-        unset -v first_for_hash 2>/dev/null || true
-        declare -A first_for_hash
-        for candidate in "${group[@]}"; do
-          hash=$(_df_hash "$candidate") || continue
-          if [[ -n "${first_for_hash[$hash]:-}" ]]; then
-            printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >>"$duplicates_file"
-          else
-            first_for_hash[$hash]="$candidate"
-          fi
-        done
-      fi
-      group=()
-    fi
-    current_size="$size"
-    group+=("$file")
-  done <"$sizes_file"
-
-  # Process last group
-  if ((${#group[@]} > 1)); then
-    local candidate hash
-    unset -v first_for_hash 2>/dev/null || true
-    declare -A first_for_hash
-    for candidate in "${group[@]}"; do
-      hash=$(_df_hash "$candidate") || continue
+  local i idx members group_key
+  declare -A size_groups=() first_for_hash=()
+  for ((i=0; i<${#files[@]}; i++)); do
+    size_groups[${sizes[$i]}]+=" $i"
+  done
+  for group_key in "${!size_groups[@]}"; do
+    members=()
+    for idx in ${size_groups[$group_key]}; do
+      members+=("${files[$idx]}")
+    done
+    ((${#members[@]} > 1)) || continue
+    first_for_hash=()
+    for candidate in "${members[@]}"; do
+      hash="$(_df_hash "$candidate")" || { uk_error "Hashing failed: $candidate"; return 1; }
+      [[ -n "$hash" ]] || { uk_error "Hash command returned no digest: $candidate"; return 1; }
       if [[ -n "${first_for_hash[$hash]:-}" ]]; then
-        printf '%s\t%s\n' "${first_for_hash[$hash]}" "$candidate" >>"$duplicates_file"
+        canonicals+=("${first_for_hash[$hash]}")
+        duplicates+=("$candidate")
       else
         first_for_hash[$hash]="$candidate"
       fi
     done
-  fi
-  if [[ ! -s "$duplicates_file" ]]; then
+  done
+
+  if ((${#duplicates[@]} == 0)); then
     uk_success 'No exact duplicates found.'
     return 0
   fi
@@ -139,13 +133,15 @@ df_scan() {
 
   printf '\n  %s%sDuplicate groups found%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"
   printf '  %s\n' "$(printf '%*s' 48 '' | tr ' ' '-')"
-  while IFS=$'\t' read -r canon dup; do
+  for i in "${!duplicates[@]}"; do
+    canonical="${canonicals[$i]}"
+    duplicate="${duplicates[$i]}"
     printf '\n  %sKeep:%s   %s%s%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$canon" "$UK_C_RESET"
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$canonical" "$UK_C_RESET"
     printf '  %sDupe:%s   %s%s%s  %s(will be %s if applied)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$dup" "$UK_C_RESET" \
+      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$duplicate" "$UK_C_RESET" \
       "$UK_C_DIM" "${DF_ACTION:-removed}" "$UK_C_RESET"
-  done <"$duplicates_file"
+  done
   printf '\n'
 
   if [[ "$DF_ACTION" == 'report' ]]; then
@@ -154,25 +150,34 @@ df_scan() {
   fi
 
   local changed=0
-  while IFS=$'\t' read -r canonical duplicate; do
+  for i in "${!duplicates[@]}"; do
+    canonical="${canonicals[$i]}"
+    duplicate="${duplicates[$i]}"
     if ((DF_APPLY == 1)); then
       case "$DF_ACTION" in
       delete)
-        rm -f "$duplicate"
+        rm -f -- "$duplicate" || { uk_error "Failed to delete duplicate: $duplicate"; return 1; }
         ;;
       hardlink)
-        rm -f "$duplicate"
-        if ! ln "$canonical" "$duplicate"; then
-          uk_error "Failed to create hardlink from $canonical to $duplicate (different filesystems?)"
-          continue
+        link_tmp="${duplicate}.utilitykit-link.$$.$i"
+        [[ ! -e "$link_tmp" && ! -L "$link_tmp" ]] || { uk_error "Temporary hardlink path already exists: $link_tmp"; return 1; }
+        if ! ln -- "$canonical" "$link_tmp"; then
+          uk_error "Failed to prepare hardlink for $duplicate (different filesystems?)"
+          return 1
         fi
+        if ! mv -f -- "$link_tmp" "$duplicate"; then
+          rm -f -- "$link_tmp" || uk_warn "Unable to remove failed hardlink temporary file: $link_tmp"
+          uk_error "Failed to atomically replace duplicate: $duplicate"
+          return 1
+        fi
+        [[ "$canonical" -ef "$duplicate" ]] || { uk_error "Hardlink verification failed: $duplicate"; return 1; }
         ;;
       esac
       changed=$((changed + 1))
     else
       uk_note "Would ${DF_ACTION} duplicate: $duplicate"
     fi
-  done <"$duplicates_file"
+  done
 
   ((DF_APPLY == 1)) && uk_success "Processed $changed duplicate file(s)."
 }

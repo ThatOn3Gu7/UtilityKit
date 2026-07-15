@@ -94,7 +94,10 @@ get_temp_dir() {
   elif [[ -d "/tmp" && -w "/tmp" ]]; then
     printf '%s\n' "/tmp"
   elif [[ -n "${HOME:-}" && -d "$HOME" && -w "$HOME" ]]; then
-    mkdir -p "$HOME/.apply_temp" 2>/dev/null || true
+    if ! mkdir -p "$HOME/.apply_temp"; then
+      warn "Unable to create fallback temporary directory: $HOME/.apply_temp"
+      return 1
+    fi
     if [[ -d "$HOME/.apply_temp" && -w "$HOME/.apply_temp" ]]; then
       printf '%s\n' "$HOME/.apply_temp"
     else
@@ -113,9 +116,12 @@ cleanup_and_trap() {
   [[ $TRAP_RUN -eq 0 ]] || return 0
   TRAP_RUN=1
 
-  release_lock
+  release_lock || warn "Concurrency lock cleanup failed."
   if [[ -n "${CHANGES_FILE:-}" && -f "$CHANGES_FILE" ]]; then
-    rm -f "$CHANGES_FILE" 2>/dev/null || true
+    rm -f "$CHANGES_FILE" || warn "Unable to remove temporary change plan: $CHANGES_FILE"
+  fi
+  if [[ -n "${CHANGES_FILE:-}" && -f "${CHANGES_FILE}.scan" ]]; then
+    rm -f "${CHANGES_FILE}.scan" || warn "Unable to remove temporary scan file: ${CHANGES_FILE}.scan"
   fi
 
   if [[ "${APPLY_IN_PROGRESS:-0}" -eq 1 ]]; then
@@ -201,43 +207,50 @@ abs_path() {
     (cd "$(dirname "${1:-}")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "${1:-}")")
   fi
 }
-# Non-fatal Graceful Concurrency Locking
+# Fail-closed concurrency locking
 acquire_lock() {
   [[ $NO_LOCK -eq 0 ]] || return 0
 
-  local target_hash temp_base
-  temp_base="$(get_temp_dir)"
+  local target_hash temp_base lock_error=''
+  temp_base="$(get_temp_dir)" || fail "Unable to resolve a temporary directory for the lock."
   # POSIX cksum is available on GNU/Linux, macOS, BSD, and Termux.
-  target_hash=$(printf '%s' "$TARGET_DIR" | cksum | awk '{print $1}')
+  target_hash=$(printf '%s' "$TARGET_DIR" | cksum | awk '{print $1}') || fail "Unable to calculate the target lock key."
   LOCK_DIR="$temp_base/.apply_sync_lock_${UID:-0}_${target_hash}"
 
-  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    local pid
-    pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo "unknown")
-    if [[ "$pid" != "unknown" ]] && kill -0 "$pid" 2>/dev/null; then
-      fail "Another synchronization instance (PID $pid) is currently running on '$TARGET_DIR'. Aborting to prevent data corruption."
-    else
-      warn "Found stale concurrency lock from inactive PID $pid. Reclaiming lock..."
-      rm -rf "$LOCK_DIR" 2>/dev/null || true
-      if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-        warn "⚠️ Unable to create concurrency lock directory '$LOCK_DIR'. Proceeding safely without locking."
-        LOCK_ACQUIRED=0
-        return 0
+  if ! lock_error="$(mkdir "$LOCK_DIR" 2>&1)"; then
+    local pid="unknown"
+    if [[ -r "$LOCK_DIR/pid" ]]; then
+      pid="$(cat "$LOCK_DIR/pid")" || fail "Unable to read lock owner from '$LOCK_DIR/pid'."
+    fi
+    local process_error=''
+    if [[ "$pid" =~ ^[0-9]+$ ]]; then
+      if process_error="$(kill -0 "$pid" 2>&1)"; then
+        fail "Another synchronization instance (PID $pid) is currently running on '$TARGET_DIR'. Aborting to prevent data corruption."
       fi
+      [[ -n "$process_error" ]] && log_action "Stale lock PID check failed for $pid: $process_error"
+    fi
+    [[ -n "$lock_error" ]] && log_action "Initial lock acquisition failed: $lock_error"
+    warn "Found stale concurrency lock from inactive PID $pid. Reclaiming lock..."
+    rm -rf "$LOCK_DIR" || fail "Unable to remove stale lock directory '$LOCK_DIR'."
+    if ! lock_error="$(mkdir "$LOCK_DIR" 2>&1)"; then
+      [[ -n "$lock_error" ]] && warn "Lock creation failed: $lock_error"
+      fail "Unable to create concurrency lock directory '$LOCK_DIR'; use --no-lock only after reviewing the race risk."
     fi
   fi
-  printf '%s\n' "$$" >"$LOCK_DIR/pid" 2>/dev/null || {
-    warn "⚠️ Unable to write PID to lock directory '$LOCK_DIR'. Proceeding safely without locking."
-    LOCK_ACQUIRED=0
-    return 0
-  }
+  if ! printf '%s\n' "$$" >"$LOCK_DIR/pid"; then
+    rm -rf "$LOCK_DIR" || true
+    fail "Unable to write PID to lock directory '$LOCK_DIR'."
+  fi
   LOCK_ACQUIRED=1
   log_action "Concurrency lock acquired: $LOCK_DIR (PID $$)"
 }
 
 release_lock() {
   if [[ "${LOCK_ACQUIRED:-0}" -eq 1 && -n "${LOCK_DIR:-}" && -d "$LOCK_DIR" ]]; then
-    rm -rf "$LOCK_DIR" 2>/dev/null || true
+    if ! rm -rf "$LOCK_DIR"; then
+      warn "Unable to release concurrency lock: $LOCK_DIR"
+      return 1
+    fi
     LOCK_ACQUIRED=0
     log_action "Concurrency lock released."
   fi
@@ -247,27 +260,38 @@ check_disk_space() {
   local dst="${1:-}" backup_dir="${2:-}" src="${3:-}"
   info "Performing pre-flight disk space safety check..."
 
-  local src_size_kb avail_dst_kb avail_bak_kb req_bak_kb req_dst_kb
-  src_size_kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}' || echo 0)
+  local src_size_kb target_size_kb avail_dst_kb avail_bak_kb req_bak_kb req_dst_kb
+  if ! src_size_kb="$(du -sk "$src" | awk 'NR==1 {print $1}')"; then
+    fail "Unable to measure source size for disk-space verification: $src"
+  fi
+  [[ "$src_size_kb" =~ ^[0-9]+$ ]] || fail "Invalid source size returned by du for '$src': $src_size_kb"
 
-  local target_size_kb
-  target_size_kb=$(du -sk "$dst" 2>/dev/null | awk '{print $1}' || echo 0)
+  if ! target_size_kb="$(du -sk "$dst" | awk 'NR==1 {print $1}')"; then
+    fail "Unable to measure target size for disk-space verification: $dst"
+  fi
+  [[ "$target_size_kb" =~ ^[0-9]+$ ]] || fail "Invalid target size returned by du for '$dst': $target_size_kb"
 
   # Buffer: 1x target size + 20MB safety margin for backup archive
   req_bak_kb=$((target_size_kb + 20480))
   # Buffer: source changed size + 20MB safety margin for target copying
   req_dst_kb=$((src_size_kb + 20480))
 
-  avail_dst_kb=$(df -kP "$dst" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
-  avail_bak_kb=$(df -kP "$backup_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo 999999999)
+  if ! avail_dst_kb="$(df -kP "$dst" | awk 'NR==2 {print $4}')"; then
+    fail "Unable to determine available space for target: $dst"
+  fi
+  if ! avail_bak_kb="$(df -kP "$backup_dir" | awk 'NR==2 {print $4}')"; then
+    fail "Unable to determine available space for backup directory: $backup_dir"
+  fi
+  [[ "$avail_dst_kb" =~ ^[0-9]+$ ]] || fail "Invalid available-space value returned by df for '$dst': $avail_dst_kb"
+  [[ "$avail_bak_kb" =~ ^[0-9]+$ ]] || fail "Invalid available-space value returned by df for '$backup_dir': $avail_bak_kb"
 
-  if [[ "$avail_bak_kb" =~ ^[0-9]+$ && "$avail_bak_kb" -lt "$req_bak_kb" ]]; then
+  if [[ "$avail_bak_kb" -lt "$req_bak_kb" ]]; then
     warn "Low available disk space on backup partition '$backup_dir'!"
     warn "Available: $((avail_bak_kb / 1024)) MB | Estimated Minimum Required: $((req_bak_kb / 1024)) MB"
     fail "Insufficient disk space to guarantee safe backup creation. Please free up space or use --backup-dir to specify a larger storage drive."
   fi
 
-  if [[ "$avail_dst_kb" =~ ^[0-9]+$ && "$avail_dst_kb" -lt "$req_dst_kb" ]]; then
+  if [[ "$avail_dst_kb" -lt "$req_dst_kb" ]]; then
     warn "Low available disk space on target partition '$dst'!"
     warn "Available: $((avail_dst_kb / 1024)) MB | Estimated Minimum Required: $((req_dst_kb / 1024)) MB"
     fail "Insufficient disk space to perform safe synchronization. Please free up disk space."
@@ -285,7 +309,7 @@ check_target_writable() {
 
   local read_only_count=0
   local kind rel target_path
-  while IFS=$'\t' read -r kind rel; do
+  while IFS= read -r -d '' kind && IFS= read -r -d '' rel; do
     [[ -n "$kind" && -n "$rel" ]] || continue
     target_path="$dst/$rel"
     if path_exists_or_link "$target_path"; then
@@ -326,32 +350,65 @@ should_exclude_rel() {
 }
 add_change() {
   local kind="${1:-}" rel="${2:-}"
-  printf '%s\t%s\n' "$kind" "$rel" >>"$CHANGES_FILE"
+  if ! printf '%s\0%s\0' "$kind" "$rel" >>"$CHANGES_FILE"; then
+    fail "Unable to append to change plan: $CHANGES_FILE"
+  fi
   CHANGE_COUNT=$((CHANGE_COUNT + 1))
 }
 path_exists_or_link() {
   [[ -e "${1:-}" || -L "${1:-}" ]]
 }
 file_mode() {
-  stat -c '%a' "${1:-}" 2>/dev/null || stat -f '%Lp' "${1:-}" 2>/dev/null || true
+  local path="${1:-}" mode='' stat_error=''
+  if mode="$(stat -c '%a' "$path" 2>&1)"; then
+    printf '%s\n' "$mode"
+    return 0
+  fi
+  stat_error="$mode"
+  if mode="$(stat -f '%Lp' "$path" 2>&1)"; then
+    [[ -n "$stat_error" ]] && log_action "GNU stat mode probe failed for '$path': $stat_error"
+    printf '%s\n' "$mode"
+    return 0
+  fi
+  warn "Unable to read file mode for '$path': ${mode:-$stat_error}"
+  return 1
+}
+file_size() {
+  local path="${1:-}" size='' stat_error=''
+  if size="$(stat -c '%s' "$path" 2>&1)"; then
+    printf '%s\n' "$size"
+    return 0
+  fi
+  stat_error="$size"
+  if size="$(stat -f '%z' "$path" 2>&1)"; then
+    [[ -n "$stat_error" ]] && log_action "GNU stat size probe failed for '$path': $stat_error"
+    printf '%s\n' "$size"
+    return 0
+  fi
+  warn "Unable to read file size for '$path': ${size:-$stat_error}"
+  return 1
 }
 modes_differ() {
   local left_mode right_mode
-  left_mode=$(file_mode "${1:-}")
-  right_mode=$(file_mode "${2:-}")
-  [[ -n "$left_mode" && -n "$right_mode" && "$left_mode" != "$right_mode" ]]
+  left_mode=$(file_mode "${1:-}") || fail "Unable to compare source permissions for '${1:-}'."
+  right_mode=$(file_mode "${2:-}") || fail "Unable to compare target permissions for '${2:-}'."
+  [[ "$left_mode" != "$right_mode" ]]
 }
-# Permissive chmod ensures silent fallback on Android /sdcard, FAT, or SMB shares
+# Copy source permissions with a portable numeric-mode fallback.
 chmod_like_source() {
-  local source_path="${1:-}" target_path="${2:-}" mode
-  chmod --reference="$source_path" "$target_path" 2>/dev/null && return 0
-  mode=$(file_mode "$source_path")
-  [[ -n "$mode" ]] || return 0
-  chmod "$mode" "$target_path" 2>/dev/null || true
+  local source_path="${1:-}" target_path="${2:-}" mode reference_error=''
+  if reference_error="$(chmod --reference="$source_path" "$target_path" 2>&1)"; then
+    return 0
+  fi
+  [[ -n "$reference_error" ]] && log_action "chmod --reference fallback for '$target_path': $reference_error"
+  mode=$(file_mode "$source_path") || return 1
+  chmod "$mode" "$target_path"
 }
 collect_changes() {
   local src="${1:-}" dst="${2:-}" mirror="${3:-}"
-  : >"$CHANGES_FILE"
+  if ! : >"$CHANGES_FILE"; then
+    fail "Unable to reset change plan: $CHANGES_FILE"
+  fi
   CHANGE_COUNT=0
 
   local path rel target source_link target_link src_size dst_size
@@ -375,14 +432,21 @@ collect_changes() {
 
   # GNU find can return type/size/mode/path in a single syscall pass via -printf,
   # eliminating the per-file stat forks on the source side. Probe once.
-  local _have_printf=0
-  if find "$src" -maxdepth 0 -printf '' >/dev/null 2>&1; then
+  local _have_printf=0 probe_error=''
+  if probe_error="$(find "$src" -maxdepth 0 -printf '' 2>&1 >/dev/null)"; then
     _have_printf=1
+  elif [[ -n "$probe_error" ]]; then
+    log_action "GNU find -printf probe unavailable; using portable traversal: $probe_error"
   fi
 
-  local path_list rec ftype fsize fmode tmeta dst_mode
+  local path_list rec ftype fsize fmode dst_mode scan_file="${CHANGES_FILE}.scan"
   if ((_have_printf)); then
-    mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -printf '%y\t%s\t%m\t%p\0')
+    if ! find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -printf '%y\t%s\t%m\t%p\0' >"$scan_file"; then
+      rm -f "$scan_file" || warn "Unable to remove failed scan file: $scan_file"
+      fail "Source traversal failed; refusing to build a partial change plan for '$src'."
+    fi
+    mapfile -d '' path_list <"$scan_file" || fail "Unable to read source scan file: $scan_file"
+    rm -f "$scan_file" || fail "Unable to remove source scan file: $scan_file"
     for rec in ${path_list[@]+"${path_list[@]}"}; do
       # Record layout: type<TAB>size<TAB>mode<TAB>path  (path may itself contain tabs)
       ftype="${rec%%$'\t'*}"
@@ -400,18 +464,18 @@ collect_changes() {
         if ! [[ -d "$target" && ! -L "$target" ]]; then
           add_change "MKDIR" "$rel"
         else
-          dst_mode=$(file_mode "$target")
-          if [[ -n "$fmode" && -n "$dst_mode" && "$fmode" != "$dst_mode" ]]; then
+          dst_mode=$(file_mode "$target") || fail "Unable to inspect target permissions: $target"
+          if [[ -n "$fmode" && "$fmode" != "$dst_mode" ]]; then
             add_change "CHMOD" "$rel"
           fi
         fi
         ;;
       l)
-        source_link=$(readlink "$path" 2>/dev/null || true)
+        source_link=$(readlink "$path") || fail "Unable to read source symlink: $path"
         if [[ ! -L "$target" ]]; then
           add_change "SYMLINK" "$rel"
         else
-          target_link=$(readlink "$target" 2>/dev/null || true)
+          target_link=$(readlink "$target") || fail "Unable to read target symlink: $target"
           [[ "$source_link" == "$target_link" ]] || add_change "SYMLINK" "$rel"
         fi
         ;;
@@ -421,14 +485,8 @@ collect_changes() {
         elif [[ ! -f "$target" || -L "$target" ]]; then
           add_change "REPLACE" "$rel"
         else
-          # One stat per target file for size + mode together (GNU); BSD fallback below.
-          if tmeta=$(stat -c '%s %a' "$target" 2>/dev/null); then
-            dst_size="${tmeta% *}"
-            dst_mode="${tmeta#* }"
-          else
-            dst_size=$(stat -f '%z' "$target" 2>/dev/null || echo -2)
-            dst_mode=$(stat -f '%Lp' "$target" 2>/dev/null || echo "")
-          fi
+          dst_size=$(file_size "$target") || fail "Unable to inspect target size: $target"
+          dst_mode=$(file_mode "$target") || fail "Unable to inspect target permissions: $target"
           if [[ "$fsize" != "$dst_size" ]]; then
             add_change "UPDATE" "$rel"
           elif ! cmp -s "$path" "$target"; then
@@ -445,7 +503,12 @@ collect_changes() {
     done
   else
     # Slow path preserved for non-GNU find (BSD/macOS).
-    mapfile -d '' path_list < <(find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0)
+    if ! find "$src" -mindepth 1 \( "${prune_expr[@]}" \) -o -print0 >"$scan_file"; then
+      rm -f "$scan_file" || warn "Unable to remove failed scan file: $scan_file"
+      fail "Source traversal failed; refusing to build a partial change plan for '$src'."
+    fi
+    mapfile -d '' path_list <"$scan_file" || fail "Unable to read source scan file: $scan_file"
+    rm -f "$scan_file" || fail "Unable to remove source scan file: $scan_file"
     for path in ${path_list[@]+"${path_list[@]}"}; do
       rel="${path#"$src"/}"
       should_exclude_rel "$rel" && continue
@@ -458,11 +521,11 @@ collect_changes() {
           add_change "CHMOD" "$rel"
         fi
       elif [[ -L "$path" ]]; then
-        source_link=$(readlink "$path" 2>/dev/null || true)
+        source_link=$(readlink "$path") || fail "Unable to read source symlink: $path"
         if [[ ! -L "$target" ]]; then
           add_change "SYMLINK" "$rel"
         else
-          target_link=$(readlink "$target" 2>/dev/null || true)
+          target_link=$(readlink "$target") || fail "Unable to read target symlink: $target"
           [[ "$source_link" == "$target_link" ]] || add_change "SYMLINK" "$rel"
         fi
       elif [[ -f "$path" ]]; then
@@ -471,8 +534,8 @@ collect_changes() {
         elif [[ ! -f "$target" || -L "$target" ]]; then
           add_change "REPLACE" "$rel"
         else
-          src_size=$(stat -c '%s' "$path" 2>/dev/null || stat -f '%z' "$path" 2>/dev/null || echo -1)
-          dst_size=$(stat -c '%s' "$target" 2>/dev/null || stat -f '%z' "$target" 2>/dev/null || echo -2)
+          src_size=$(file_size "$path") || fail "Unable to inspect source size: $path"
+          dst_size=$(file_size "$target") || fail "Unable to inspect target size: $target"
           if [[ "$src_size" != "$dst_size" ]]; then
             add_change "UPDATE" "$rel"
           elif ! cmp -s "$path" "$target"; then
@@ -488,7 +551,12 @@ collect_changes() {
   fi
 
   if [[ "$mirror" -eq 1 ]]; then
-    mapfile -d '' path_list < <(find "$dst" -mindepth 1 -depth -print0)
+    if ! find "$dst" -mindepth 1 -depth -print0 >"$scan_file"; then
+      rm -f "$scan_file" || warn "Unable to remove failed scan file: $scan_file"
+      fail "Target traversal failed; refusing to build a partial mirror plan for '$dst'."
+    fi
+    mapfile -d '' path_list <"$scan_file" || fail "Unable to read target scan file: $scan_file"
+    rm -f "$scan_file" || fail "Unable to remove target scan file: $scan_file"
     for path in ${path_list[@]+"${path_list[@]}"}; do
       rel="${path#"$dst"/}"
       should_exclude_rel "$rel" && continue
@@ -504,24 +572,34 @@ print_change_summary() {
     return 0
   fi
 
+  local kind rel shown=0 total=0
+  declare -A counts=()
+  while IFS= read -r -d '' kind && IFS= read -r -d '' rel; do
+    counts["$kind"]=$((${counts["$kind"]:-0} + 1))
+    total=$((total + 1))
+  done <"$CHANGES_FILE"
+  [[ $total -eq $CHANGE_COUNT ]] || fail "Change plan is incomplete or corrupt: expected $CHANGE_COUNT record(s), read $total."
+
   info "Detected ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$CHANGE_COUNT${AC_R} change(s). Summary:"
-  while IFS=$'\t' read -r kind cnt; do
-    printf '  %s  %s\n' "$(kind_label "$kind")" "$cnt"
-  done < <(awk -F '\t' '{ count[$1]++ } END { for (kind in count) printf "%s\t%d\n", kind, count[kind] }' "$CHANGES_FILE" | sort)
+  for kind in CREATE UPDATE REPLACE DELETE MKDIR SYMLINK CHMOD; do
+    [[ -n "${counts[$kind]:-}" ]] || continue
+    printf '  %s  %s\n' "$(kind_label "$kind")" "${counts[$kind]}"
+  done
   printf '\n'
   info "Change preview (first $MAX_PREVIEW line(s)):"
-  while IFS=$'\t' read -r kind rel; do
-    printf '  %s  %s\n' "$(kind_label "$kind")" "${AC_DIM}${rel}${AC_R}"
-  done < <(sed -n "1,${MAX_PREVIEW}p" "$CHANGES_FILE")
-  local total
-  total=$(wc -l <"$CHANGES_FILE" | tr -d ' ')
+  while IFS= read -r -d '' kind && IFS= read -r -d '' rel; do
+    if ((shown < MAX_PREVIEW)); then
+      printf '  %s  %s\n' "$(kind_label "$kind")" "${AC_DIM}${rel}${AC_R}"
+    fi
+    shown=$((shown + 1))
+  done <"$CHANGES_FILE"
   if [[ "$total" -gt "$MAX_PREVIEW" ]]; then
     warn "Preview truncated: $((total - MAX_PREVIEW)) additional change(s) not shown."
   fi
 }
 filtered_git_dirty() {
   local dst="${1:-}"
-  git -C "$dst" status --porcelain --untracked-files=normal 2>/dev/null | while IFS= read -r line; do
+  git -C "$dst" status --porcelain --untracked-files=normal | while IFS= read -r line; do
     local path="${line:3}"
     if should_exclude_rel "$path"; then
       continue
@@ -531,9 +609,10 @@ filtered_git_dirty() {
 }
 check_git_safety() {
   local dst="${1:-}"
-  if git -C "$dst" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  local repo_probe=''
+  if repo_probe="$(git -C "$dst" rev-parse --is-inside-work-tree 2>&1)" && [[ "$repo_probe" == "true" ]]; then
     local dirty
-    dirty=$(filtered_git_dirty "$dst")
+    dirty=$(filtered_git_dirty "$dst") || fail "Unable to inspect Git status for target: $dst"
     if [[ -n "$dirty" && $FORCE -ne 1 ]]; then
       printf '%s\n' "$dirty" >&2
       fail "Target git working tree has local changes. Commit/stash them first, or rerun with ${AC_BOLD}--force${AC_R} after reviewing the backup plan."
@@ -563,7 +642,7 @@ create_backup() {
   printf "${AC_BOLD}${AC_FG_CYAN}[INFO]${AC_R}  Creating pre-apply backup archive: ${AC_DIM}%s${AC_R}\n" "$backup_file" >&2
   log_action "Creating tar.gz backup archive: $backup_file"
   tar -czf "$backup_file" -C "$parent" "$base" || fail "Backup creation failed! Synchronization aborted with zero changes to target."
-  cp "$CHANGES_FILE" "${backup_file}.changes.txt" 2>/dev/null || true
+  cp "$CHANGES_FILE" "${backup_file}.changes.plan" || fail "Backup was created, but the change plan could not be saved beside it."
   printf '%s\n' "$backup_file"
 }
 copy_one() {
@@ -578,7 +657,9 @@ copy_one() {
     chmod_like_source "$source_path" "$target_path" || return 1
   elif [[ -L "$source_path" ]]; then
     mkdir -p "$target_parent" || return 1
-    rm -rf "$target_path" 2>/dev/null || true
+    if path_exists_or_link "$target_path" && ! rm -rf "$target_path"; then
+      return 1
+    fi
     cp -P "$source_path" "$target_path" || return 1
   elif [[ -f "$source_path" ]]; then
     mkdir -p "$target_parent" || return 1
@@ -586,11 +667,17 @@ copy_one() {
       if [[ -d "$target_path" && ! -L "$target_path" ]]; then
         rm -rf "$target_path" || return 1
       elif [[ ! -w "$target_path" ]]; then
-        chmod u+w "$target_path" 2>/dev/null || rm -f "$target_path" 2>/dev/null || true
+        if ! chmod u+w "$target_path"; then
+          rm -f "$target_path" || return 1
+        fi
       fi
     fi
-    # Use cp -a for highest fidelity (xattrs/ACLs/timestamps), fallback smoothly to cp -p
-    cp -a "$source_path" "$target_path" 2>/dev/null || cp -p "$source_path" "$target_path" || return 1
+    # Use cp -a for highest fidelity (xattrs/ACLs/timestamps), with a logged cp -p fallback.
+    local copy_error=''
+    if ! copy_error="$(cp -a "$source_path" "$target_path" 2>&1)"; then
+      [[ -n "$copy_error" ]] && warn "cp -a failed for '$source_path'; retrying with cp -p: $copy_error"
+      cp -p "$source_path" "$target_path" || return 1
+    fi
   fi
 }
 handle_apply_failure() {
@@ -630,7 +717,7 @@ execute_rollback() {
   # An overlay extraction is not a rollback: files newly created during the
   # failed apply would survive. Clear only the target's children first, while
   # retaining the validated target root itself.
-  if ! find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \; 2>/dev/null; then
+  if ! find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;; then
     fail "Fatal: Could not clear the partially updated target. Backup remains at '$BACKUP_FILE'."
   fi
 
@@ -643,12 +730,12 @@ execute_rollback() {
   fi
 }
 apply_changes() {
-  local src="${1:-}" dst="${2:-}" line kind rel target_path applied=0
+  local src="${1:-}" dst="${2:-}" kind rel target_path applied=0
 
   APPLY_IN_PROGRESS=1
   log_action "Beginning active apply of $CHANGE_COUNT changes."
 
-  while IFS=$'\t' read -r kind rel; do
+  while IFS= read -r -d '' kind && IFS= read -r -d '' rel; do
     [[ -n "$kind" && -n "$rel" ]] || continue
     log_action "Applying: $kind -> $rel"
     case "$kind" in
@@ -662,9 +749,9 @@ apply_changes() {
       target_path="$dst/$rel"
       if path_exists_or_link "$target_path"; then
         if [[ ! -w "$target_path" && ! -L "$target_path" && -f "$target_path" ]]; then
-          chmod u+w "$target_path" 2>/dev/null || true
+          chmod u+w "$target_path" || handle_apply_failure "$kind" "$rel"
         fi
-        rm -rf "$target_path" 2>/dev/null || handle_apply_failure "$kind" "$rel"
+        rm -rf "$target_path" || handle_apply_failure "$kind" "$rel"
       fi
       ;;
     *)
@@ -674,6 +761,7 @@ apply_changes() {
     applied=$((applied + 1))
   done <"$CHANGES_FILE"
 
+  [[ $applied -eq $CHANGE_COUNT ]] || handle_apply_failure "PLAN" "expected $CHANGE_COUNT record(s), applied $applied"
   APPLY_IN_PROGRESS=0
   info "Applied ${AC_BOLD}${AC_FG_BRIGHT_WHITE}$applied${AC_R} change(s)."
   log_action "Successfully applied all $applied changes."
@@ -1424,7 +1512,7 @@ ac_main() {
   esac
 
   if [[ -n "$LOG_FILE" ]]; then
-    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+    mkdir -p "$(dirname "$LOG_FILE")" || fail "Unable to create log directory for: $LOG_FILE"
     log_action "=== Synchronization Script Started (${MODE^^} Mode) ==="
     log_action "Source: $SOURCE_DIR"
     log_action "Target: $TARGET_DIR"
@@ -1432,10 +1520,11 @@ ac_main() {
 
   acquire_lock
 
-  TEMP_BASE="$(get_temp_dir)"
-  CHANGES_FILE=$(mktemp "$TEMP_BASE/apply_changes.XXXXXX" 2>/dev/null || echo "$TEMP_BASE/apply_changes.$$.tmp")
-  touch "$CHANGES_FILE" 2>/dev/null || CHANGES_FILE="./apply_changes.$$.tmp"
-  : >"$CHANGES_FILE" || fail "CRITICAL: Unable to create temporary plan file '$CHANGES_FILE'. Please verify your filesystem permissions."
+  TEMP_BASE="$(get_temp_dir)" || fail "Unable to resolve a temporary directory for the change plan."
+  if ! CHANGES_FILE=$(mktemp "$TEMP_BASE/apply_changes.XXXXXX"); then
+    fail "CRITICAL: Unable to create a secure temporary plan file in '$TEMP_BASE'."
+  fi
+  : >"$CHANGES_FILE" || fail "CRITICAL: Unable to initialize temporary plan file '$CHANGES_FILE'. Please verify your filesystem permissions."
   CHANGE_COUNT=0
 
   info "Source: ${AC_FG_CYAN}$SOURCE_DIR${AC_R}"
@@ -1493,6 +1582,9 @@ ac_main() {
     warn "${AC_FG_BRIGHT_RED}✖ Verification found remaining differences after apply:${AC_R}"
     log_action "Verification found remaining differences."
     print_change_summary
+    warn "Backup archive retained for recovery: $BACKUP_FILE"
+    release_lock || return 1
+    return 1
   fi
 
   info "Backup archive: ${AC_DIM}$BACKUP_FILE${AC_R}"

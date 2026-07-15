@@ -229,11 +229,15 @@ it_cmd_optimize() {
   case "$ext" in
     png)
       if uk_has_cmd optipng; then
-        optipng -quiet -strip all "$file" 2>/dev/null
+        optipng -quiet -strip all "$file" || { uk_error "PNG optimization failed."; return 1; }
         uk_success "Optimized PNG: $file"
       elif uk_has_cmd pngcrush; then
         local tmp; tmp="$(mktemp)" || return 1
-        pngcrush -q "$file" "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+        if ! pngcrush -q "$file" "$tmp" || ! mv "$tmp" "$file"; then
+          rm -f "$tmp"
+          uk_error "PNG optimization failed."
+          return 1
+        fi
         uk_success "Optimized PNG: $file"
       else
         uk_error "Install optipng or pngcrush for PNG optimization."
@@ -242,12 +246,20 @@ it_cmd_optimize() {
       ;;
     jpg|jpeg)
       if uk_has_cmd jpegoptim; then
-        jpegoptim --strip-all --quiet "${quality:+--max=$quality}" "$file" 2>/dev/null
+        local -a jpeg_args=(--strip-all --quiet)
+        [[ -n "$quality" ]] && jpeg_args+=("--max=$quality")
+        jpegoptim "${jpeg_args[@]}" "$file" || { uk_error "JPEG optimization failed."; return 1; }
         uk_success "Optimized JPEG: $file"
       elif it_has_convert; then
         local cmd; cmd="$(it_convert_cmd)"
         local tmp; tmp="$(mktemp).jpg" || return 1
-        $cmd "$file" ${quality:+-quality "$quality"} "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+        local -a convert_args=()
+        [[ -n "$quality" ]] && convert_args+=(-quality "$quality")
+        if ! $cmd "$file" "${convert_args[@]}" "$tmp" || ! mv "$tmp" "$file"; then
+          rm -f "$tmp"
+          uk_error "JPEG optimization failed."
+          return 1
+        fi
         uk_success "Optimized JPEG: $file"
       else
         uk_error "Install jpegoptim or ImageMagick for JPEG optimization."
@@ -257,7 +269,13 @@ it_cmd_optimize() {
     webp)
       if uk_has_cmd cwebp; then
         local tmp; tmp="$(mktemp).webp" || return 1
-        cwebp -quiet ${quality:+-q "$quality"} "$file" -o "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+        local -a webp_args=(-quiet)
+        [[ -n "$quality" ]] && webp_args+=(-q "$quality")
+        if ! cwebp "${webp_args[@]}" "$file" -o "$tmp" || ! mv "$tmp" "$file"; then
+          rm -f "$tmp"
+          uk_error "WebP optimization failed."
+          return 1
+        fi
         uk_success "Optimized WebP: $file"
       else
         uk_error "Install cwebp for WebP optimization."

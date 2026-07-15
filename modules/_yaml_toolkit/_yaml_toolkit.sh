@@ -243,6 +243,7 @@ yaml.dump(data, sys.stdout, indent=indent, allow_unicode=True, sort_keys=False)
 
 yt_cmd_get() {
   local file="$1" key="$2" indent="$3"
+  [[ "$key" =~ ^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$ ]] || { uk_error "Invalid dot-path key: $key"; return 1; }
   local backend
   backend="$(yt_require_backend)" || return $?
 
@@ -340,9 +341,9 @@ if isinstance(data, dict):
     print(json.dumps(list(data.keys()), ensure_ascii=False))
 else:
     print("[]")
-' 2>/dev/null || printf '[]\n'
+' 2>/dev/null || { uk_error "Unable to enumerate YAML keys."; return 1; }
       else
-        yq eval 'keys | .[]' "$file" 2>/dev/null | sort
+        yq eval 'keys | .[]' "$file" 2>/dev/null | sort || { uk_error "Unable to enumerate YAML keys."; return 1; }
       fi
       ;;
     python)
