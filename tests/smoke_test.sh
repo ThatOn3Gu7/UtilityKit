@@ -293,8 +293,9 @@ apply_interactive_test() {
   mkdir -p "$TMP/ihome/src/sub" "$TMP/ihome/dst"
   printf 'v2\n' >"$TMP/ihome/src/new.txt"
   printf 'old\n' >"$TMP/ihome/dst/old.txt"
-  # Keys: filter "src" -> descend -> select current; filter "dst" -> descend -> select; confirm.
-  local keys=$'/src\n\e[B\e[B\ns/dst\n\e[B\e[B\ns\n'
+  # Keys: filter "src" -> descend -> select current; filter "dst" -> descend -> select;
+  # then option prompts: apply now (y), mirror/force/include-runtime/advanced (n).
+  local keys=$'/src\n\e[B\e[B\ns/dst\n\e[B\e[B\nsy\nn\nn\nn\nn\n'
   local cmd="HOME='$TMP/ihome' NO_COLOR=1 bash '$ROOT/main.sh' apply -i"
   script -qec "$cmd" /dev/null <<<"$keys" >/dev/null 2>&1 || true
   [[ -f "$TMP/ihome/dst/new.txt" ]] || return 1

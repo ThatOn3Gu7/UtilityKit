@@ -783,8 +783,8 @@ ac_init_terminal() {
     AC_TERM_MODE="plain"
   fi
 
-  # Use line-drawing characters only in a UTF-8 locale. Keep all icons
-  # single-column so border calculations are deterministic.
+  # Use line-drawing characters only in a UTF-8 locale. Emoji icons are
+  # double-width; ac_visible_len/ac_truncate account for that.
   case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
   *UTF-8* | *utf8* | *UTF8*) AC_UNICODE=1 ;;
   *) AC_UNICODE=0 ;;
@@ -878,15 +878,19 @@ ac_strip_ansi() {
   printf '%s' "${1:-}" | sed $'s/\033\\[[0-9;]*[[:alpha:]]//g'
 }
 ac_visible_len() {
-  local plain
+  local plain narrow
   plain="$(ac_strip_ansi "${1:-}")"
-  printf '%s' "${#plain}"
+  # Emoji/pictographs (U+1F300–U+1FAFF) occupy two terminal cells but bash
+  # counts them as one character; add one extra cell per wide glyph.
+  narrow="${plain//[$'\U1F300'-$'\U1FAFF']/}"
+  printf '%s' "$((${#plain} * 2 - ${#narrow}))"
 }
 
-# Truncate text containing ANSI styles. The UI deliberately uses single-cell
-# chrome; non-ASCII file names are handled by the active shell locale.
+# Truncate text containing ANSI styles. Wide glyphs (emoji) count as two
+# cells, matching ac_visible_len; non-ASCII file names are handled by the
+# active shell locale.
 ac_truncate() {
-  local text="${1:-}" max="${2:-80}" vis out='' i=0 len c code keep visible=0
+  local text="${1:-}" max="${2:-80}" vis out='' i=0 len c code keep visible=0 w
   ((max > 0)) || return 0
   vis="$(ac_visible_len "$text")"
   ((vis <= max)) && {
@@ -909,8 +913,11 @@ ac_truncate() {
       done
       out+="$code"
     else
+      w=1
+      [[ "$c" == [$'\U1F300'-$'\U1FAFF'] ]] && w=2
+      ((visible + w > keep)) && break
       out+="$c"
-      visible=$((visible + 1))
+      visible=$((visible + w))
     fi
   done
   printf '%s%s' "$out" "$AC_ELL"
@@ -1401,10 +1408,51 @@ ac_wizard() {
   }
   ac_show_cursor
   trap - INT TERM HUP
-  printf 'Preview and apply changes? [Y/n] ' >&2
-  local answer=''
-  IFS= read -r answer </dev/tty || answer=n
-  if [[ -z "$answer" || "$answer" == y || "$answer" == Y ]]; then ac_main --apply --yes "$src" "$tgt"; else ac_main "$src" "$tgt"; fi
+
+  local args=() reply=''
+  if uk_confirm 'Apply changes now (No = dry-run preview only)?' 'N'; then
+    args+=(--apply --yes)
+  fi
+  if uk_confirm 'Mirror: also delete target files missing from source?' 'N'; then
+    args+=(--mirror)
+  fi
+  if uk_confirm 'Force past local git changes in target?' 'N'; then
+    args+=(--force)
+  fi
+  if uk_confirm 'Include runtime logs/tmp files?' 'N'; then
+    args+=(--include-runtime)
+  fi
+
+  if uk_confirm 'Configure advanced options (excludes, backup dir, log file, ...)?' 'N'; then
+    while :; do
+      reply="$(uk_prompt 'Exclude pattern (blank to continue)' '' 'node_modules' 'Bash wildcard pattern; repeat to add more than one.')" || reply=''
+      [[ -n "$reply" ]] || break
+      args+=(--exclude "$reply")
+    done
+    reply="$(uk_prompt 'Backup directory (blank for default location)' '' '~/backups')" || reply=''
+    if [[ -n "$reply" ]]; then
+      [[ "$reply" == '~' || "$reply" == '~/'* ]] && reply="${HOME}${reply#\~}"
+      args+=(--backup-dir "$reply")
+    fi
+    reply="$(uk_prompt 'Audit log file (blank for none)' '' '~/sync.log')" || reply=''
+    if [[ -n "$reply" ]]; then
+      [[ "$reply" == '~' || "$reply" == '~/'* ]] && reply="${HOME}${reply#\~}"
+      args+=(--log-file "$reply")
+    fi
+    reply="$(uk_prompt 'Max preview lines' '200')" || reply=''
+    if [[ -n "$reply" && "$reply" != 200 ]]; then
+      if [[ "$reply" =~ ^[0-9]+$ && "$reply" -gt 0 ]]; then
+        args+=(--max-preview "$reply")
+      else
+        warn "Ignoring invalid max-preview value '$reply'; using default 200."
+      fi
+    fi
+    if uk_confirm 'Disable concurrency locking?' 'N'; then
+      args+=(--no-lock)
+    fi
+  fi
+
+  ac_main ${args[@]+"${args[@]}"} "$src" "$tgt"
 }
 
 # Argument parsing & execution entry point -
