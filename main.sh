@@ -1312,6 +1312,9 @@ run_tool() {
   doctor | diagnostics)
     uk_doctor "$@"
     ;;
+  --version | -v | version | v) 
+   printf ' %s%s%s UtilityKit %s\n' "$UK_C_CYAN" "$UK_I_STAR" "$UK_C_RESET" "v${UK_VERSION:- Unknown}"
+    ;;
   *)
     uk_error "Unknown command: $cmd"
     uk_main_show_help
