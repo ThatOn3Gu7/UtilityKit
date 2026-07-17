@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.4.0] - 2026-07-17
+
+### Added
+- **`doctor --fix`.** Opt-in auto-repair for the easy integrity issues: creates missing `modules/_<tool>/_<tool>_README.md` stubs from registry metadata (name + description), and prints a suggested `git rm -r "modules/_<dir>"` command for orphan tool directories — never deletes anything itself. Summary line reports the auto-fixed count.
+- **Per-tool README check.** `doctor` now verifies every registry tool has its `_<tool>_README.md` on disk and warns when missing.
+
+### Fixed
+- **Orphan-directory scan.** The scan globbed `$UK_ROOT_DIR/_*/` (repo root) instead of `modules/_*/`, so it never matched anything and always reported "none".
+
 ## [5.3.0] - 2026-07-15
 
 ### Security
