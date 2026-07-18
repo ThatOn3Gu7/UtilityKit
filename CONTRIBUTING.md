@@ -157,7 +157,17 @@ bump by the *size and impact* of the change:
 | New feature / meaningful refactor / behavior change | minor `X.Y.Z → X.(Y+1).0` | new tool, dry-run-by-default rollout |
 | Breaking change / incompatible CLI or output | major `(X+1).0.0` | removed flag, changed return codes |
 
-**Process:** when you bump `UK_VERSION`, also add a dated entry to `CHANGES.md`
-(### Added / ### Changed / ### Fixed / ### Security as appropriate) summarizing the
-change and its type. Do **not** scatter version strings across individual tool files;
-keep the single source of truth in `lib/uk_common.sh`.
+**Process — documenting a bump is mandatory:** whenever `UK_VERSION` is bumped, the
+change **must** be recorded in **two** places before the commit is considered complete:
+
+1. **`CHANGES.md`** — add a dated `## [X.Y.Z] - YYYY-MM-DD` entry at the top with
+   `### Added` / `### Changed` / `### Fixed` / `### Security` subsections as
+   appropriate, summarizing *what* changed and *why* the version moved.
+2. **`README.md` → `## Changelog`** — add a matching one-line **`vX.Y.Z`** entry
+   (mark the newest as `- current`, and drop the `current` tag from the previous one)
+   giving a brief, user-facing reason the version was bumped.
+
+Leaving either place undocumented is a release blocker — CI's standalone sweep and the
+`doctor` integrity check treat a version bump without matching changelog entries as
+incomplete. Do **not** scatter version strings across individual tool files; keep the
+single source of truth in `lib/uk_common.sh`.
