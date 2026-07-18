@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.4.0'
+readonly UK_VERSION='5.5.0'
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -213,6 +213,172 @@ uk_bar() {
   empty=$((width - fill))
   printf '%s%s%s%s%s' "$UK_C_GREEN" "$(printf '%*s' "$fill" '' | tr ' ' '#')" "$UK_C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$UK_C_RESET"
 }
+# Populates UK_SPINNER_FRAMES with the canonical animation frames, honoring
+# NO_UNICODE at call time (not source time) so tools that flip modes late
+# still get the right glyph set. Every frame is exactly 1 cell wide.
+uk_spinner_frames() {
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    UK_SPINNER_FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  else
+    UK_SPINNER_FRAMES=('|' '/' '-' '\')
+  fi
+}
+
+# uk_spinner [--prefix STR] [--label-file FILE] [--elapsed] [--interval S] <pid> <label>
+# Canonical wait-on-a-background-job spinner. Animates frames next to the
+# label until <pid> exits, then erases its own line and returns the job's
+# exit status. Honors NO_UNICODE (ASCII frames) and NO_COLOR at call time.
+# Non-TTY stdout prints "<label>... " once with no animation.
+#   --prefix STR      static text drawn between the frame and the label
+#   --label-file FILE re-read FILE every tick for a live label (falls back
+#                     to <label> while FILE is empty or missing)
+#   --elapsed         append a running "Ns" seconds counter
+#   --interval S      frame delay in seconds (default 0.08)
+uk_spinner() {
+  local prefix='' label_file='' show_elapsed=0 interval=0.08
+  while [[ "${1:-}" == --* ]]; do
+    case "${1:-}" in
+    --prefix)
+      shift
+      prefix="${1:-}"
+      ;;
+    --label-file)
+      shift
+      label_file="${1:-}"
+      ;;
+    --elapsed) show_elapsed=1 ;;
+    --interval)
+      shift
+      interval="${1:-0.08}"
+      ;;
+    *) break ;;
+    esac
+    shift
+  done
+  local pid="${1:-}" label="${2:-}" rc=0
+  [[ -n "$pid" ]] || return 1
+
+  if [[ ! -t 1 ]]; then
+    printf '%s... ' "${prefix:+$prefix }$label"
+    wait "$pid" || rc=$?
+    return "$rc"
+  fi
+
+  uk_spinner_frames
+  local c_frame="$UK_C_CYAN" c_reset="$UK_C_RESET" ell='…'
+  [[ -n "${NO_COLOR:-}" ]] && c_frame='' c_reset=''
+  [[ -n "${NO_UNICODE:-}" ]] && ell='.'
+
+  local n=${#UK_SPINNER_FRAMES[@]} i=0 start now cols budget line
+  start="$(date +%s)"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    if [[ -n "$label_file" && -s "$label_file" ]]; then
+      label="$(<"$label_file")"
+    fi
+    line="${prefix:+$prefix }$label"
+    if ((show_elapsed == 1)); then
+      now="$(date +%s)"
+      line="$line $((now - start))s"
+    fi
+
+    # Never print wider than the terminal: a wrapped line breaks the \r
+    # redraw and the spinner "walks" down the screen.
+    cols="${COLUMNS:-0}"
+    [[ "$cols" =~ ^[0-9]+$ ]] || cols=0
+    if ((cols <= 0)); then
+      cols="$(tput cols 2>/dev/null || printf '80')"
+      [[ "$cols" =~ ^[0-9]+$ ]] || cols=80
+    fi
+    budget=$((cols - 4))
+    ((budget < 8)) && budget=8
+    ((${#line} > budget)) && line="${line:0:budget-1}$ell"
+
+    printf '\r\033[K %s%s%s %s' "$c_frame" "${UK_SPINNER_FRAMES[i % n]}" "$c_reset" "$line"
+    i=$((i + 1))
+    sleep "$interval"
+  done
+
+  wait "$pid" || rc=$?
+  printf '\r\033[K'
+  return "$rc"
+}
+
+# uk_fake_progress <pid> <label> [done_label]
+# Indeterminate percent bar for a background job of unknown duration: the
+# percentage accelerates toward 99% and holds until <pid> exits, then a full
+# green 100% bar (or a red failure line with the exit code) is printed.
+# Returns the job's exit status. Non-TTY stdout waits with no output.
+uk_fake_progress() {
+  local pid="${1:-}" label="${2:-working...}" done_label="${3:-done.}"
+  local rc=0 width=28 pct=0 fill empty bar_fill bar_empty
+  [[ -n "$pid" ]] || return 1
+
+  if [[ ! -t 1 ]]; then
+    wait "$pid" || rc=$?
+    return "$rc"
+  fi
+
+  local ch_fill ch_empty
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    ch_fill='█' ch_empty='░'
+  else
+    ch_fill='#' ch_empty='-'
+  fi
+  local c_bar="$UK_C_CYAN" c_done="$UK_C_GREEN" c_fail="$UK_C_RED"
+  local c_dim="$UK_C_DIM" c_bold="$UK_C_BOLD" c_reset="$UK_C_RESET"
+  [[ -n "${NO_COLOR:-}" ]] && c_bar='' c_done='' c_fail='' c_dim='' c_bold='' c_reset=''
+
+  printf '\n'
+  while kill -0 "$pid" 2>/dev/null; do
+    if ((pct < 50)); then
+      pct=$((pct + 4))
+    elif ((pct < 99)); then
+      pct=$((pct + 1))
+    fi
+    ((pct > 99)) && pct=99
+
+    fill=$((pct * width / 100))
+    empty=$((width - fill))
+    printf -v bar_fill '%*s' "$fill" ''
+    printf -v bar_empty '%*s' "$empty" ''
+    bar_fill="${bar_fill// /$ch_fill}"
+    bar_empty="${bar_empty// /$ch_empty}"
+
+    printf '\r  %s%s%s [%s%s%s%s%s] %s%3d%%%s  %s' \
+      "$c_bar" "$UK_I_WORK" "$c_reset" \
+      "$c_bar" "$bar_fill" "$c_dim" "$bar_empty" "$c_reset" \
+      "$c_bold" "$pct" "$c_reset" "$label"
+
+    # Re-check before sleeping so we exit promptly when the job finishes
+    # instead of burning a long final tick.
+    kill -0 "$pid" 2>/dev/null || break
+    if ((pct < 50)); then
+      sleep 0.06
+    elif ((pct < 85)); then
+      sleep 0.25
+    else
+      sleep 0.80
+    fi
+  done
+
+  wait "$pid" || rc=$?
+
+  printf -v bar_fill '%*s' "$width" ''
+  bar_fill="${bar_fill// /$ch_fill}"
+  if ((rc == 0)); then
+    printf '\r\033[K  %s%s%s [%s%s%s] %s100%%%s  %s\n' \
+      "$c_done" "$UK_I_OK" "$c_reset" \
+      "$c_done" "$bar_fill" "$c_reset" \
+      "$c_bold" "$c_reset" "$done_label"
+  else
+    printf '\r\033[K  %s%s%s [%s%s%s] %s%s failed (exit %d)%s\n' \
+      "$c_fail" "$UK_I_ERR" "$c_reset" \
+      "$c_fail" "$bar_fill" "$c_reset" \
+      "$c_bold" "$label" "$rc" "$c_reset" >&2
+  fi
+  return "$rc"
+}
 uk_header() {
   local title="${1:-}" subtitle="${2:-}"
   printf '\n%s%s%s\n' "$UK_C_BRIGHT_CYAN$UK_C_BOLD" "$title" "$UK_C_RESET"
@@ -414,15 +580,10 @@ uk_require_width() {
   tput civis 2>/dev/null || printf '\033[?25l'
 
   # Spinner frames — the ONLY thing that redraws every tick, so the rest of
-  # the box stays perfectly still and readable. NO_UNICODE users get an ASCII
-  # fallback so the frame widths stay equal (1 cell each).
-  local spinner
-  if [[ -z "${NO_UNICODE:-}" ]]; then
-    spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-  else
-    spinner=('|' '/' '-' '\')
-  fi
-  local sp_len=${#spinner[@]}
+  # the box stays perfectly still and readable. Shared canonical frame set;
+  # NO_UNICODE users get the ASCII fallback (1 cell each either way).
+  uk_spinner_frames
+  local sp_len=${#UK_SPINNER_FRAMES[@]}
 
   local key='' tick=0 prev_cols='' prev_rows=''
   # Geometry cache populated by _uk_render_width_notice_full (screen-absolute,
@@ -456,7 +617,7 @@ uk_require_width() {
     fi
 
     _uk_render_width_notice_tick "$cols" "$required" "$v" \
-      "${spinner[$((tick % sp_len))]}"
+      "${UK_SPINNER_FRAMES[$((tick % sp_len))]}"
     tick=$((tick + 1))
 
     # Poll for input every 0.15 s — smooth spinner, still cheap. Any key

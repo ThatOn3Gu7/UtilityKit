@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.5.0] - 2026-07-18
+
+### Added
+- **Canonical `uk_spinner` in `lib/uk_common.sh`.** One wait-on-a-background-job spinner for the whole suite: braille frames with an ASCII fallback under `NO_UNICODE`, `NO_COLOR` honored at call time, width-safe `\r`+`ESC[K` redraws that never wrap, a static `label...` degradation on non-TTY stdout, and preserved exit status. Options: `--prefix` (static id before the label), `--label-file` (live label re-read every tick), `--elapsed` (running seconds counter), `--interval`. Shared `uk_spinner_frames` also feeds the width-gate notice.
+- **Canonical `uk_fake_progress` in `lib/uk_common.sh`.** The indeterminate accelerating percent bar (formerly duplicated in `_media_convert` and `_disk_analyzer`): climbs to 99% and holds until the job exits, then prints a green 100% bar or a red failure line with the exit code.
+
+### Changed
+- **Spinner call sites now delegate to the library.** `setup.sh` (`setup_run_with_spinner`), `_cache_clean` (`cc_spinner`, now honoring `--no-color` via `NO_COLOR`), and `_update_managers` (both spin loops plus `draw_spinner_line`, replaced by a thin `um_spin` bridge that maps `--ascii`/`--no-color` onto `NO_UNICODE`/`NO_COLOR`) all use `uk_spinner`. `_media_convert` and `_disk_analyzer` use `uk_fake_progress`. Net: ~200 lines of duplicated animation code removed; `_cache_clean`'s spinner gains the previously missing `NO_UNICODE` fallback.
+
 ## [5.4.0] - 2026-07-17
 
 ### Added

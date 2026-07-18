@@ -36,7 +36,7 @@ TEMP_DIR=""
 USE_COLOR=0
 USE_UNICODE=0
 : "${C_RESET:=}" "${C_BOLD:=}" "${C_DIM:=}" "${C_RED:=}" "${C_GREEN:=}" "${C_YELLOW:=}" "${C_BLUE:=}" "${C_MAGENTA:=}" "${C_CYAN:=}" "${C_GRAY:=}"
-SYM_OK="OK" SYM_FAIL="!!" SYM_WARN="!!" SYM_INFO="ii" SYM_RUN=">>" SYM_SKIP="--" SYM_PKG="[]" SYM_SPIN='|/-\\'
+SYM_OK="OK" SYM_FAIL="!!" SYM_WARN="!!" SYM_INFO="ii" SYM_RUN=">>" SYM_SKIP="--" SYM_PKG="[]"
 
 # ----------------------------- Storage Arrays -------------------------------
 # Bash 3 compatible parallel arrays (avoiding associative arrays for high portability)
@@ -214,7 +214,6 @@ init_ui() {
     SYM_RUN="▶"
     SYM_SKIP="○"
     SYM_PKG="📦"
-    SYM_SPIN='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
   fi
 }
 
@@ -439,50 +438,26 @@ clean_display_cmd() {
   '
 }
 
-# Draw one spinner frame. Args: frame_char, id, label, elapsed_seconds.
-#
-# IMPORTANT: we must never print more characters than the terminal is wide, and
-# we must clear the line with the terminal's "erase to end of line" capability
-# rather than padding with a fixed number of spaces. Padding with e.g. 100 spaces
-# wraps onto a second physical line on narrower terminals; after that wrap, the
-# leading '\r' only returns to the start of the *current* (wrapped) line, so the
-# spinner "walks" downward and prints a new line every refresh. Using \r + ESC[K
-# (or a width-bounded fallback) keeps everything on a single line at any width.
-draw_spinner_line() {
-  local frame=$1 id=$2 label=$3 elapsed=$4
-  local cols budget plain
-
-  # Determine terminal width (fall back to 80 if unknown).
-  cols=${COLUMNS:-0}
-  if [ "$cols" -le 0 ]; then
-    cols=$(tput cols 2>/dev/null || echo 80)
-  fi
-  [ "$cols" -le 0 ] && cols=80
-
-  # Reserve room for the fixed parts: "<frame> <id> » " + " <elapsed>s".
-  # +6 is slack for spaces and the 's' suffix so we never hit the last column
-  # (writing the final column can trigger an auto-wrap on some terminals).
-  budget=$((cols - ${#frame} - ${#id} - ${#elapsed} - 6))
-  [ "$budget" -lt 8 ] && budget=8
-
-  if [ "${#label}" -gt "$budget" ]; then
-    label="${label:0:$((budget - 1))}…"
-  fi
-
-  if [ "$USE_COLOR" -eq 1 ]; then
-    # \r  -> return to column 0
-    # \033[K -> erase from cursor to end of line (no wrapping, width-independent)
-    printf '\r\033[K%s %s %s %s %ss' \
-      "$(color "$C_CYAN" "$frame")" \
-      "$(color "$C_BOLD" "$id")" \
-      "$(color "$C_DIM" "»")" \
-      "$(color "$C_GRAY" "$label")" \
-      "$elapsed"
+# Bridge to the canonical uk_spinner (lib/uk_common.sh): it already handles
+# width-safe redraws, the elapsed counter, and live label files. This
+# script's --ascii/--no-color style overrides (USE_UNICODE/USE_COLOR) are
+# mapped onto the suite-wide NO_UNICODE/NO_COLOR toggles for just the one
+# call, so the flags keep working even when the environment doesn't set them.
+#   $1 = manager id, $2 = pid, $3 = static label, $4 = optional live label file
+um_spin() {
+  local id=$1 pid=$2 label=$3 lf=${4:-} rc=0
+  set -- --elapsed --interval 0.1 --prefix "$id »"
+  [ -n "$lf" ] && set -- "$@" --label-file "$lf"
+  if [ "$USE_COLOR" -eq 1 ] && [ "$USE_UNICODE" -eq 1 ]; then
+    uk_spinner "$@" "$pid" "$label" || rc=$?
+  elif [ "$USE_COLOR" -eq 1 ]; then
+    NO_UNICODE=1 uk_spinner "$@" "$pid" "$label" || rc=$?
+  elif [ "$USE_UNICODE" -eq 1 ]; then
+    NO_COLOR=1 uk_spinner "$@" "$pid" "$label" || rc=$?
   else
-    # No-color fallback: still use \r + ESC[K; if a terminal ignores ESC[K it is
-    # virtually always also color-capable, so this path is safe in practice.
-    printf '\r\033[K%s %s %s %s %ss' "$frame" "$id" "»" "$label" "$elapsed"
+    NO_COLOR=1 NO_UNICODE=1 uk_spinner "$@" "$pid" "$label" || rc=$?
   fi
+  return "$rc"
 }
 
 # Execute a simple && / || / ; chain step-by-step, writing the current
@@ -561,36 +536,25 @@ run_chain_stepwise() {
 }
 
 run_shell_with_spinner() {
-  local id=$1 cmd=$2 log=$3 spin_len frame frame_idx=0 start now elapsed rc
-  local stepfile label
+  local id=$1 cmd=$2 log=$3 rc
+  local stepfile
   if [ "$DRY_RUN" -eq 1 ]; then
     say "$(color "$C_YELLOW" "${SYM_INFO} dry-run") $id: $cmd"
     return 0
   fi
 
-  start=$(date +%s)
   if [ "$VERBOSE" -eq 1 ]; then
     # Verbose: show output live, no spinner
     (eval "$cmd") 2>&1 | tee "$log"
     rc=${PIPESTATUS[0]}
   else
     if is_tty; then
-      spin_len=${#SYM_SPIN}
       if is_complex_cmd "$cmd"; then
         # ---- Complex command: run whole (unchanged semantics), static label ----
-        label="running..."
         (eval "$cmd") >"$log" 2>&1 &
         CURRENT_SPIN_PID=$!
-        while kill -0 "$CURRENT_SPIN_PID" >/dev/null 2>&1; do
-          frame="${SYM_SPIN:$((frame_idx % spin_len)):1}"
-          now=$(date +%s)
-          elapsed=$((now - start))
-          draw_spinner_line "$frame" "$id" "$label" "$elapsed"
-          frame_idx=$((frame_idx + 1))
-          sleep 0.1
-        done
-        wait "$CURRENT_SPIN_PID"
-        rc=$?
+        rc=0
+        um_spin "$id" "$CURRENT_SPIN_PID" "running..." || rc=$?
         CURRENT_SPIN_PID=""
       else
         # ---- Simple chain: step through it, showing each live sub-command ----
@@ -598,27 +562,11 @@ run_shell_with_spinner() {
         : >"$stepfile" 2>/dev/null || stepfile=""
         run_chain_stepwise "$cmd" "$log" "$stepfile" &
         CURRENT_SPIN_PID=$!
-        while kill -0 "$CURRENT_SPIN_PID" >/dev/null 2>&1; do
-          frame="${SYM_SPIN:$((frame_idx % spin_len)):1}"
-          now=$(date +%s)
-          elapsed=$((now - start))
-          # Read the sub-command the executor is currently on.
-          if [ -n "$stepfile" ] && [ -s "$stepfile" ]; then
-            label=$(cat "$stepfile" 2>/dev/null)
-          else
-            label="starting..."
-          fi
-          draw_spinner_line "$frame" "$id" "$label" "$elapsed"
-          frame_idx=$((frame_idx + 1))
-          sleep 0.1
-        done
-        wait "$CURRENT_SPIN_PID"
-        rc=$?
+        rc=0
+        um_spin "$id" "$CURRENT_SPIN_PID" "starting..." "$stepfile" || rc=$?
         CURRENT_SPIN_PID=""
         [ -n "$stepfile" ] && rm -f "$stepfile" 2>/dev/null || true
       fi
-      # Final clear of the spinner line: return + erase-to-end-of-line (width-safe).
-      printf '\r\033[K'
     else
       (eval "$cmd") >"$log" 2>&1
       rc=$?
