@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.7.0'
+readonly UK_VERSION='5.8.0'
 
 # uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
 # (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
@@ -851,4 +851,247 @@ _uk_center_line() {
   esac
 
   printf '%s%*s%s%*s%s' "$v" "$pad_l" '' "$styled" "$pad_r" '' "$v"
+}
+# =============================================================================
+# uk_output_format — shared table / JSON / CSV rendering for tools.
+#
+# Problem this solves: many tools hand-roll `python3 -c 'import json…'` string
+# escaping (or a brittle sed fallback) every time they add a `--json` flag.
+# New tools should get rendering for free by accumulating rows with the helpers
+# below and calling a single render routine.
+#
+# Three layers:
+#
+#   1. Escaping helpers (safe to use standalone):
+#        uk_json_escape <string>      -> emit a quoted, escaped JSON string
+#        uk_json_str <key> <string>   -> emit `"key":<escaped>`
+#        uk_json_lit <key> <json>     -> emit `"key":<json>` (value is RAW JSON)
+#        uk_json_obj <fragments...>    -> emit `{…}` from `"k":v` fragments
+#        uk_json_arr <items...>       -> emit `[…]` from already-built items
+#
+#   2. Row accumulator (the table/CSV/JSON multiplexer):
+#        uk_table_init <h1> <h2> …        -> reset + declare column headers
+#        uk_table_row  <c1> <c2> …       -> append one row
+#        uk_table_count                    -> echo number of accumulated rows
+#        uk_table_render [--format X]      -> emit rows in the chosen format
+#
+#      Format resolution (lowest -> highest precedence):
+#        UK_FMT env var  ->  --format/--json/--csv flag  ->  TTY? table : json
+#      so a tool that just calls `uk_table_render` does the right thing in a
+#      pipe (JSON) vs. a terminal (table) without any flags.
+#
+#   3. Flag parsing helper:
+#        uk_out_format_from_args "$@"  -> set UK_FMT and return (via $?) the
+#        number of args consumed; caller does `shift $?`. Recognises
+#        --json, --csv, and `--format <fmt>`.
+#
+# All functions are safe under `set -euo pipefail` and never clobber the
+# UK_C_* colour variables. They degrade gracefully when python3 is absent.
+# =============================================================================
+
+# uk_json_escape <string> — write a JSON-escaped, double-quoted string.
+uk_json_escape() {
+  local s="${1:-}"
+  if uk_has_cmd python3; then
+    python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
+  else
+    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+    printf '"%s"' "$s"
+  fi
+}
+
+# uk_json_str <key> <string> — emit `"key":<escaped string>`.
+uk_json_str() {
+  printf '"%s":%s' "$1" "$(uk_json_escape "${2:-}")"
+}
+
+# uk_json_lit <key> <json-value> — emit `"key":<raw json>` (no escaping).
+uk_json_lit() {
+  printf '"%s":%s' "$1" "${2:-}"
+}
+
+# uk_json_arr <item> [item …] — emit `[item,item,…]` of pre-built JSON.
+uk_json_arr() {
+  local first=1
+  printf '['
+  for item in "$@"; do
+    (( first )) || printf ','
+    printf '%s' "$item"
+    first=0
+  done
+  printf ']'
+}
+
+# uk_json_obj <fragment> [fragment …] — emit `{"k":v,"k":v,…}`.
+# Each argument is a ready-made `"key":value` fragment produced by
+# uk_json_str / uk_json_lit or written by hand. Fragments are joined with
+# commas, so callers never need to track the "first" comma themselves.
+uk_json_obj() {
+  local first=1
+  printf '{'
+  for frag in "$@"; do
+    (( first )) || printf ','
+    printf '%s' "$frag"
+    first=0
+  done
+  printf '}'
+}
+
+# ---- Row accumulator -------------------------------------------------------
+
+# uk_table_init <h1> <h2> … — reset the accumulator and declare headers.
+uk_table_init() {
+  UK_T_HEADERS=("$@")
+  UK_T_ROWS=()
+}
+
+# uk_table_row <c1> <c2> … — append a row; cell count must equal header count.
+uk_table_row() {
+  UK_T_ROWS+=("$#|$(printf '%s ' "$@")")
+}
+
+# uk_table_count — echo number of accumulated rows (handy for "0 results").
+uk_table_count() {
+  printf '%s\n' "${#UK_T_ROWS[@]}"
+}
+
+# _uk_table_resolve_fmt <explicit> — echo final format respecting env + TTY.
+_uk_table_resolve_fmt() {
+  local explicit="${1:-}"
+  if [[ -n "$explicit" ]]; then
+    printf '%s\n' "$explicit"
+  elif [[ -n "${UK_FMT:-}" ]]; then
+    printf '%s\n' "$UK_FMT"
+  elif [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    printf 'table\n'
+  else
+    printf 'json\n'
+  fi
+}
+
+# _uk_table_split <rowvar> — split a stored row into `ncells` + `cells` names.
+# Stored rows look like `N|cell0 cell1 …`; cells are space-joined.
+_uk_table_split() {
+  local row="$1"
+  UK_T_NCELLS="${row%%|*}"
+  UK_T_CELLS="${row#*|}"
+  # shellcheck disable=SC2162
+  IFS=' ' read -ra UK_T_PARSED <<<"$UK_T_CELLS"
+}
+
+# uk_table_render [--format table|json|csv] — emit the accumulated rows.
+uk_table_render() {
+  local fmt=''
+  while [[ "${1:-}" == --* ]]; do
+    case "${1:-}" in
+      --format) shift; fmt="${1:-}" ;;
+      *) break ;;
+    esac
+    shift || true
+  done
+  fmt="$(_uk_table_resolve_fmt "$fmt")"
+
+  local -a H=("${UK_T_HEADERS[@]}")
+  local ncol=${#H[@]} i row
+
+  if [[ "$fmt" == "csv" ]]; then
+    local cell
+    for ((i = 0; i < ncol; i++)); do
+      (( i )) && printf ','
+      cell="${H[i]}"
+      if [[ "$cell" == *[,\"$'\n']* ]]; then
+        cell="\"${cell//\"/\"\"}\""
+      fi
+      printf '%s' "$cell"
+    done
+    printf '\n'
+    for row in "${UK_T_ROWS[@]}"; do
+      _uk_table_split "$row"
+      for ((i = 0; i < ncol; i++)); do
+        (( i )) && printf ','
+        cell="${UK_T_PARSED[i]:-}"
+        if [[ "$cell" == *[,\"$'\n']* ]]; then
+          cell="\"${cell//\"/\"\"}\""
+        fi
+        printf '%s' "$cell"
+      done
+      printf '\n'
+    done
+    return 0
+  fi
+
+  if [[ "$fmt" == "json" ]]; then
+    local first=1 obj
+    printf '['
+    for row in "${UK_T_ROWS[@]}"; do
+      _uk_table_split "$row"
+      obj=''
+      for ((i = 0; i < ncol; i++)); do
+        [[ -n "$obj" ]] && obj+=' '
+        obj+="$(uk_json_str "${H[i]}" "${UK_T_PARSED[i]:-}")"
+      done
+      (( first )) || printf ','
+      # shellcheck disable=SC2086
+      uk_json_obj $obj
+      first=0
+    done
+    printf ']\n'
+    return 0
+  fi
+
+  # table format — compute column widths on visible (colour-stripped) length.
+  local -a widths=()
+  for ((i = 0; i < ncol; i++)); do widths[i]=$(uk_visible_len "${H[i]}"); done
+  for row in "${UK_T_ROWS[@]}"; do
+    _uk_table_split "$row"
+    for ((i = 0; i < ncol; i++)); do
+      local len; len=$(uk_visible_len "${UK_T_PARSED[i]:-}")
+      (( len > widths[i] )) && widths[i]=$len
+    done
+  done
+
+  local sep='' line='' c
+  for ((i = 0; i < ncol; i++)); do
+    sep+="+$(printf '%*s' $((widths[i] + 2)) '' | tr ' ' '-')"
+  done
+  sep+='+'
+
+  printf '%s\n' "$sep"
+  line=''
+  for ((i = 0; i < ncol; i++)); do
+    printf -v c '| %-*s ' "${widths[i]}" "${H[i]}"
+    line+="$c"
+  done
+  printf '%s|\n' "$line"
+  printf '%s\n' "$sep"
+  for row in "${UK_T_ROWS[@]}"; do
+    _uk_table_split "$row"
+    line=''
+    for ((i = 0; i < ncol; i++)); do
+      printf -v c '| %-*s ' "${widths[i]}" "${UK_T_PARSED[i]:-}"
+      line+="$c"
+    done
+    printf '%s|\n' "$line"
+  done
+  printf '%s\n' "$sep"
+}
+
+# uk_out_format_from_args <args…> — parse a `--format/--json/--csv` token out
+# of the given args, set UK_FMT accordingly, and return (via `$?`) how many
+# positional args it consumed so the caller can `shift $?`. Echoes nothing.
+# Usage inside a flag loop:
+#   --json) UK_FMT=json; shift ;;
+#   *)      uk_out_format_from_args "$@"; shift $? ;;
+uk_out_format_from_args() {
+  local a="${1:-}"
+  case "$a" in
+    --json) UK_FMT=json; return 1 ;;
+    --csv)  UK_FMT=csv;   return 1 ;;
+    --format)
+      UK_FMT="${2:-table}"
+      return 2
+      ;;
+  esac
+  return 0
 }
