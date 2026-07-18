@@ -288,7 +288,7 @@ utility env --dir . --compare
 utility port 3000 --kill
 ```
 
-`setup.sh` copies all `_*/` tool directories, `lib/`, `docs/`, and `tests/` to the install location, creates a launcher wrapper, and optionally adds `bin-dir` to `~/.bashrc`/`~/.zshrc`.
+`setup.sh` copies every `modules/_*/` tool directory (preserving the `modules/` layout `main.sh` expects), along with `lib/`, `docs/`, `tests/`, and the top-level files, to the install location. It creates a one-line launcher wrapper (`exec "$INSTALL_DIR/main.sh" "$@"`) in `bin-dir` and optionally appends `bin-dir` to `~/.bashrc`/`~/.zshrc` (and `ZDOTDIR/.zshrc` when set). In `--no-menu` mode the installer shows a numbered step tracker and a spinner on the longer steps (respecting `NO_COLOR`/`NO_UNICODE`); running it from a checkout that lacks `main.sh` will clone the repo first.
 
 ---
 
