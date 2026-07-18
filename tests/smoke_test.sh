@@ -305,5 +305,38 @@ apply_interactive_test() {
 
 run_test 'apply-changes interactive guard + picker' apply_interactive_test
 
+config_file_smoke() {
+  local cfg="$TMP/uk_config"
+  printf '%s\n' \
+    '# comment line' \
+    'UK_SMOKE_CFG_BARE=42' \
+    'UK_SMOKE_CFG_QUOTED="hello world"' \
+    "UK_SMOKE_CFG_SINGLE='a b'" \
+    'UK_SMOKE_CFG_INLINE=30 # days' \
+    'export UK_SMOKE_CFG_EXPORTED=yes' \
+    'UK_SMOKE_CFG_ENV=file' \
+    'UK_SMOKE_CFG_BADQ="unterminated' \
+    "echo INJECTED > '$TMP/uk_cfg_injected'" \
+    >"$cfg"
+
+  # values load, quotes stripped, inline comment trimmed, export prefix ok
+  local out
+  out="$(UK_CONFIG_FILE="$cfg" bash -uc "source '$ROOT/lib/uk_common.sh'; printf '%s|%s|%s|%s|%s' \"\$UK_SMOKE_CFG_BARE\" \"\$UK_SMOKE_CFG_QUOTED\" \"\$UK_SMOKE_CFG_SINGLE\" \"\$UK_SMOKE_CFG_INLINE\" \"\$UK_SMOKE_CFG_EXPORTED\"" 2>/dev/null)"
+  [[ "$out" == '42|hello world|a b|30|yes' ]] || return 1
+
+  # command lines are skipped with a warning, never executed
+  [[ ! -f "$TMP/uk_cfg_injected" ]] || return 1
+  UK_CONFIG_FILE="$cfg" bash -c "source '$ROOT/lib/uk_common.sh'" 2>&1 | grep -q 'skipped' || return 1
+
+  # environment beats the config file, even for keys the file sets
+  out="$(UK_CONFIG_FILE="$cfg" UK_SMOKE_CFG_ENV=env bash -uc "source '$ROOT/lib/uk_common.sh'; printf '%s' \"\$UK_SMOKE_CFG_ENV\"" 2>/dev/null)"
+  [[ "$out" == 'env' ]] || return 1
+
+  # missing config file is a silent no-op
+  UK_CONFIG_FILE="$TMP/uk_config_missing" bash -uc "source '$ROOT/lib/uk_common.sh'" >/dev/null 2>&1
+}
+
+run_test 'Config file loader' config_file_smoke
+
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
 ((FAIL == 0))

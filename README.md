@@ -250,6 +250,19 @@ uk_now / uk_stamp    date helpers
 
 The library uses a load-once guard (`UK_COMMON_SH_LOADED`) so sourcing it multiple times from nested scripts is safe.
 
+### User config file
+
+On load, the library applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (override the path with `UK_CONFIG_FILE`), so suite-wide defaults can be set once instead of retyped as flags:
+
+```sh
+# ~/.config/utilitykit/config
+DEFAULT_CACHE_OLDER_THAN=30
+DEFAULT_PASSPHRASE_WORDS=6
+NO_UNICODE=1          # comments allowed
+```
+
+The file is parsed, never sourced — only `[export] KEY=VALUE` lines (bare or quoted values) are accepted, so a stray command can't execute and a typo can't abort tools under `set -eu`. Malformed lines are skipped with a warning. Precedence: flag > environment > config file > built-in default, so `NO_COLOR=1 bash main.sh` always beats the file.
+
 ---
 
 ## Visual System
@@ -434,7 +447,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.5.0** - current — Canonical progress feedback in the shared library: new `uk_spinner` (braille/ASCII frames, `NO_COLOR`/`NO_UNICODE` at call time, width-safe redraws, non-TTY degradation, `--prefix`/`--label-file`/`--elapsed`/`--interval`) and `uk_fake_progress` (indeterminate accelerating percent bar). `setup.sh`, `_cache_clean`, and `_update_managers` now delegate their spinners to `uk_spinner`; `_media_convert` and `_disk_analyzer` delegate their percent bars to `uk_fake_progress` — removing ~200 lines of duplicated animation code.
+**v5.6.0** - current — User config file support: `lib/uk_common.sh` applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (override with `UK_CONFIG_FILE`) whenever it is sourced, letting suite-wide defaults (`DEFAULT_CACHE_OLDER_THAN=30`, `NO_UNICODE=1`, ...) be set once instead of retyped as flags. Parsed as `[export] KEY=VALUE` lines — never sourced — so stray commands can't execute and typos can't abort tools under `set -eu`; malformed lines are skipped with a warning. Precedence: flag > environment > config file > built-in default.
+
+**v5.5.0** — Canonical progress feedback in the shared library: new `uk_spinner` (braille/ASCII frames, `NO_COLOR`/`NO_UNICODE` at call time, width-safe redraws, non-TTY degradation, `--prefix`/`--label-file`/`--elapsed`/`--interval`) and `uk_fake_progress` (indeterminate accelerating percent bar). `setup.sh`, `_cache_clean`, and `_update_managers` now delegate their spinners to `uk_spinner`; `_media_convert` and `_disk_analyzer` delegate their percent bars to `uk_fake_progress` — removing ~200 lines of duplicated animation code.
 
 **v5.4.0** — `doctor` gained an opt-in `--fix` flag: creates missing `modules/_<tool>/_<tool>_README.md` stubs from registry metadata, and flags orphan tool directories with a suggested `git rm -r` command (never auto-deletes). Doctor now also checks each registry tool for its README, and the orphan-directory scan was repaired (it globbed the repo root instead of `modules/` and never matched anything).
 

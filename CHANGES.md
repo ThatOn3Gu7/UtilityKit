@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.6.0] - 2026-07-18
+
+### Added
+- **User config file: `~/.config/utilitykit/config`.** `lib/uk_common.sh` now applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (path overridable via `UK_CONFIG_FILE`) every time it is sourced, so `main.sh`, `setup.sh`, and every tool pick up suite-wide defaults like `DEFAULT_CACHE_OLDER_THAN=30`, `DEFAULT_PASSPHRASE_WORDS=6`, or `NO_UNICODE=1` without retyping flags. The file is parsed, never sourced: only `[export] KEY=VALUE` lines are accepted (bare or single/double-quoted values, blank lines, `# comments` — full-line or after an unquoted value), so a stray command in the file cannot execute and a typo cannot abort tools under `set -eu`; malformed lines are skipped with a `utilitykit: <file>:<line> skipped` warning on stderr. Precedence is flag > environment > config file > built-in default — a key already set in the environment (even to empty) is never overwritten, so one-off overrides like `NO_COLOR=1 bash main.sh` keep working. New smoke-test group `config_file_smoke` covers parsing, quoting, injection safety, and env precedence.
+
 ## [5.5.0] - 2026-07-18
 
 ### Added

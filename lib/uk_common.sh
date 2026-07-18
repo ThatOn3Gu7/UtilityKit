@@ -5,7 +5,73 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.5.0'
+readonly UK_VERSION='5.6.0'
+
+# uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
+# (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
+# DEFAULT_CACHE_OLDER_THAN=30 can be set once instead of retyped as flags.
+# The file is parsed, never sourced: only `[export] KEY=VALUE` lines are
+# accepted, so a stray command cannot execute and a typo cannot abort every
+# tool under `set -eu`. Values may be bare or single/double quoted; blank
+# lines and `# comments` (full-line or after an unquoted value) are ignored;
+# anything else is skipped with a warning on stderr.
+# Precedence: flag > environment > config file > built-in default — a key
+# already set in the environment (even to empty) is never overwritten.
+uk_load_config() {
+  local file="${UK_CONFIG_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/utilitykit/config}"
+  [[ -f "$file" && -r "$file" ]] || return 0
+
+  local re_kv='^([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+  local re_dq='^"([^"]*)"[[:space:]]*(#.*)?$'
+  local re_sq="^'([^']*)'[[:space:]]*(#.*)?\$"
+  local line key value lineno=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    lineno=$((lineno + 1))
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" =~ ^export[[:space:]]+ ]]; then
+      line="${line#export}"
+      line="${line#"${line%%[![:space:]]*}"}"
+    fi
+
+    if [[ ! "$line" =~ $re_kv ]]; then
+      printf 'utilitykit: %s:%d skipped (expected KEY=VALUE): %s\n' "$file" "$lineno" "$line" >&2
+      continue
+    fi
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+
+    case "$value" in
+    \"*)
+      if [[ "$value" =~ $re_dq ]]; then
+        value="${BASH_REMATCH[1]}"
+      else
+        printf 'utilitykit: %s:%d skipped (unterminated quote): %s\n' "$file" "$lineno" "$line" >&2
+        continue
+      fi
+      ;;
+    \'*)
+      if [[ "$value" =~ $re_sq ]]; then
+        value="${BASH_REMATCH[1]}"
+      else
+        printf 'utilitykit: %s:%d skipped (unterminated quote): %s\n' "$file" "$lineno" "$line" >&2
+        continue
+      fi
+      ;;
+    *)
+      value="${value%%[[:space:]]\#*}"
+      value="${value%"${value##*[![:space:]]}"}"
+      ;;
+    esac
+
+    [[ -n "${!key+x}" ]] && continue
+    # The key regex keeps printf -v safe (no array-subscript injection);
+    # `|| true` shields readonly collisions from set -e.
+    printf -v "$key" '%s' "$value" 2>/dev/null || true
+  done <"$file"
+  return 0
+}
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -58,6 +124,7 @@ uk_setup_visuals() {
   fi
 }
 
+uk_load_config
 uk_setup_visuals
 
 uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
