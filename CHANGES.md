@@ -1,9 +1,18 @@
 # Changelog
 
-## [5.6.0] - 2026-07-18
+## [5.7.0] - 2026-07-18
 
 ### Added
+- **Dry-run-by-default for `_image_tool` and `_pdf_toolkit`.** All file-writing subcommands (`resize`, `convert`, `strip`, `optimize`, `thumb`; and `merge`, `split`, `compress`, `rotate`) now preview only and require `--apply` to write output. Their interactive wizards prompt before writing. This closes the gap where `_image_tool optimize` rewrote files in place with no preview.
+- **`CONTRIBUTING.md` safe-by-default write/delete convention.** A new section documents the project-wide rule that any tool mutating the filesystem or system state must protect the user by default (dry-run preview or `[y/N]` confirmation), plus a safety matrix table covering all write/delete tools.
+
+### Changed
+- **Project-wide version policy.** The single `UK_VERSION` in `lib/uk_common.sh` is the version of the whole UtilityKit project. A significant change to *any* script (not only files carrying their own `VERSION=`) bumps this project version according to the size of the change (patch / minor / major).
+
+## [5.6.0] - 2026-07-18
+
 - **User config file: `~/.config/utilitykit/config`.** `lib/uk_common.sh` now applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (path overridable via `UK_CONFIG_FILE`) every time it is sourced, so `main.sh`, `setup.sh`, and every tool pick up suite-wide defaults like `DEFAULT_CACHE_OLDER_THAN=30`, `DEFAULT_PASSPHRASE_WORDS=6`, or `NO_UNICODE=1` without retyping flags. The file is parsed, never sourced: only `[export] KEY=VALUE` lines are accepted (bare or single/double-quoted values, blank lines, `# comments` — full-line or after an unquoted value), so a stray command in the file cannot execute and a typo cannot abort tools under `set -eu`; malformed lines are skipped with a `utilitykit: <file>:<line> skipped` warning on stderr. Precedence is flag > environment > config file > built-in default — a key already set in the environment (even to empty) is never overwritten, so one-off overrides like `NO_COLOR=1 bash main.sh` keep working. New smoke-test group `config_file_smoke` covers parsing, quoting, injection safety, and env precedence.
+
 
 ## [5.5.0] - 2026-07-18
 

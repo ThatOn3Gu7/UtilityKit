@@ -56,6 +56,58 @@ Always implement plain ASCII fallbacks for non-Unicode compatible environments o
 
 ---
 
+## 🛡 Safe-by-Default Write/Delete Convention
+
+Any tool that **mutates the filesystem or system state** (writes, overwrites, moves,
+deletes, or sends signals) must protect the user by default. The established pattern
+across UtilityKit is **dry-run-by-default**: the tool shows a preview of what *would*
+happen and only performs the change when the user explicitly opts in via `--apply`, a
+`--delete`/explicit flag, or a `[y/N]` confirmation prompt. Never mutate user data on
+the first invocation without a preview.
+
+When you add or modify a tool that writes or deletes, follow the nearest existing
+example (`_apply_changes`, `_cache_clean`, `_duplicate_finder`, `_docker_janitor`,
+`_shredder`, `_symlink_manager`, `_backup_sync`, `_git_sweep`, `_media_convert`,
+`_markdown_toc`, `_env_manager`, `_dotenv_vault`, `_cron_manager`, `_release_helper`,
+`_update_managers`). These ship the pattern already; reuse their flag names
+(`--apply`, `--dry-run`, `MODE="dry-run"`) for consistency.
+
+### Write/Delete Tool Safety Matrix
+
+| Tool | Writes / Deletes | Default mode | Opt-in to mutate |
+| --- | --- | --- | --- |
+| `_apply_changes` | copies/overwrites/mirrors dirs | dry-run | `--apply` |
+| `_cache_clean` | deletes orphaned cache files | preview only | `--delete` or confirm prompts |
+| `_duplicate_finder` | deletes/hardlinks duplicates | report | `--apply` (after `--delete`/`--hardlink`) |
+| `_docker_janitor` | prunes containers/images/volumes | dry-run preview | `--apply` |
+| `_shredder` | secure-erases files | dry-run preview | `--apply` |
+| `_symlink_manager` | creates symlinks, backs up targets | dry-run | `--apply` (or `-y` to skip confirm) |
+| `_backup_sync` | rsync copy, optional `--delete` | dry-run (rsync `--dry-run`) | `--apply` |
+| `_git_sweep` | `git clean -fdx`, branch cleanup | preview only | `--apply` |
+| `_media_convert` | writes converted media | dry-run preview | `--apply` |
+| `_markdown_toc` | rewrites Markdown TOC | dry-run preview | `--apply` |
+| `_env_manager` | copies `.env.<profile>` → `.env` | dry-run preview | `--apply` |
+| `_dotenv_vault` | writes encrypted `.env` | dry-run preview | `--apply` |
+| `_cron_manager` | adds/removes cron entries | dry-run | `--apply` |
+| `_release_helper` | creates git tag | dry-run preview | `--apply` |
+| `_update_managers` | runs package-manager upgrades | dry-run | `--dry-run` off via `-y`/`--yes` |
+| `_rename_batch` | renames/moves files | interactive `[Y/n]` + rollback | confirm at prompt |
+| `_move_in_batch` | copies/moves files | interactive `[Y/n]` + rollback | confirm at prompt |
+| `_image_tool` | resize/convert/strip/optimize/thumb | dry-run preview | `--apply` |
+| `_pdf_toolkit` | merge/split/compress/rotate | dry-run preview | `--apply` |
+| `_cheat_sheet` | writes/deletes snippet file | `[y/N]` confirm | confirm at prompt |
+| `_todo_manager` | appends/edits own TSV store | implicit (owns its data) | n/a (append-only tracker) |
+| `_process_killer` | sends signal to a PID | target shown, then signal | confirm via explicit `--pid` + run |
+| `_archive_manager` | extract/create archives | unsafe-path guarded extract | n/a (new output paths) |
+
+Tools that only **read** data (e.g. `_disk_analyzer`, `_log_inspector`,
+`_secret_scan`, `_json_explorer`, `_csv_toolkit`, `_yaml_toolkit` info, `_git_stats`)
+need no opt-in gate. Tools that manage their *own* private state files (e.g.
+`_todo_manager`, `_clipboard_history`, `_password_gen`) are exempt because they do not
+touch user-supplied paths unexpectedly.
+
+---
+
 ## 💻 Contribution Workflow
 
 1. **Fork the repository** and create your new branch (`git checkout -b feature/add-new-tool`).
@@ -75,6 +127,37 @@ Always implement plain ASCII fallbacks for non-Unicode compatible environments o
 7. **Commit beautifully** with semantic commit prefixes (`feat(tool):`, `fix(tool):`, `docs:`, `refactor:`).
 8. **Submit your Pull Request!** The `.github/workflows/ci.yml` pipeline
    runs ten jobs (shellcheck, syntax on Ubuntu + macOS, smoke on Ubuntu +
-   macOS, deep review, route coverage, standalone `--help` sweep, NO_COLOR
-   audit, installer smoke, gitleaks). Any red job blocks merge — fix locally
-   and push again rather than skipping checks.
+    macOS, deep review, route coverage, standalone `--help` sweep, NO_COLOR
+    audit, installer smoke, gitleaks). Any red job blocks merge — fix locally
+    and push again rather than skipping checks.
+
+---
+
+## 🔖 Project-Wide Version Policy
+
+UtilityKit is a **single project**, not a collection of independently versioned
+scripts. The canonical version lives in one place:
+
+```bash
+lib/uk_common.sh  →  readonly UK_VERSION='X.Y.Z'
+```
+
+This `UK_VERSION` is the version of the **whole suite** — `main.sh`, the library,
+every `modules/_*/` tool, and the docs bundle. It is surfaced by `main.sh --version`
+and stamped into the bundled docs.
+
+**When to bump it:** a significant change to *any* script in the repo bumps this
+single project version. You do **not** need a per-file `VERSION=` marker to justify a
+bump — the absence of such a marker never means "leave the version alone". Judge the
+bump by the *size and impact* of the change:
+
+| Change size | Bump | Example |
+| --- | --- | --- |
+| Bug fix / small tweak (< ~20 lines, no behavior shift) | patch `X.Y.Z → X.Y.(Z+1)` | typo fix, log wording |
+| New feature / meaningful refactor / behavior change | minor `X.Y.Z → X.(Y+1).0` | new tool, dry-run-by-default rollout |
+| Breaking change / incompatible CLI or output | major `(X+1).0.0` | removed flag, changed return codes |
+
+**Process:** when you bump `UK_VERSION`, also add a dated entry to `CHANGES.md`
+(### Added / ### Changed / ### Fixed / ### Security as appropriate) summarizing the
+change and its type. Do **not** scatter version strings across individual tool files;
+keep the single source of truth in `lib/uk_common.sh`.
