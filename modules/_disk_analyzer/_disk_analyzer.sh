@@ -39,98 +39,6 @@ da_setup_colors() {
     I_DISK="O"
   fi
 }
-da_fake_progress() {
-  local pid="${1:-}" rc=0
-  local width=28
-  local pct=0
-  local fill empty bar bar_fill bar_empty
-
-  # Choose characters
-  local ch_fill ch_empty
-  if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
-    ch_fill='█'
-    ch_empty='░'
-  else
-    ch_fill='#'
-    ch_empty='-'
-  fi
-
-  local color_bar color_done
-  if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    color_bar="${C_CYAN}"
-    color_done="${C_GREEN}"
-  else
-    color_bar=''
-    color_done=''
-  fi
-
-  printf '\n'
-
-  while kill -0 "$pid" 2>/dev/null; do
-    # Acceleration curve
-    if ((pct < 50)); then
-      increment=3
-    elif ((pct < 75)); then
-      increment=2
-    elif ((pct < 85)); then
-      increment=1
-    elif ((pct < 99)); then
-      increment=1
-    else
-      increment=0
-    fi
-
-    pct=$((pct + increment))
-    ((pct > 99)) && pct=99
-
-    fill=$((pct * width / 100))
-    empty=$((width - fill))
-
-    # Build the bar without tr
-    printf -v bar_fill '%*s' "$fill" ''
-    printf -v bar_empty '%*s' "$empty" ''
-    bar_fill="${bar_fill// /$ch_fill}"
-    bar_empty="${bar_empty// /$ch_empty}"
-    bar="${color_bar}${bar_fill}${C_DIM}${bar_empty}${C_RESET}"
-
-    printf '\r  %s%s%s  %s%3d%%%s  Scanning...' \
-      "${C_BOLD}" "${I_BULLET}" "${C_RESET}" \
-      "${C_BOLD}" "$pct" "${C_RESET}"
-
-    printf ' [%s]' "$bar"
-
-    # Check again before sleeping so we exit immediately when du finishes,
-    # rather than burning up to 0.55s of wall time on the final tick.
-    kill -0 "$pid" 2>/dev/null || break
-
-    # Pacing
-    if ((pct < 50)); then
-      sleep 0.08
-    elif ((pct < 85)); then
-      sleep 0.18
-    else
-      sleep 0.55
-    fi
-  done
-
-  wait "$pid" || rc=$?
-
-  # Final 100% bar
-  printf -v bar_fill '%*s' "$width" ''
-  bar_fill="${bar_fill// /$ch_fill}"
-  bar="${color_done}${bar_fill}${C_RESET}"
-
-  printf '\r  %s%s%s  %s%3d%%%s  ' \
-    "${C_GREEN}" "${I_SUCCESS}" "${C_RESET}" \
-    "${C_BOLD}" 100 "${C_RESET}"
-  printf '[%s]' "$bar"
-  if ((rc == 0)); then
-    printf '  %s%sScan complete.%s\n\n' "${C_GREEN}" "${C_BOLD}" "${C_RESET}"
-  else
-    printf '  %s%sScan failed (exit %d).%s\n\n' "${C_RED}" "${C_BOLD}" "$rc" "${C_RESET}" >&2
-  fi
-  return "$rc"
-}
 da_scan() {
   local mode="${1:-}" target_dir="${2:-}" output="${3:-}"
   local raw="${output}.raw" sorted="${output}.sorted"
@@ -237,12 +145,8 @@ da_main() {
   da_scan "$_da_mode" "$target_dir" "$_da_tmp" 2>"$_da_err" &
   local _da_bg_pid=$! scan_status=0
 
-  # Only show the progress bar when output is a TTY
-  if [[ -t 1 ]]; then
-    da_fake_progress "$_da_bg_pid" || scan_status=$?
-  else
-    wait "$_da_bg_pid" || scan_status=$?
-  fi
+  # Canonical indeterminate bar (uk_common); waits silently on non-tty stdout.
+  uk_fake_progress "$_da_bg_pid" 'Scanning...' 'Scan complete.' || scan_status=$?
 
   if [[ -s "$_da_err" ]]; then
     cat "$_da_err" >&2 || scan_status=1

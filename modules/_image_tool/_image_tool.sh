@@ -45,6 +45,9 @@ if ! declare -f uk_expand_path >/dev/null 2>&1; then
 fi
 # --------------------------
 
+# Dry-run by default: file-writing subcommands only write when IT_APPLY=1.
+IT_APPLY=0
+
 it_usage() {
   cat <<'USAGE'
 Usage:
@@ -66,10 +69,15 @@ Options:
   --quality N        JPEG/WebP quality 1-100 (default 85).
   --size N           Thumbnail max dimension.
   --out FILE         Output path.
+  --apply            Actually write/overwrite output files (default is dry-run).
   --recursive        Reserved; currently rejected instead of silently ignored.
   --json             Machine-readable output (info).
   --no-color         Disable ANSI (also respects NO_COLOR=1).
   -h, --help         Show this help.
+
+Safety:
+  File-writing subcommands (resize, convert, strip, optimize, thumb) preview
+  only by default. Re-run with --apply to write the output file(s).
 
 Backends: ImageMagick (convert/magick), exiftool, optipng, jpegoptim, cwebp.
 
@@ -159,6 +167,12 @@ it_cmd_resize() {
   [[ -z "$out" ]] && out="${file%.*}_resized.${file##*.}"
   it_prepare_output "$out" || return $?
 
+  if (( IT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would write resized image to: $out"
+    uk_note "Re-run with --apply to write the file."
+    return 0
+  fi
+
   local cmd
   cmd="$(it_convert_cmd)"
   local -a args=()
@@ -187,6 +201,12 @@ it_cmd_convert() {
   [[ -z "$out" ]] && out="${file%.*}.${fmt}"
   it_prepare_output "$out" || return $?
 
+  if (( IT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would write converted image to: $out"
+    uk_note "Re-run with --apply to write the file."
+    return 0
+  fi
+
   local cmd
   cmd="$(it_convert_cmd)"
   local -a args=()
@@ -202,6 +222,12 @@ it_cmd_strip() {
   local file="$1" out="$2"
   [[ -z "$out" ]] && out="${file%.*}_clean.${file##*.}"
   it_prepare_output "$out" || return $?
+
+  if (( IT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would write metadata-stripped image to: $out"
+    uk_note "Re-run with --apply to write the file."
+    return 0
+  fi
 
   if uk_has_cmd exiftool; then
     exiftool -all= -overwrite_original "$file" -o "$out" 2>/dev/null
@@ -225,6 +251,12 @@ it_cmd_optimize() {
   local file="$1" quality="$2"
   local ext="${file##*.}"
   ext="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
+
+  if (( IT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would optimize (rewrite in place): $file"
+    uk_note "Re-run with --apply to overwrite the original file."
+    return 0
+  fi
 
   case "$ext" in
     png)
@@ -297,6 +329,12 @@ it_cmd_thumb() {
   it_validate_int "--size" "$size" 1 10000 || return $?
   it_prepare_output "$out" || return $?
 
+  if (( IT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would write thumbnail to: $out"
+    uk_note "Re-run with --apply to write the file."
+    return 0
+  fi
+
   local cmd
   cmd="$(it_convert_cmd)"
   $cmd "$file" -thumbnail "${size}x${size}^" -gravity center -extent "${size}x${size}" "$out" 2>/dev/null
@@ -311,6 +349,7 @@ it_main() {
   local sub="" file="" out="" fmt="" quality=""
   local width="" height="" percent="" size=""
   local as_json=0 recursive=0
+  IT_APPLY=0
 
   if [[ $# -gt 0 ]]; then
     case "${1:-}" in
@@ -328,6 +367,7 @@ it_main() {
       --quality) shift; quality="${1:-}" ;;
       --size)    shift; size="${1:-}" ;;
       --out)     shift; out="${1:-}" ;;
+      --apply)   IT_APPLY=1 ;;
       --recursive) recursive=1 ;;
       --json)    as_json=1 ;;
       --no-color) UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
@@ -388,6 +428,7 @@ it_wizard() {
       [[ -n "$height" ]] && a+=(--height "$height")
       [[ -n "$pct"    ]] && a+=(--percent "$pct")
       [[ -n "$out"    ]] && a+=(--out "$out")
+      uk_confirm 'Write the resized image now?' 'N' && a+=(--apply)
       it_main "${a[@]}"
       ;;
     convert)
@@ -395,22 +436,33 @@ it_wizard() {
       quality="$(uk_prompt 'Quality (1-100, blank=85)' '' '90' 'JPEG/WebP only.')"
       out="$(uk_prompt 'Output file' "${file%.*}.$fmt" './out.webp' '')"
       out="$(uk_expand_path "$out" 2>/dev/null || echo "$out")"
-      it_main convert "$file" --format "$fmt" ${quality:+--quality "$quality"} --out "$out"
+      local -a a=(convert "$file" --format "$fmt")
+      [[ -n "$quality" ]] && a+=(--quality "$quality")
+      [[ -n "$out"    ]] && a+=(--out "$out")
+      uk_confirm 'Write the converted image now?' 'N' && a+=(--apply)
+      it_main "${a[@]}"
       ;;
     strip)
       out="$(uk_prompt 'Output file' "${file%.*}_clean.${file##*.}" './clean.jpg' '')"
       out="$(uk_expand_path "$out" 2>/dev/null || echo "$out")"
-      it_main strip "$file" --out "$out"
+      local -a a=(strip "$file" --out "$out")
+      uk_confirm 'Write the metadata-stripped image now?' 'N' && a+=(--apply)
+      it_main "${a[@]}"
       ;;
     optimize)
       quality="$(uk_prompt 'JPEG quality (1-100, blank=85)' '' '80' 'Only applies to JPEG.')"
-      it_main optimize "$file" ${quality:+--quality "$quality"}
+      local -a a=(optimize "$file")
+      [[ -n "$quality" ]] && a+=(--quality "$quality")
+      uk_confirm 'Optimize (rewrite) the image in place now?' 'N' && a+=(--apply)
+      it_main "${a[@]}"
       ;;
     thumb)
       size="$(uk_prompt 'Thumbnail max dimension' '200' '150' 'Square crop.')"
       out="$(uk_prompt 'Output file' "${file%.*}_thumb.${file##*.}" './thumb.jpg' '')"
       out="$(uk_expand_path "$out" 2>/dev/null || echo "$out")"
-      it_main thumb "$file" --size "$size" --out "$out"
+      local -a a=(thumb "$file" --size "$size" --out "$out")
+      uk_confirm 'Write the thumbnail now?' 'N' && a+=(--apply)
+      it_main "${a[@]}"
       ;;
   esac
 }

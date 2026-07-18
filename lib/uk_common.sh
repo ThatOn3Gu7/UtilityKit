@@ -5,7 +5,73 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.3.0'
+readonly UK_VERSION='5.8.0'
+
+# uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
+# (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
+# DEFAULT_CACHE_OLDER_THAN=30 can be set once instead of retyped as flags.
+# The file is parsed, never sourced: only `[export] KEY=VALUE` lines are
+# accepted, so a stray command cannot execute and a typo cannot abort every
+# tool under `set -eu`. Values may be bare or single/double quoted; blank
+# lines and `# comments` (full-line or after an unquoted value) are ignored;
+# anything else is skipped with a warning on stderr.
+# Precedence: flag > environment > config file > built-in default — a key
+# already set in the environment (even to empty) is never overwritten.
+uk_load_config() {
+  local file="${UK_CONFIG_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/utilitykit/config}"
+  [[ -f "$file" && -r "$file" ]] || return 0
+
+  local re_kv='^([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+  local re_dq='^"([^"]*)"[[:space:]]*(#.*)?$'
+  local re_sq="^'([^']*)'[[:space:]]*(#.*)?\$"
+  local line key value lineno=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    lineno=$((lineno + 1))
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" =~ ^export[[:space:]]+ ]]; then
+      line="${line#export}"
+      line="${line#"${line%%[![:space:]]*}"}"
+    fi
+
+    if [[ ! "$line" =~ $re_kv ]]; then
+      printf 'utilitykit: %s:%d skipped (expected KEY=VALUE): %s\n' "$file" "$lineno" "$line" >&2
+      continue
+    fi
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+
+    case "$value" in
+    \"*)
+      if [[ "$value" =~ $re_dq ]]; then
+        value="${BASH_REMATCH[1]}"
+      else
+        printf 'utilitykit: %s:%d skipped (unterminated quote): %s\n' "$file" "$lineno" "$line" >&2
+        continue
+      fi
+      ;;
+    \'*)
+      if [[ "$value" =~ $re_sq ]]; then
+        value="${BASH_REMATCH[1]}"
+      else
+        printf 'utilitykit: %s:%d skipped (unterminated quote): %s\n' "$file" "$lineno" "$line" >&2
+        continue
+      fi
+      ;;
+    *)
+      value="${value%%[[:space:]]\#*}"
+      value="${value%"${value##*[![:space:]]}"}"
+      ;;
+    esac
+
+    [[ -n "${!key+x}" ]] && continue
+    # The key regex keeps printf -v safe (no array-subscript injection);
+    # `|| true` shields readonly collisions from set -e.
+    printf -v "$key" '%s' "$value" 2>/dev/null || true
+  done <"$file"
+  return 0
+}
 
 uk_setup_visuals() {
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -58,6 +124,7 @@ uk_setup_visuals() {
   fi
 }
 
+uk_load_config
 uk_setup_visuals
 
 uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
@@ -212,6 +279,172 @@ uk_bar() {
   ((fill > width)) && fill=$width
   empty=$((width - fill))
   printf '%s%s%s%s%s' "$UK_C_GREEN" "$(printf '%*s' "$fill" '' | tr ' ' '#')" "$UK_C_DIM" "$(printf '%*s' "$empty" '' | tr ' ' '-')" "$UK_C_RESET"
+}
+# Populates UK_SPINNER_FRAMES with the canonical animation frames, honoring
+# NO_UNICODE at call time (not source time) so tools that flip modes late
+# still get the right glyph set. Every frame is exactly 1 cell wide.
+uk_spinner_frames() {
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    UK_SPINNER_FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  else
+    UK_SPINNER_FRAMES=('|' '/' '-' '\')
+  fi
+}
+
+# uk_spinner [--prefix STR] [--label-file FILE] [--elapsed] [--interval S] <pid> <label>
+# Canonical wait-on-a-background-job spinner. Animates frames next to the
+# label until <pid> exits, then erases its own line and returns the job's
+# exit status. Honors NO_UNICODE (ASCII frames) and NO_COLOR at call time.
+# Non-TTY stdout prints "<label>... " once with no animation.
+#   --prefix STR      static text drawn between the frame and the label
+#   --label-file FILE re-read FILE every tick for a live label (falls back
+#                     to <label> while FILE is empty or missing)
+#   --elapsed         append a running "Ns" seconds counter
+#   --interval S      frame delay in seconds (default 0.08)
+uk_spinner() {
+  local prefix='' label_file='' show_elapsed=0 interval=0.08
+  while [[ "${1:-}" == --* ]]; do
+    case "${1:-}" in
+    --prefix)
+      shift
+      prefix="${1:-}"
+      ;;
+    --label-file)
+      shift
+      label_file="${1:-}"
+      ;;
+    --elapsed) show_elapsed=1 ;;
+    --interval)
+      shift
+      interval="${1:-0.08}"
+      ;;
+    *) break ;;
+    esac
+    shift
+  done
+  local pid="${1:-}" label="${2:-}" rc=0
+  [[ -n "$pid" ]] || return 1
+
+  if [[ ! -t 1 ]]; then
+    printf '%s... ' "${prefix:+$prefix }$label"
+    wait "$pid" || rc=$?
+    return "$rc"
+  fi
+
+  uk_spinner_frames
+  local c_frame="$UK_C_CYAN" c_reset="$UK_C_RESET" ell='…'
+  [[ -n "${NO_COLOR:-}" ]] && c_frame='' c_reset=''
+  [[ -n "${NO_UNICODE:-}" ]] && ell='.'
+
+  local n=${#UK_SPINNER_FRAMES[@]} i=0 start now cols budget line
+  start="$(date +%s)"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    if [[ -n "$label_file" && -s "$label_file" ]]; then
+      label="$(<"$label_file")"
+    fi
+    line="${prefix:+$prefix }$label"
+    if ((show_elapsed == 1)); then
+      now="$(date +%s)"
+      line="$line $((now - start))s"
+    fi
+
+    # Never print wider than the terminal: a wrapped line breaks the \r
+    # redraw and the spinner "walks" down the screen.
+    cols="${COLUMNS:-0}"
+    [[ "$cols" =~ ^[0-9]+$ ]] || cols=0
+    if ((cols <= 0)); then
+      cols="$(tput cols 2>/dev/null || printf '80')"
+      [[ "$cols" =~ ^[0-9]+$ ]] || cols=80
+    fi
+    budget=$((cols - 4))
+    ((budget < 8)) && budget=8
+    ((${#line} > budget)) && line="${line:0:budget-1}$ell"
+
+    printf '\r\033[K %s%s%s %s' "$c_frame" "${UK_SPINNER_FRAMES[i % n]}" "$c_reset" "$line"
+    i=$((i + 1))
+    sleep "$interval"
+  done
+
+  wait "$pid" || rc=$?
+  printf '\r\033[K'
+  return "$rc"
+}
+
+# uk_fake_progress <pid> <label> [done_label]
+# Indeterminate percent bar for a background job of unknown duration: the
+# percentage accelerates toward 99% and holds until <pid> exits, then a full
+# green 100% bar (or a red failure line with the exit code) is printed.
+# Returns the job's exit status. Non-TTY stdout waits with no output.
+uk_fake_progress() {
+  local pid="${1:-}" label="${2:-working...}" done_label="${3:-done.}"
+  local rc=0 width=28 pct=0 fill empty bar_fill bar_empty
+  [[ -n "$pid" ]] || return 1
+
+  if [[ ! -t 1 ]]; then
+    wait "$pid" || rc=$?
+    return "$rc"
+  fi
+
+  local ch_fill ch_empty
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    ch_fill='█' ch_empty='░'
+  else
+    ch_fill='#' ch_empty='-'
+  fi
+  local c_bar="$UK_C_CYAN" c_done="$UK_C_GREEN" c_fail="$UK_C_RED"
+  local c_dim="$UK_C_DIM" c_bold="$UK_C_BOLD" c_reset="$UK_C_RESET"
+  [[ -n "${NO_COLOR:-}" ]] && c_bar='' c_done='' c_fail='' c_dim='' c_bold='' c_reset=''
+
+  printf '\n'
+  while kill -0 "$pid" 2>/dev/null; do
+    if ((pct < 50)); then
+      pct=$((pct + 4))
+    elif ((pct < 99)); then
+      pct=$((pct + 1))
+    fi
+    ((pct > 99)) && pct=99
+
+    fill=$((pct * width / 100))
+    empty=$((width - fill))
+    printf -v bar_fill '%*s' "$fill" ''
+    printf -v bar_empty '%*s' "$empty" ''
+    bar_fill="${bar_fill// /$ch_fill}"
+    bar_empty="${bar_empty// /$ch_empty}"
+
+    printf '\r  %s%s%s [%s%s%s%s%s] %s%3d%%%s  %s' \
+      "$c_bar" "$UK_I_WORK" "$c_reset" \
+      "$c_bar" "$bar_fill" "$c_dim" "$bar_empty" "$c_reset" \
+      "$c_bold" "$pct" "$c_reset" "$label"
+
+    # Re-check before sleeping so we exit promptly when the job finishes
+    # instead of burning a long final tick.
+    kill -0 "$pid" 2>/dev/null || break
+    if ((pct < 50)); then
+      sleep 0.06
+    elif ((pct < 85)); then
+      sleep 0.25
+    else
+      sleep 0.80
+    fi
+  done
+
+  wait "$pid" || rc=$?
+
+  printf -v bar_fill '%*s' "$width" ''
+  bar_fill="${bar_fill// /$ch_fill}"
+  if ((rc == 0)); then
+    printf '\r\033[K  %s%s%s [%s%s%s] %s100%%%s  %s\n' \
+      "$c_done" "$UK_I_OK" "$c_reset" \
+      "$c_done" "$bar_fill" "$c_reset" \
+      "$c_bold" "$c_reset" "$done_label"
+  else
+    printf '\r\033[K  %s%s%s [%s%s%s] %s%s failed (exit %d)%s\n' \
+      "$c_fail" "$UK_I_ERR" "$c_reset" \
+      "$c_fail" "$bar_fill" "$c_reset" \
+      "$c_bold" "$label" "$rc" "$c_reset" >&2
+  fi
+  return "$rc"
 }
 uk_header() {
   local title="${1:-}" subtitle="${2:-}"
@@ -414,15 +647,10 @@ uk_require_width() {
   tput civis 2>/dev/null || printf '\033[?25l'
 
   # Spinner frames — the ONLY thing that redraws every tick, so the rest of
-  # the box stays perfectly still and readable. NO_UNICODE users get an ASCII
-  # fallback so the frame widths stay equal (1 cell each).
-  local spinner
-  if [[ -z "${NO_UNICODE:-}" ]]; then
-    spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-  else
-    spinner=('|' '/' '-' '\')
-  fi
-  local sp_len=${#spinner[@]}
+  # the box stays perfectly still and readable. Shared canonical frame set;
+  # NO_UNICODE users get the ASCII fallback (1 cell each either way).
+  uk_spinner_frames
+  local sp_len=${#UK_SPINNER_FRAMES[@]}
 
   local key='' tick=0 prev_cols='' prev_rows=''
   # Geometry cache populated by _uk_render_width_notice_full (screen-absolute,
@@ -456,7 +684,7 @@ uk_require_width() {
     fi
 
     _uk_render_width_notice_tick "$cols" "$required" "$v" \
-      "${spinner[$((tick % sp_len))]}"
+      "${UK_SPINNER_FRAMES[$((tick % sp_len))]}"
     tick=$((tick + 1))
 
     # Poll for input every 0.15 s — smooth spinner, still cheap. Any key
@@ -623,4 +851,247 @@ _uk_center_line() {
   esac
 
   printf '%s%*s%s%*s%s' "$v" "$pad_l" '' "$styled" "$pad_r" '' "$v"
+}
+# =============================================================================
+# uk_output_format — shared table / JSON / CSV rendering for tools.
+#
+# Problem this solves: many tools hand-roll `python3 -c 'import json…'` string
+# escaping (or a brittle sed fallback) every time they add a `--json` flag.
+# New tools should get rendering for free by accumulating rows with the helpers
+# below and calling a single render routine.
+#
+# Three layers:
+#
+#   1. Escaping helpers (safe to use standalone):
+#        uk_json_escape <string>      -> emit a quoted, escaped JSON string
+#        uk_json_str <key> <string>   -> emit `"key":<escaped>`
+#        uk_json_lit <key> <json>     -> emit `"key":<json>` (value is RAW JSON)
+#        uk_json_obj <fragments...>    -> emit `{…}` from `"k":v` fragments
+#        uk_json_arr <items...>       -> emit `[…]` from already-built items
+#
+#   2. Row accumulator (the table/CSV/JSON multiplexer):
+#        uk_table_init <h1> <h2> …        -> reset + declare column headers
+#        uk_table_row  <c1> <c2> …       -> append one row
+#        uk_table_count                    -> echo number of accumulated rows
+#        uk_table_render [--format X]      -> emit rows in the chosen format
+#
+#      Format resolution (lowest -> highest precedence):
+#        UK_FMT env var  ->  --format/--json/--csv flag  ->  TTY? table : json
+#      so a tool that just calls `uk_table_render` does the right thing in a
+#      pipe (JSON) vs. a terminal (table) without any flags.
+#
+#   3. Flag parsing helper:
+#        uk_out_format_from_args "$@"  -> set UK_FMT and return (via $?) the
+#        number of args consumed; caller does `shift $?`. Recognises
+#        --json, --csv, and `--format <fmt>`.
+#
+# All functions are safe under `set -euo pipefail` and never clobber the
+# UK_C_* colour variables. They degrade gracefully when python3 is absent.
+# =============================================================================
+
+# uk_json_escape <string> — write a JSON-escaped, double-quoted string.
+uk_json_escape() {
+  local s="${1:-}"
+  if uk_has_cmd python3; then
+    python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
+  else
+    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+    printf '"%s"' "$s"
+  fi
+}
+
+# uk_json_str <key> <string> — emit `"key":<escaped string>`.
+uk_json_str() {
+  printf '"%s":%s' "$1" "$(uk_json_escape "${2:-}")"
+}
+
+# uk_json_lit <key> <json-value> — emit `"key":<raw json>` (no escaping).
+uk_json_lit() {
+  printf '"%s":%s' "$1" "${2:-}"
+}
+
+# uk_json_arr <item> [item …] — emit `[item,item,…]` of pre-built JSON.
+uk_json_arr() {
+  local first=1
+  printf '['
+  for item in "$@"; do
+    (( first )) || printf ','
+    printf '%s' "$item"
+    first=0
+  done
+  printf ']'
+}
+
+# uk_json_obj <fragment> [fragment …] — emit `{"k":v,"k":v,…}`.
+# Each argument is a ready-made `"key":value` fragment produced by
+# uk_json_str / uk_json_lit or written by hand. Fragments are joined with
+# commas, so callers never need to track the "first" comma themselves.
+uk_json_obj() {
+  local first=1
+  printf '{'
+  for frag in "$@"; do
+    (( first )) || printf ','
+    printf '%s' "$frag"
+    first=0
+  done
+  printf '}'
+}
+
+# ---- Row accumulator -------------------------------------------------------
+
+# uk_table_init <h1> <h2> … — reset the accumulator and declare headers.
+uk_table_init() {
+  UK_T_HEADERS=("$@")
+  UK_T_ROWS=()
+}
+
+# uk_table_row <c1> <c2> … — append a row; cell count must equal header count.
+uk_table_row() {
+  UK_T_ROWS+=("$#|$(printf '%s ' "$@")")
+}
+
+# uk_table_count — echo number of accumulated rows (handy for "0 results").
+uk_table_count() {
+  printf '%s\n' "${#UK_T_ROWS[@]}"
+}
+
+# _uk_table_resolve_fmt <explicit> — echo final format respecting env + TTY.
+_uk_table_resolve_fmt() {
+  local explicit="${1:-}"
+  if [[ -n "$explicit" ]]; then
+    printf '%s\n' "$explicit"
+  elif [[ -n "${UK_FMT:-}" ]]; then
+    printf '%s\n' "$UK_FMT"
+  elif [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    printf 'table\n'
+  else
+    printf 'json\n'
+  fi
+}
+
+# _uk_table_split <rowvar> — split a stored row into `ncells` + `cells` names.
+# Stored rows look like `N|cell0 cell1 …`; cells are space-joined.
+_uk_table_split() {
+  local row="$1"
+  UK_T_NCELLS="${row%%|*}"
+  UK_T_CELLS="${row#*|}"
+  # shellcheck disable=SC2162
+  IFS=' ' read -ra UK_T_PARSED <<<"$UK_T_CELLS"
+}
+
+# uk_table_render [--format table|json|csv] — emit the accumulated rows.
+uk_table_render() {
+  local fmt=''
+  while [[ "${1:-}" == --* ]]; do
+    case "${1:-}" in
+      --format) shift; fmt="${1:-}" ;;
+      *) break ;;
+    esac
+    shift || true
+  done
+  fmt="$(_uk_table_resolve_fmt "$fmt")"
+
+  local -a H=("${UK_T_HEADERS[@]}")
+  local ncol=${#H[@]} i row
+
+  if [[ "$fmt" == "csv" ]]; then
+    local cell
+    for ((i = 0; i < ncol; i++)); do
+      (( i )) && printf ','
+      cell="${H[i]}"
+      if [[ "$cell" == *[,\"$'\n']* ]]; then
+        cell="\"${cell//\"/\"\"}\""
+      fi
+      printf '%s' "$cell"
+    done
+    printf '\n'
+    for row in "${UK_T_ROWS[@]}"; do
+      _uk_table_split "$row"
+      for ((i = 0; i < ncol; i++)); do
+        (( i )) && printf ','
+        cell="${UK_T_PARSED[i]:-}"
+        if [[ "$cell" == *[,\"$'\n']* ]]; then
+          cell="\"${cell//\"/\"\"}\""
+        fi
+        printf '%s' "$cell"
+      done
+      printf '\n'
+    done
+    return 0
+  fi
+
+  if [[ "$fmt" == "json" ]]; then
+    local first=1 obj
+    printf '['
+    for row in "${UK_T_ROWS[@]}"; do
+      _uk_table_split "$row"
+      obj=''
+      for ((i = 0; i < ncol; i++)); do
+        [[ -n "$obj" ]] && obj+=' '
+        obj+="$(uk_json_str "${H[i]}" "${UK_T_PARSED[i]:-}")"
+      done
+      (( first )) || printf ','
+      # shellcheck disable=SC2086
+      uk_json_obj $obj
+      first=0
+    done
+    printf ']\n'
+    return 0
+  fi
+
+  # table format — compute column widths on visible (colour-stripped) length.
+  local -a widths=()
+  for ((i = 0; i < ncol; i++)); do widths[i]=$(uk_visible_len "${H[i]}"); done
+  for row in "${UK_T_ROWS[@]}"; do
+    _uk_table_split "$row"
+    for ((i = 0; i < ncol; i++)); do
+      local len; len=$(uk_visible_len "${UK_T_PARSED[i]:-}")
+      (( len > widths[i] )) && widths[i]=$len
+    done
+  done
+
+  local sep='' line='' c
+  for ((i = 0; i < ncol; i++)); do
+    sep+="+$(printf '%*s' $((widths[i] + 2)) '' | tr ' ' '-')"
+  done
+  sep+='+'
+
+  printf '%s\n' "$sep"
+  line=''
+  for ((i = 0; i < ncol; i++)); do
+    printf -v c '| %-*s ' "${widths[i]}" "${H[i]}"
+    line+="$c"
+  done
+  printf '%s|\n' "$line"
+  printf '%s\n' "$sep"
+  for row in "${UK_T_ROWS[@]}"; do
+    _uk_table_split "$row"
+    line=''
+    for ((i = 0; i < ncol; i++)); do
+      printf -v c '| %-*s ' "${widths[i]}" "${UK_T_PARSED[i]:-}"
+      line+="$c"
+    done
+    printf '%s|\n' "$line"
+  done
+  printf '%s\n' "$sep"
+}
+
+# uk_out_format_from_args <args…> — parse a `--format/--json/--csv` token out
+# of the given args, set UK_FMT accordingly, and return (via `$?`) how many
+# positional args it consumed so the caller can `shift $?`. Echoes nothing.
+# Usage inside a flag loop:
+#   --json) UK_FMT=json; shift ;;
+#   *)      uk_out_format_from_args "$@"; shift $? ;;
+uk_out_format_from_args() {
+  local a="${1:-}"
+  case "$a" in
+    --json) UK_FMT=json; return 1 ;;
+    --csv)  UK_FMT=csv;   return 1 ;;
+    --format)
+      UK_FMT="${2:-table}"
+      return 2
+      ;;
+  esac
+  return 0
 }

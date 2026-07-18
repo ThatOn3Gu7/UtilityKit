@@ -303,22 +303,16 @@ ug_main() {
   fi
 
   if (( as_json )); then
-    # Emit JSON array
-    if uk_has_cmd python3; then
-      printf '%s' "$result" | python3 -c '
-import sys, json
-lines = [l.rstrip("\n") for l in sys.stdin if l.strip()]
-print(json.dumps(lines, ensure_ascii=False))'
-    else
-      printf '['; local first=1 line
-      while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        (( first )) || printf ','
-        printf '"%s"' "$(printf '%s' "$line" | sed 's/"/\\"/g')"
-        first=0
-      done <<<"$result"
-      printf ']\n'
-    fi
+    # Emit JSON array using the shared escape helper.
+    local first=1 line
+    printf '['
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      (( first )) || printf ','
+      uk_json_escape "$line"
+      first=0
+    done <<<"$result"
+    printf ']\n'
     return 0
   fi
 

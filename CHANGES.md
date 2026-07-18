@@ -1,5 +1,37 @@
 # Changelog
 
+## [5.7.0] - 2026-07-18
+
+### Added
+- **Dry-run-by-default for `_image_tool` and `_pdf_toolkit`.** All file-writing subcommands (`resize`, `convert`, `strip`, `optimize`, `thumb`; and `merge`, `split`, `compress`, `rotate`) now preview only and require `--apply` to write output. Their interactive wizards prompt before writing. This closes the gap where `_image_tool optimize` rewrote files in place with no preview.
+- **`CONTRIBUTING.md` safe-by-default write/delete convention.** A new section documents the project-wide rule that any tool mutating the filesystem or system state must protect the user by default (dry-run preview or `[y/N]` confirmation), plus a safety matrix table covering all write/delete tools.
+
+### Changed
+- **Project-wide version policy.** The single `UK_VERSION` in `lib/uk_common.sh` is the version of the whole UtilityKit project. A significant change to *any* script (not only files carrying their own `VERSION=`) bumps this project version according to the size of the change (patch / minor / major).
+
+## [5.6.0] - 2026-07-18
+
+- **User config file: `~/.config/utilitykit/config`.** `lib/uk_common.sh` now applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (path overridable via `UK_CONFIG_FILE`) every time it is sourced, so `main.sh`, `setup.sh`, and every tool pick up suite-wide defaults like `DEFAULT_CACHE_OLDER_THAN=30`, `DEFAULT_PASSPHRASE_WORDS=6`, or `NO_UNICODE=1` without retyping flags. The file is parsed, never sourced: only `[export] KEY=VALUE` lines are accepted (bare or single/double-quoted values, blank lines, `# comments` — full-line or after an unquoted value), so a stray command in the file cannot execute and a typo cannot abort tools under `set -eu`; malformed lines are skipped with a `utilitykit: <file>:<line> skipped` warning on stderr. Precedence is flag > environment > config file > built-in default — a key already set in the environment (even to empty) is never overwritten, so one-off overrides like `NO_COLOR=1 bash main.sh` keep working. New smoke-test group `config_file_smoke` covers parsing, quoting, injection safety, and env precedence.
+
+
+## [5.5.0] - 2026-07-18
+
+### Added
+- **Canonical `uk_spinner` in `lib/uk_common.sh`.** One wait-on-a-background-job spinner for the whole suite: braille frames with an ASCII fallback under `NO_UNICODE`, `NO_COLOR` honored at call time, width-safe `\r`+`ESC[K` redraws that never wrap, a static `label...` degradation on non-TTY stdout, and preserved exit status. Options: `--prefix` (static id before the label), `--label-file` (live label re-read every tick), `--elapsed` (running seconds counter), `--interval`. Shared `uk_spinner_frames` also feeds the width-gate notice.
+- **Canonical `uk_fake_progress` in `lib/uk_common.sh`.** The indeterminate accelerating percent bar (formerly duplicated in `_media_convert` and `_disk_analyzer`): climbs to 99% and holds until the job exits, then prints a green 100% bar or a red failure line with the exit code.
+
+### Changed
+- **Spinner call sites now delegate to the library.** `setup.sh` (`setup_run_with_spinner`), `_cache_clean` (`cc_spinner`, now honoring `--no-color` via `NO_COLOR`), and `_update_managers` (both spin loops plus `draw_spinner_line`, replaced by a thin `um_spin` bridge that maps `--ascii`/`--no-color` onto `NO_UNICODE`/`NO_COLOR`) all use `uk_spinner`. `_media_convert` and `_disk_analyzer` use `uk_fake_progress`. Net: ~200 lines of duplicated animation code removed; `_cache_clean`'s spinner gains the previously missing `NO_UNICODE` fallback.
+
+## [5.4.0] - 2026-07-17
+
+### Added
+- **`doctor --fix`.** Opt-in auto-repair for the easy integrity issues: creates missing `modules/_<tool>/_<tool>_README.md` stubs from registry metadata (name + description), and prints a suggested `git rm -r "modules/_<dir>"` command for orphan tool directories — never deletes anything itself. Summary line reports the auto-fixed count.
+- **Per-tool README check.** `doctor` now verifies every registry tool has its `_<tool>_README.md` on disk and warns when missing.
+
+### Fixed
+- **Orphan-directory scan.** The scan globbed `$UK_ROOT_DIR/_*/` (repo root) instead of `modules/_*/`, so it never matched anything and always reported "none".
+
 ## [5.3.0] - 2026-07-15
 
 ### Security

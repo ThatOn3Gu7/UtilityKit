@@ -43,6 +43,9 @@ if ! declare -f uk_expand_path >/dev/null 2>&1; then
   uk_expand_path() { local i="${1:-}"; printf '%s\n' "${i/#\~/$HOME}"; }
 fi
 
+# Dry-run by default: writing subcommands only create output when PT_APPLY=1.
+PT_APPLY=0
+
 pt_usage() {
   cat <<'USAGE'
 Usage:
@@ -60,9 +63,14 @@ Subcommands:
 Options:
   --output FILE     Output path (merge, split, compress, rotate).
   --pages RANGE     Page range for split (e.g. 1-3,5).
+  --apply           Actually write output files (default is dry-run).
   --json            Machine-readable output (info, count, text).
   --no-color        Disable ANSI (also respects NO_COLOR=1).
   -h, --help        Show this help.
+
+Safety:
+  merge, split, compress, and rotate preview only by default and do not write
+  any file. Re-run with --apply to create the output file(s).
 
 Dependencies: qpdf (recommended), pdftotext, gs, pdfimages.
 Install: apt install qpdf poppler-utils ghostscript
@@ -205,6 +213,12 @@ pt_cmd_merge() {
   done
   mkdir -p "$(dirname -- "$out")" 2>/dev/null || true
 
+  if (( PT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would merge ${#files[@]} PDF(s) into: $out"
+    uk_note "Re-run with --apply to write the merged file."
+    return 0
+  fi
+
   if uk_has_cmd qpdf; then
     qpdf --empty --pages "${files[@]}" -- "$out" 2>/dev/null || {
       uk_error "Merge failed."
@@ -264,6 +278,15 @@ pt_expand_pages() {
 pt_cmd_split() {
   local file="$1" outdir="$2" pages="${3:-}"
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
+
+  if (( PT_APPLY == 0 )); then
+    local count
+    count="$(pt_cmd_count "$file" 0 2>/dev/null || echo 0)"
+    uk_note "Dry-run preview. Would split ${file##*/} into $count page file(s) under: $outdir"
+    uk_note "Re-run with --apply to write the split files."
+    return 0
+  fi
+
   mkdir -p "$outdir"
 
   local count
@@ -362,6 +385,12 @@ pt_cmd_compress() {
   [[ ! -f "$file" ]] && { uk_error "File not found: $file"; return 2; }
   [[ -z "$output" ]] && output="${file%.pdf}-compressed.pdf"
 
+  if (( PT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would compress to: $output"
+    uk_note "Re-run with --apply to write the compressed file."
+    return 0
+  fi
+
   if uk_has_cmd gs; then
     gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 \
       -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH \
@@ -387,6 +416,12 @@ pt_cmd_rotate() {
   [[ -z "$output" ]] && output="${file%.pdf}-rotated.pdf"
   [[ "$deg" =~ ^(90|180|270)$ ]] || { uk_error "Degrees must be 90, 180, or 270."; return 2; }
 
+  if (( PT_APPLY == 0 )); then
+    uk_note "Dry-run preview. Would rotate $deg degrees into: $output"
+    uk_note "Re-run with --apply to write the rotated file."
+    return 0
+  fi
+
   if uk_has_cmd qpdf; then
     qpdf --rotate="$deg" -- "$file" "$output" 2>/dev/null || {
       uk_error "Rotation failed."
@@ -405,6 +440,7 @@ pt_main() {
   local sub="" file="" output="" deg="" pages=""
   local -a args=()
   local as_json=0
+  PT_APPLY=0
 
   if [[ $# -gt 0 ]]; then
     case "${1:-}" in
@@ -417,6 +453,7 @@ pt_main() {
     case "${1:-}" in
       --output) shift; output="${1:-}" ;;
       --pages)  shift; pages="${1:-}" ;;
+      --apply)  PT_APPLY=1 ;;
       --json)   as_json=1 ;;
       --no-color) UK_C_RESET='' UK_C_BOLD='' UK_C_DIM='' UK_C_RED='' UK_C_GREEN=''
                   UK_C_YELLOW='' UK_C_BRIGHT_CYAN='' ;;
@@ -467,19 +504,27 @@ pt_wizard() {
       if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi
       local -a a=(merge "$file" $extra --output "$output")
       [[ -n "$jsonf" ]] && a+=("$jsonf")
+      uk_confirm 'Write the merged PDF now?' 'N' && a+=(--apply)
       pt_main "${a[@]}"
       ;;
     split)
       output="$(uk_prompt 'Output directory' './pages' './split' 'Each page becomes a file.')"
-      pt_main split "$file" --output "$(uk_expand_path "$output" 2>/dev/null || printf '%s' "$output")"
+      local -a a=(split "$file" --output "$(uk_expand_path "$output" 2>/dev/null || printf '%s' "$output")")
+      uk_confirm 'Write the split PDFs now?' 'N' && a+=(--apply)
+      pt_main "${a[@]}"
       ;;
     compress)
       output="$(uk_prompt 'Output file (blank = in-place)' '' './compressed.pdf' 'Leave blank to auto-name.')"
-      pt_main compress "$file" ${output:+--output "$output"}
+      local -a a=(compress "$file")
+      [[ -n "$output" ]] && a+=(--output "$output")
+      uk_confirm 'Write the compressed PDF now?' 'N' && a+=(--apply)
+      pt_main "${a[@]}"
       ;;
     rotate)
       deg="$(uk_prompt 'Degrees: 90, 180, or 270' '90' '180' 'Clockwise rotation.')"
-      pt_main rotate "$file" "$deg"
+      local -a a=(rotate "$file" "$deg")
+      uk_confirm 'Write the rotated PDF now?' 'N' && a+=(--apply)
+      pt_main "${a[@]}"
       ;;
     info|count|text)
       if uk_confirm 'JSON output?' 'N'; then jsonf="--json"; else jsonf=""; fi

@@ -89,16 +89,21 @@ yt_section() {
   yt_hr
 }
 
-yt_json_escape() {
-  local s="${1:-}"
-  if uk_has_cmd python3; then
-    python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
-  else
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
-    printf '"%s"' "$s"
-  fi
-}
+# Reuse the canonical escaping helper from uk_common.sh.
+# shellcheck disable=SC2312
+yt_json_escape() { uk_json_escape "${1:-}"; }
+if ! declare -f uk_json_escape >/dev/null 2>&1; then
+  yt_json_escape() {
+    local s="${1:-}"
+    if uk_has_cmd python3; then
+      python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
+    else
+      s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+      s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+      printf '"%s"' "$s"
+    fi
+  }
+fi
 
 yt_detect_backend() {
   if uk_has_cmd yq; then

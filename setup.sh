@@ -56,9 +56,9 @@ setup_detail() {
   printf '   %s%s %s%s\n' "$UK_C_DIM" "$UK_I_ARROW" "$1" "$UK_C_RESET"
 }
 
-# Runs "$@" in the background and shows a spinner (or a plain dot-tick in
-# NO_UNICODE/non-tty environments) until it finishes. Preserves the command's
-# exit status.
+# Runs "$@" in the background and shows the canonical uk_spinner (which
+# degrades to ASCII frames under NO_UNICODE and a static "label... " on
+# non-tty stdout) until it finishes. Preserves the command's exit status.
 setup_run_with_spinner() {
   ((INTERACTIVE == 1)) && {
     "$@"
@@ -73,30 +73,8 @@ setup_run_with_spinner() {
   "$@" >"$logfile" 2>&1 &
   local pid=$!
 
-  if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
-    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏') i=0
-    while kill -0 "$pid" 2>/dev/null; do
-      printf '\r   %s%s%s %s' "$UK_C_CYAN" "${frames[i % ${#frames[@]}]}" "$UK_C_RESET" "$label"
-      i=$((i + 1))
-      sleep 0.08
-    done
-  elif [[ -t 1 ]]; then
-    printf '   %s' "$label"
-    while kill -0 "$pid" 2>/dev/null; do
-      printf '.'
-      sleep 0.2
-    done
-  else
-    # Non-interactive stdout (e.g. piped/logged): no live redraw, just say we're working.
-    printf '   %s... ' "$label"
-  fi
-
   local status=0
-  wait "$pid" || status=$?
-
-  if [[ -t 1 ]]; then
-    printf '\r\033[2K'
-  fi
+  uk_spinner "$pid" "$label" || status=$?
 
   if ((status == 0)); then
     printf '   %s%s%s %s\n' "$UK_C_GREEN" "$UK_I_OK" "$UK_C_RESET" "$label"

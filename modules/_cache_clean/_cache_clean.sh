@@ -376,16 +376,13 @@ cc_clean_orphans_from_file() {
   printf '%d|%d|%d\n' "$deleted" "$failed" "$reclaimed"
 }
 cc_spinner() {
-  local pid=${1:-} msg=${2:-} rc=0
-  local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
-  while kill -0 "$pid" 2>/dev/null; do
-    printf '\r%s %s' "$C_LCYAN${spin:i%10:1}$C_RESET" "$msg"
-    sleep 0.08
-    i=$((i + 1))
-  done
-  wait "$pid" || rc=$?
-  printf '\r\033[K'
-  return "$rc"
+  # Delegates to the canonical uk_spinner; --no-color must still win even
+  # when the environment itself doesn't set NO_COLOR.
+  if [ "$CC_NO_COLOR" -eq 1 ]; then
+    NO_COLOR=1 uk_spinner "${1:-}" "${2:-}"
+  else
+    uk_spinner "${1:-}" "${2:-}"
+  fi
 }
 cc_discover_plugins() {
   CC_PLUGINS_DIR="$(cc_get_script_dir)/plugins"

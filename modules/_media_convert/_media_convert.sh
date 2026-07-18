@@ -47,72 +47,6 @@ mc_require_tool() {
     ;;
   esac
 }
-mc_fake_progress() {
-  local pid="${1:-}" width=28 pct=0 fill empty rc=0
-  local ch_fill ch_empty
-  if [[ -t 1 && -z "${NO_UNICODE:-}" ]]; then
-    ch_fill='█'
-    ch_empty='░'
-  else
-    ch_fill='#'
-    ch_empty='-'
-  fi
-
-  local c_bar c_done
-  if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    c_bar="$UK_C_CYAN"
-    c_done="$UK_C_GREEN"
-  else
-    c_bar=''
-    c_done=''
-  fi
-
-  printf '\n' # optional: start with a blank line
-
-  while kill -0 "$pid" 2>/dev/null; do
-    # Acceleration logic (your original, slightly modified)
-    if ((pct < 50)); then
-      pct=$((pct + 4))
-      sleep 0.06
-    elif ((pct < 85)); then
-      pct=$((pct + 1))
-      sleep 0.25
-    elif ((pct < 99)); then
-      pct=$((pct + 1))
-      sleep 0.80
-    fi
-    ((pct > 99)) && pct=99
-
-    fill=$((pct * width / 100))
-    empty=$((width - fill))
-
-    # Build the fill/empty strings using bash substitution – NO tr!
-    local bar_fill bar_empty
-    printf -v bar_fill '%*s' "$fill" ''
-    printf -v bar_empty '%*s' "$empty" ''
-    bar_fill="${bar_fill// /$ch_fill}"
-    bar_empty="${bar_empty// /$ch_empty}"
-
-    printf '\r  %s⚙%s [%s%s%s%s%s] %s%3d%%%s  converting...' \
-      "$UK_C_CYAN" "$UK_C_RESET" \
-      "$c_bar" "$bar_fill" \
-      "$UK_C_DIM" "$bar_empty" "$UK_C_RESET" \
-      "$UK_C_BOLD" "$pct" "$UK_C_RESET"
-  done
-
-  wait "$pid" || rc=$?
-
-  # Final 100% bar
-  fill=$width
-  printf -v bar_fill '%*s' "$fill" ''
-  bar_fill="${bar_fill// /$ch_fill}"
-
-  printf '\r  %s✔%s [%s%s%s] %s100%%%s  done.%*s\n' \
-    "$UK_C_GREEN" "$UK_C_RESET" \
-    "$c_done" "$bar_fill" "$UK_C_RESET" \
-    "$UK_C_BOLD" "$UK_C_RESET" 12 ''
-  return "$rc"
-}
 mc_convert_one() {
   local src="${1:-}" base out
   base="$(basename "${src%.*}")"
@@ -149,11 +83,8 @@ mc_convert_one() {
   fi
 
   local _mc_bg=$! convert_status=0
-  if [[ -t 1 ]]; then
-    mc_fake_progress "$_mc_bg" || convert_status=$?
-  else
-    wait "$_mc_bg" || convert_status=$?
-  fi
+  # Canonical indeterminate bar (uk_common); waits silently on non-tty stdout.
+  uk_fake_progress "$_mc_bg" 'converting...' 'done.' || convert_status=$?
 
   if ((convert_status != 0)); then
     [[ -s "$error_log" ]] && cat "$error_log" >&2

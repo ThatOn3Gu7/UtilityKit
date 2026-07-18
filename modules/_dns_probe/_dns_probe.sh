@@ -186,16 +186,21 @@ dp_run_standard() {
 
 # ---- JSON mode --------------------------------------------------------------
 
-dp_json_escape() {
-  local s="${1:-}"
-  if uk_has_cmd python3; then
-    python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
-  else
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
-    printf '"%s"' "$s"
-  fi
-}
+# Reuse the canonical escaping helper from uk_common.sh.
+# shellcheck disable=SC2312
+dp_json_escape() { uk_json_escape "${1:-}"; }
+if ! declare -f uk_json_escape >/dev/null 2>&1; then
+  dp_json_escape() {
+    local s="${1:-}"
+    if uk_has_cmd python3; then
+      python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
+    else
+      s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+      s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+      printf '"%s"' "$s"
+    fi
+  }
+fi
 
 dp_run_json() {
   local backend="$1" domain="$2" timeout="$3" tries="$4"

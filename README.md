@@ -250,6 +250,19 @@ uk_now / uk_stamp    date helpers
 
 The library uses a load-once guard (`UK_COMMON_SH_LOADED`) so sourcing it multiple times from nested scripts is safe.
 
+### User config file
+
+On load, the library applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (override the path with `UK_CONFIG_FILE`), so suite-wide defaults can be set once instead of retyped as flags:
+
+```sh
+# ~/.config/utilitykit/config
+DEFAULT_CACHE_OLDER_THAN=30
+DEFAULT_PASSPHRASE_WORDS=6
+NO_UNICODE=1          # comments allowed
+```
+
+The file is parsed, never sourced — only `[export] KEY=VALUE` lines (bare or quoted values) are accepted, so a stray command can't execute and a typo can't abort tools under `set -eu`. Malformed lines are skipped with a warning. Precedence: flag > environment > config file > built-in default, so `NO_COLOR=1 bash main.sh` always beats the file.
+
 ---
 
 ## Visual System
@@ -288,7 +301,7 @@ utility env --dir . --compare
 utility port 3000 --kill
 ```
 
-`setup.sh` copies all `_*/` tool directories, `lib/`, `docs/`, and `tests/` to the install location, creates a launcher wrapper, and optionally adds `bin-dir` to `~/.bashrc`/`~/.zshrc`.
+`setup.sh` copies every `modules/_*/` tool directory (preserving the `modules/` layout `main.sh` expects), along with `lib/`, `docs/`, `tests/`, and the top-level files, to the install location. It creates a one-line launcher wrapper (`exec "$INSTALL_DIR/main.sh" "$@"`) in `bin-dir` and optionally appends `bin-dir` to `~/.bashrc`/`~/.zshrc` (and `ZDOTDIR/.zshrc` when set). In `--no-menu` mode the installer shows a numbered step tracker and a spinner on the longer steps (respecting `NO_COLOR`/`NO_UNICODE`); running it from a checkout that lacks `main.sh` will clone the repo first.
 
 ---
 
@@ -434,7 +447,15 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.3.0** - current — Security & stability hardening pass across the entire toolkit, plus follow-up bug fixes from the review. Highlights: fail-fast error propagation (no more false-success diagnostics), command/arithmetic injection and word-splitting fixes (`--` terminators, `printf -v` instead of `eval`, quoted `TZ=`/`env` assignments), NUL-delimited filename traversal, path-traversal/containment guards, secure temp/state file modes (600/700) and non-predictable PID paths, archive link/special-file extraction validation, TLS-by-default and verified-HTTPS transports, PID-reuse/unrelated-process signal protection, and removal of suppressed stderr / masked exit statuses. Notable fixes: `_ssh_tunnel` can again kill/restart stopped tunnels; `_ip_info --json` no longer truncates on a transient GeoIP error; `_installed` no longer aborts the whole inventory on a benign empty parse; `_secret_scan` tolerates a single unreadable directory; `_cache_clean` size validation no longer false-fails on `wc -c` padding; `_yt_download` metadata parsing is immune to stderr contamination; `_cron_manager` preserves first-entry adds; `_main.sh` restores the width-gate bail behavior.
+**v5.7.0** - current — Safe-by-default write/delete hardening: `_image_tool` (`resize`, `convert`, `strip`, `optimize`, `thumb`) and `_pdf_toolkit` (`merge`, `split`, `compress`, `rotate`) now preview only and require `--apply` to write output, closing the gap where `_image_tool optimize` rewrote files in place with no preview; their wizards prompt before writing. `CONTRIBUTING.md` now documents the project-wide rule (and a safety-matrix table) that any tool mutating the filesystem or system state must protect the user by default, plus the single-source-of-truth version policy for the whole suite.
+
+**v5.6.0** — User config file support: `lib/uk_common.sh` applies `${XDG_CONFIG_HOME:-~/.config}/utilitykit/config` (override with `UK_CONFIG_FILE`) whenever it is sourced, letting suite-wide defaults (`DEFAULT_CACHE_OLDER_THAN=30`, `NO_UNICODE=1`, ...) be set once instead of retyped as flags. Parsed as `[export] KEY=VALUE` lines — never sourced — so stray commands can't execute and typos can't abort tools under `set -eu`; malformed lines are skipped with a warning. Precedence: flag > environment > config file > built-in default.
+
+**v5.5.0** — Canonical progress feedback in the shared library: new `uk_spinner` (braille/ASCII frames, `NO_COLOR`/`NO_UNICODE` at call time, width-safe redraws, non-TTY degradation, `--prefix`/`--label-file`/`--elapsed`/`--interval`) and `uk_fake_progress` (indeterminate accelerating percent bar). `setup.sh`, `_cache_clean`, and `_update_managers` now delegate their spinners to `uk_spinner`; `_media_convert` and `_disk_analyzer` delegate their percent bars to `uk_fake_progress` — removing ~200 lines of duplicated animation code.
+
+**v5.4.0** — `doctor` gained an opt-in `--fix` flag: creates missing `modules/_<tool>/_<tool>_README.md` stubs from registry metadata, and flags orphan tool directories with a suggested `git rm -r` command (never auto-deletes). Doctor now also checks each registry tool for its README, and the orphan-directory scan was repaired (it globbed the repo root instead of `modules/` and never matched anything).
+
+**v5.3.0** — Security & stability hardening pass across the entire toolkit, plus follow-up bug fixes from the review. Highlights: fail-fast error propagation (no more false-success diagnostics), command/arithmetic injection and word-splitting fixes (`--` terminators, `printf -v` instead of `eval`, quoted `TZ=`/`env` assignments), NUL-delimited filename traversal, path-traversal/containment guards, secure temp/state file modes (600/700) and non-predictable PID paths, archive link/special-file extraction validation, TLS-by-default and verified-HTTPS transports, PID-reuse/unrelated-process signal protection, and removal of suppressed stderr / masked exit statuses. Notable fixes: `_ssh_tunnel` can again kill/restart stopped tunnels; `_ip_info --json` no longer truncates on a transient GeoIP error; `_installed` no longer aborts the whole inventory on a benign empty parse; `_secret_scan` tolerates a single unreadable directory; `_cache_clean` size validation no longer false-fails on `wc -c` padding; `_yt_download` metadata parsing is immune to stderr contamination; `_cron_manager` preserves first-entry adds; `_main.sh` restores the width-gate bail behavior.
 
 **v5.2.5** — Upgraded from 5.2.1: added the `_installed` tool (read-only package & PATH inventory with a live per-manager spinner and per-package version detection); refreshed documentation and doc-site entry.
 
