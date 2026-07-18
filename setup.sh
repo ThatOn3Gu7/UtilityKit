@@ -39,7 +39,7 @@ setup_validate_launcher() {
 # operations (cloning, copying). Respects NO_COLOR / NO_UNICODE like the
 # rest of the suite, and is skipped entirely in interactive mode since the
 # uk_prompt/uk_header flow already gives the user feedback there.
-SETUP_TOTAL_STEPS=6
+SETUP_TOTAL_STEPS=7
 SETUP_STEP_NUM=0
 
 setup_step() {
@@ -178,7 +178,7 @@ setup_copy_dirs() {
     cp -a "$dir_path/." "$dest/"
   done < <({
     find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null | sort
-    for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+    for d in lib docs tests scripts completions; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
   })
 
   for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LICENSE; do
@@ -189,7 +189,7 @@ setup_copy_dirs() {
 if ((INTERACTIVE == 0)); then
   dir_count=$({
     find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null
-    for d in lib docs tests; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+    for d in lib docs tests scripts completions; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
   } | wc -l | tr -d ' ')
   setup_detail "Copying $dir_count tool/support directories into $INSTALL_DIR"
   setup_run_with_spinner "Copying files" setup_copy_dirs
@@ -230,6 +230,37 @@ if ((ADD_TO_PATH == 1)); then
   fi
 else
   setup_detail 'Skipped (--no-path or declined)'
+fi
+
+setup_step 'Installing shell tab-completions'
+# The generated completion files register the default `utility` name and
+# `main.sh`; a custom launcher name is picked up via UK_COMPLETE_CMD, which we
+# export on the same rc line. Idempotent: matches on the source path, so
+# re-running setup (even with a different launcher name) rewrites in place.
+if [[ -f "$INSTALL_DIR/completions/utility.bash" ]]; then
+  bash_comp_line="[[ -f \"$INSTALL_DIR/completions/utility.bash\" ]] && UK_COMPLETE_CMD='$LAUNCHER_NAME' source \"$INSTALL_DIR/completions/utility.bash\""
+  zsh_comp_line="[[ -f \"$INSTALL_DIR/completions/utility.zsh\" ]] && UK_COMPLETE_CMD='$LAUNCHER_NAME' source \"$INSTALL_DIR/completions/utility.zsh\""
+  install_comp_line() {
+    local rc="$1" line="$2" marker="$3"
+    [[ -f "$rc" ]] || return 0
+    if grep -Fq "$marker" "$rc" 2>/dev/null; then
+      # Replace the existing completion line so launcher renames take effect.
+      awk -v marker="$marker" -v line="$line" \
+        '{ if (index($0, marker)) print line; else print $0 }' "$rc" >"$rc.uk_tmp" &&
+        mv "$rc.uk_tmp" "$rc"
+      setup_detail "Updated completion line in $rc"
+    else
+      printf '\n# UtilityKit tab-completion\n%s\n' "$line" >>"$rc"
+      setup_detail "Appended completion line to $rc"
+    fi
+  }
+  install_comp_line "$HOME/.bashrc" "$bash_comp_line" "completions/utility.bash"
+  install_comp_line "$HOME/.zshrc" "$zsh_comp_line" "completions/utility.zsh"
+  if [[ -n "${ZDOTDIR:-}" && "$ZDOTDIR" != "$HOME" ]]; then
+    install_comp_line "$ZDOTDIR/.zshrc" "$zsh_comp_line" "completions/utility.zsh"
+  fi
+else
+  setup_detail 'No completions/ directory in source — skipped (run scripts/gen_completions.sh)'
 fi
 
 [[ -n "$TEMP_CLONE" ]] && rm -rf "$TEMP_CLONE"

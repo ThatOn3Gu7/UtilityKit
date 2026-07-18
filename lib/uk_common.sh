@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.8.0'
+readonly UK_VERSION='5.9.0'
 
 # uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
 # (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
