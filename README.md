@@ -288,6 +288,33 @@ Color is enhancement, never the only channel of meaning. `NO_COLOR=1` and `NO_UN
 
 ## Installing
 
+### Homebrew (macOS / Linux)
+
+The repository doubles as a Homebrew tap — no clone needed:
+
+```bash
+brew tap thaton3gu7/utilitykit https://github.com/ThatOn3Gu7/UtilityKit.git
+brew install utilitykit          # tagged release
+brew install --HEAD utilitykit   # latest master (use this until the first vX.Y.Z release is tagged)
+utility
+```
+
+The formula installs the `utility` launcher, bash/zsh tab-completions, and depends on Homebrew's `bash` (the suite needs bash ≥ 4; macOS ships 3.2).
+
+### Termux
+
+Grab the `.deb` from the latest GitHub Release — no clone needed:
+
+```bash
+curl -fLO https://github.com/ThatOn3Gu7/UtilityKit/releases/latest/download/utilitykit_all.deb
+pkg install ./utilitykit_all.deb
+utility
+```
+
+Uninstall with `pkg uninstall utilitykit`. The package installs to `$PREFIX/opt/utilitykit` with a `utility` launcher in `$PREFIX/bin` and tab-completions wired into the system bash/zsh completion dirs. To build the `.deb` yourself from a checkout: `bash packaging/build-termux-deb.sh` (see [`packaging/README.md`](packaging/README.md)).
+
+### From a checkout (`setup.sh`)
+
 ```bash
 # Interactive — prompts for launcher name, install dir, and PATH update
 bash setup.sh
@@ -447,7 +474,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.9.0** - current — Shell tab-completions generated from `UK_REGISTRY`: new `scripts/gen_completions.sh` emits `completions/utility.bash` and `completions/utility.zsh` from the registry plus each tool's flag-parsing `case` labels, so `utility <TAB>` completes all commands and `utility <cmd> <TAB>` offers that tool's flags (zsh also shows per-command descriptions and files alongside). `setup.sh` gained step 7: copies `scripts/` + `completions/` into the install dir and idempotently wires a `UK_COMPLETE_CMD='<launcher>' source ...` line into `~/.bashrc` / `~/.zshrc` / `$ZDOTDIR/.zshrc`, so custom launcher names complete too.
+**v5.10.0** - current — Package-manager install paths, removing the `git clone` step entirely: `Formula/utilitykit.rb` turns the repo into a Homebrew tap (`brew tap thaton3gu7/utilitykit <repo-url> && brew install utilitykit`, with `--HEAD` support and bash ≥ 4 guaranteed via the `bash` dependency), and `packaging/build-termux-deb.sh` builds a Termux `.deb` (`pkg install ./utilitykit_all.deb`) with launcher, completions, and `Depends: bash` wired in. A new `Release` workflow publishes the `.deb` (plus a stable-named `utilitykit_all.deb` alias) on every `vX.Y.Z` tag and verifies the tag matches `UK_VERSION`; `packaging/update-formula.sh` pins the formula's `url`/`sha256` to a released tag.
+
+**v5.9.0** — Shell tab-completions generated from `UK_REGISTRY`: new `scripts/gen_completions.sh` emits `completions/utility.bash` and `completions/utility.zsh` from the registry plus each tool's flag-parsing `case` labels, so `utility <TAB>` completes all commands and `utility <cmd> <TAB>` offers that tool's flags (zsh also shows per-command descriptions and files alongside). `setup.sh` gained step 7: copies `scripts/` + `completions/` into the install dir and idempotently wires a `UK_COMPLETE_CMD='<launcher>' source ...` line into `~/.bashrc` / `~/.zshrc` / `$ZDOTDIR/.zshrc`, so custom launcher names complete too.
 
 **v5.8.0** — Shared `uk_output_format` table/json/csv rendering in `lib/uk_common.sh`: canonical JSON escaping and object/array builders (`uk_json_escape`, `uk_json_str`, `uk_json_lit`, `uk_json_obj`, `uk_json_arr` — python3-aware with a pure-bash fallback) plus a row accumulator (`uk_table_init` / `uk_table_row` / `uk_table_count` / `uk_table_render`) that renders one dataset as a boxed table, JSON array, or CSV, auto-resolved via `UK_FMT` / `--format` / `--json` / `--csv` / TTY detection. `_dns_probe`, `_yaml_toolkit`, and `_uuid_gen` migrated off their hand-rolled JSON escapes.
 

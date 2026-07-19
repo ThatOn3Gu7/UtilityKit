@@ -1,0 +1,78 @@
+# Builds release assets when a version tag is pushed:
+#   - utilitykit_<version>_all.deb   (Termux: pkg install ./<file>)
+#   - utilitykit_all.deb             (stable-named alias for /releases/latest/download/)
+# and creates a GitHub Release carrying them, with the source-tarball
+# sha256 for Formula/utilitykit.rb in the release notes.
+#
+# Flow: bump UK_VERSION → tag vX.Y.Z → push tag → this runs →
+#       run packaging/update-formula.sh vX.Y.Z locally → commit formula.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check tag matches UK_VERSION
+        run: |
+          set -euo pipefail
+          version="$(sed -n "s/^readonly UK_VERSION='\([0-9][0-9.]*\)'.*/\1/p" lib/uk_common.sh)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match UK_VERSION=$version in lib/uk_common.sh"
+            exit 1
+          fi
+
+      - name: Build Termux .deb
+        run: |
+          set -euo pipefail
+          bash packaging/build-termux-deb.sh --out dist
+          # Stable-named alias so docs can point at a version-independent URL.
+          cp dist/utilitykit_*_all.deb dist/utilitykit_all.deb
+          dpkg-deb --info dist/utilitykit_all.deb
+
+      - name: Compute Homebrew tarball sha256
+        id: sha
+        run: |
+          set -euo pipefail
+          url="https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"
+          curl -fsSL -o source.tar.gz "$url"
+          echo "sha256=$(sha256sum source.tar.gz | cut -d' ' -f1)" >>"$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat >notes.md <<EOF
+          ## Install
+
+          ### Termux
+          \`\`\`sh
+          curl -fLO https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/utilitykit_all.deb
+          pkg install ./utilitykit_all.deb
+          \`\`\`
+
+          ### Homebrew (macOS / Linux)
+          \`\`\`sh
+          brew tap thaton3gu7/utilitykit https://github.com/${GITHUB_REPOSITORY}.git
+          brew install utilitykit
+          \`\`\`
+
+          Source tarball sha256 for \`Formula/utilitykit.rb\` (used by \`packaging/update-formula.sh\`):
+          \`${{ steps.sha.outputs.sha256 }}\`
+
+          See [CHANGES.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/CHANGES.md) for the changelog.
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            dist/utilitykit_*_all.deb dist/utilitykit_all.deb \
+            --title "UtilityKit $GITHUB_REF_NAME" \
+            --notes-file notes.md

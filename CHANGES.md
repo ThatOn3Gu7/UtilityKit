@@ -1,5 +1,15 @@
 # Changelog
 
+## [5.10.0] - 2026-07-19
+
+### Added
+- **Homebrew install path.** New `Formula/utilitykit.rb` lets the repository double as a tap: `brew tap thaton3gu7/utilitykit https://github.com/ThatOn3Gu7/UtilityKit.git && brew install utilitykit` (or `--HEAD` before any release tag exists). The formula depends on Homebrew `bash` (the suite needs bash ≥ 4, macOS ships 3.2), installs the runtime tree into `libexec`, writes a `utility` launcher that always runs under that bash, and registers the bash/zsh tab-completions. `packaging/update-formula.sh` re-points the formula's `url`/`sha256` at a released tag in one command.
+- **Termux `.deb` install path.** New `packaging/build-termux-deb.sh` stages the runtime tree under `$PREFIX/opt/utilitykit`, a `utility` launcher in `$PREFIX/bin` (explicit Termux-bash shebang, no `termux-exec` dependency), and completions in the system bash/zsh completion dirs, then builds `utilitykit_<version>_all.deb` with `dpkg-deb --root-owner-group -Zxz`. Version is read from `UK_VERSION` so package and code can never drift. Installable with `pkg install ./utilitykit_<version>_all.deb`; removable with `pkg uninstall utilitykit`.
+- **Release automation.** New `.github/workflows/release.yml`: on a `vX.Y.Z` tag push it fails fast unless the tag matches `UK_VERSION`, builds the Termux `.deb` plus a stable-named `utilitykit_all.deb` alias (so `releases/latest/download/utilitykit_all.deb` always works), publishes the GitHub Release with install instructions, and prints the source-tarball sha256 the formula needs. Full release flow documented in `packaging/README.md`.
+
+### Changed
+- README `Installing` section now leads with the clone-free Homebrew and Termux paths; `setup.sh` remains the from-checkout installer.
+
 ## [5.9.0] - 2026-07-18
 
 ### Added
