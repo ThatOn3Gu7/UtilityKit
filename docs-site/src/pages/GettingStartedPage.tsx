@@ -31,7 +31,7 @@ cd UtilityKit`,
 bash main.sh
 
 # Or install a system-wide launcher (default name: utility)
-bash setup.sh
+bash setup.sh --no-menu
 utility help`,
     note: "setup.sh places the launcher in ~/.local/bin. Make sure that's on your PATH.",
   },

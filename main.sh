@@ -159,7 +159,7 @@ EOF
   printf '%s\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
   printf "           %s %s READY%s   %s %s UtilityKit Central Hub %s Suite %sv%s%s\n" \
     "$UK_C_GREEN" "$UK_I_READY" "$UK_C_RESET" "$UK_C_DIM$UK_I_SEP$UK_C_RESET" \
-    "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET$UK_C_DIM$UK_I_SEP$UK_C_RESET" "$UK_C_BRIGHT_BLUE" "${UK_VERSION}" "$UK_C_RESET"
+    "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET$UK_C_DIM$UK_I_SEP$UK_C_RESET" "$UK_C_BRIGHT_BLUE" "$UK_VERSION" "$UK_C_RESET"
   printf '%s\n\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
 }
 
@@ -1471,14 +1471,19 @@ uk_main_show_help() {
   uk_main_banner
   cat <<'EOF'
 Usage:
-  ./main.sh <command> [args]
+
+  bash main.sh <command> [args]
+  # or if you have the launcher installed (default name: utility)
+  utility <command> [args]
 
 Core commands:
+
   apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
   proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
   cheat, setup, docker
 
 New utility commands:
+
   network, cron, dotenv, disk-health, service, git-stats, backup,
   weather, json, tmux, font, toolbox, search, github, links, log-inspect,
   csv, hash, archive, snapshot, open-files, battery, release, license, todo,
@@ -1486,9 +1491,10 @@ New utility commands:
   pdf, image, fwatch, tunnel, hooks, installed
 
 Maintenance:
+
   doctor     Run integrity checks on the tool registry and installation
 
-Use ./main.sh <command> --help for each tool's detailed options.
+Use bash main.sh <command> --help for each tool's detailed options.
 EOF
 }
 

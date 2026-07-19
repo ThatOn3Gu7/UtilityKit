@@ -1,5 +1,30 @@
 # Changelog
 
+## [5.10.0] - 2026-07-19
+
+### Added
+- **Homebrew install path.** New `Formula/utilitykit.rb` lets the repository double as a tap: `brew tap thaton3gu7/utilitykit https://github.com/ThatOn3Gu7/UtilityKit.git && brew install utilitykit` (or `--HEAD` before any release tag exists). The formula depends on Homebrew `bash` (the suite needs bash ≥ 4, macOS ships 3.2), installs the runtime tree into `libexec`, writes a `utility` launcher that always runs under that bash, and registers the bash/zsh tab-completions. `packaging/update-formula.sh` re-points the formula's `url`/`sha256` at a released tag in one command.
+- **Termux `.deb` install path.** New `packaging/build-termux-deb.sh` stages the runtime tree under `$PREFIX/opt/utilitykit`, a `utility` launcher in `$PREFIX/bin` (explicit Termux-bash shebang, no `termux-exec` dependency), and completions in the system bash/zsh completion dirs, then builds `utilitykit_<version>_all.deb` with `dpkg-deb --root-owner-group -Zxz`. Version is read from `UK_VERSION` so package and code can never drift. Installable with `pkg install ./utilitykit_<version>_all.deb`; removable with `pkg uninstall utilitykit`.
+- **Release automation.** New `.github/workflows/release.yml`: on a `vX.Y.Z` tag push it fails fast unless the tag matches `UK_VERSION`, builds the Termux `.deb` plus a stable-named `utilitykit_all.deb` alias (so `releases/latest/download/utilitykit_all.deb` always works), publishes the GitHub Release with install instructions, and prints the source-tarball sha256 the formula needs. Full release flow documented in `packaging/README.md`.
+
+### Changed
+- README `Installing` section now leads with the clone-free Homebrew and Termux paths; `setup.sh` remains the from-checkout installer.
+
+## [5.9.0] - 2026-07-18
+
+### Added
+- **Shell tab-completions generated from `UK_REGISTRY`.** New `scripts/gen_completions.sh` parses the registry block in `main.sh` (single source of truth) plus each tool's argument-parsing `case` labels and emits `completions/utility.bash` and `completions/utility.zsh`, so `utility <TAB>` completes all commands (tools + `setup`/`doctor`/`help`/`version`) and `utility <cmd> --<TAB>` completes that tool's flags. Both files register the default `utility` name and direct `main.sh` runs; a custom launcher name is picked up via `UK_COMPLETE_CMD`. zsh completions show the registry's one-line descriptions and work either sourced after `compinit` or dropped into `$fpath` as `_utility`. Re-run the generator whenever the registry or a tool's flags change — the files are committed artifacts, never hand-edited.
+- **`setup.sh` installs the completions.** New step 7 copies `scripts/` and `completions/` into the install dir and appends a guarded `UK_COMPLETE_CMD='<launcher>' source .../utility.{bash,zsh}` line to `~/.bashrc`, `~/.zshrc`, and `$ZDOTDIR/.zshrc`. Idempotent: re-running setup (even with a different `--launcher-name`) rewrites the existing line in place instead of duplicating it.
+- **Flags offered on empty word too.** `utility <cmd> <TAB>` (no `-` typed yet) now lists the tool's flags up front — bash shows flags only, zsh shows flags plus files. Typing `-` first still filters to flags alone.
+
+## [5.8.0] - 2026-07-18
+
+### Added
+- **Shared `uk_output_format` table/json/csv rendering in `lib/uk_common.sh`.** A canonical output-format convention so new tools get table/JSON/CSV rendering for free instead of hand-rolling JSON escaping each time. `uk_json_escape` / `uk_json_str` / `uk_json_lit` / `uk_json_obj` / `uk_json_arr` provide shared, python3-aware JSON escaping and object/array builders (with a pure-bash fallback); `uk_table_init` / `uk_table_row` / `uk_table_count` / `uk_table_render` accumulate rows and render the same dataset as a boxed table (TTY), a JSON array of objects, or CSV. Format auto-resolves via `UK_FMT` env, `--format`/`--json`/`--csv` flags, then TTY?table:json. `uk_out_format_from_args` parses those flags and reports the arg count consumed.
+
+### Changed
+- **Ad-hoc JSON escapes migrated to the shared helper.** `_dns_probe` (`dp_json_escape`), `_yaml_toolkit` (`yt_json_escape`), and `_uuid_gen` (`--json` array emission) now delegate to `uk_json_escape`.
+
 ## [5.7.0] - 2026-07-18
 
 ### Added
