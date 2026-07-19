@@ -36,6 +36,22 @@ const TERMINAL_TOOLS = [
   { icon: <MagnifyingGlass size={14} weight="duotone" />, name: "Project Search", cmd: "search", desc: "rg → grep → find fallback chain" },
 ];
 
+const C = {
+  bg: "#0d1117",
+  bgElevated: "#161b22",
+  border: "rgba(255,255,255,0.09)",
+  text: "#e6edf3",
+  textMuted: "#8b949e",
+  textFaint: "#6e7681",
+  textDim: "#4b5563",
+  accent: "#7ee787",
+  accentGlow: "rgba(126,231,135,0.15)",
+  accentBg: "rgba(126,231,135,0.10)",
+  dotRed: "#ff5f56",
+  dotYellow: "#ffbd2e",
+  dotGreen: "#27c93f",
+};
+
 function TerminalMockup() {
   const [activeLine, setActiveLine] = useState(0);
   const [cursor, setCursor] = useState(true);
@@ -55,11 +71,10 @@ function TerminalMockup() {
 
   return (
     <div className="relative w-full max-w-xl mx-auto">
-      {/* Glow behind */}
       <div
         className="absolute -inset-6 rounded-3xl pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 65%)",
+          background: `radial-gradient(ellipse at center, ${C.accentGlow} 0%, transparent 65%)`,
           filter: "blur(12px)",
         }}
       />
@@ -69,9 +84,9 @@ function TerminalMockup() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         className="relative rounded-2xl overflow-hidden font-mono"
         style={{
-          background: "var(--terminal-bg)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          boxShadow: "var(--shadow-lg), 0 0 60px -20px var(--accent-glow)",
+          background: C.bg,
+          border: `1px solid ${C.border}`,
+          boxShadow: `0 25px 50px -12px rgba(0,0,0,0.5), 0 0 60px -20px ${C.accentGlow}`,
           transformPerspective: 1000,
         }}
       >
@@ -80,97 +95,113 @@ function TerminalMockup() {
           className="flex items-center gap-2 px-4 py-3 border-b"
           style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
         >
-          <div className="w-3 h-3 rounded-full" style={{ background: "#ff5f56" }} />
-          <div className="w-3 h-3 rounded-full" style={{ background: "#ffbd2e" }} />
-          <div className="w-3 h-3 rounded-full" style={{ background: "#27c93f" }} />
-          <span className="ml-3 text-xs" style={{ color: "#8b949e" }}>
+          <div className="w-3 h-3 rounded-full" style={{ background: C.dotRed }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: C.dotYellow }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: C.dotGreen }} />
+          <span className="ml-3 text-xs" style={{ color: C.textMuted }}>
             bash — UtilityKit
           </span>
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded" style={{ color: "#7ee787", background: "rgba(126,231,135,0.08)" }}>
+          <span 
+            className="ml-auto text-[10px] px-1.5 py-0.5 rounded" 
+            style={{ color: C.accent, background: "rgba(126,231,135,0.08)" }}
+          >
             live
           </span>
         </div>
 
         {/* Body */}
-        <div className="px-5 py-5 text-sm leading-relaxed">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span style={{ color: "#7ee787" }}>~</span>
-            <span style={{ color: "#8b949e" }}>$</span>
-            <span style={{ color: "#e6edf3" }}>bash main.sh</span>
+        <div className="px-5 py-5 text-sm leading-relaxed" style={{ color: C.text }}>
+          {/* Command line */}
+          <div className="flex items-center gap-1.5 mb-4">
+            <span style={{ color: C.accent }}>~</span>
+            <span style={{ color: C.textMuted }}>$</span>
+            <span style={{ color: C.text }}>bash main.sh</span>
             <span
               className="inline-block w-2 h-4 ml-0.5"
               style={{
-                background: cursor ? "#7ee787" : "transparent",
+                background: cursor ? C.accent : "transparent",
                 verticalAlign: "middle",
               }}
             />
           </div>
 
-          <div className="mb-3">
-            <div style={{ color: "#7ee787" }}>╔══════════════════════════════════╗</div>
-            <div>
-              <span style={{ color: "#7ee787" }}>║</span>
-              <span style={{ color: "#e6edf3" }}>      UtilityKit Dashboard        </span>
-              <span style={{ color: "#7ee787" }}>║</span>
-            </div>
-            <div>
-              <span style={{ color: "#7ee787" }}>║</span>
-              <span style={{ color: "#8b949e" }}>   65 tools · bash main.sh        </span>
-              <span style={{ color: "#7ee787" }}>║</span>
-            </div>
-            <div style={{ color: "#7ee787" }}>╚══════════════════════════════════╝</div>
-          </div>
+          {/* ASCII Header Box */}
+          <pre
+            className="mb-4 text-sm leading-snug"
+            style={{ color: C.accent, fontFamily: "inherit", margin: 0 }}
+          >
+{`╔══════════════════════════════════╗
+║        UtilityKit Dashboard            ║
+║      65 tools · bash main.sh           ║
+╚══════════════════════════════════╝`}
+          </pre>
 
-          <div className="space-y-0.5 mb-3">
+          {/* Tool List */}
+          <div className="space-y-0.5 mb-4">
             {TERMINAL_TOOLS.map((tool, i) => (
               <motion.div
                 key={tool.cmd}
                 animate={{
-                  background: i === activeLine ? "rgba(126,231,135,0.10)" : "transparent",
+                  background: i === activeLine ? C.accentBg : "transparent",
                 }}
                 transition={{ duration: 0.25 }}
                 className="flex items-center gap-2 px-2 py-1 rounded"
                 style={{
-                  borderLeft: `2px solid ${i === activeLine ? "#7ee787" : "transparent"}`,
+                  borderLeft: `2px solid ${i === activeLine ? C.accent : "transparent"}`,
                 }}
               >
-                <span style={{ color: i === activeLine ? "#7ee787" : "#4b5563", width: 8 }}>
+                <span 
+                  className="text-xs text-center flex-shrink-0"
+                  style={{ color: i === activeLine ? C.accent : C.textDim, width: 16 }}
+                >
                   {i === activeLine ? "▶" : " "}
                 </span>
-                <span style={{ color: i === activeLine ? "#e6edf3" : "#8b949e" }}>
+                <span 
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{ color: i === activeLine ? C.text : C.textMuted, width: 20 }}
+                >
                   {tool.icon}
                 </span>
                 <span
-                  className="w-32 text-xs"
-                  style={{ color: i === activeLine ? "#e6edf3" : "#8b949e" }}
+                  className="text-xs flex-shrink-0 whitespace-nowrap overflow-hidden text-ellipsis"
+                  style={{ color: i === activeLine ? C.text : C.textMuted, width: 120 }}
+                  title={tool.name}
                 >
                   {tool.name}
                 </span>
-                <span className="text-xs truncate" style={{ color: "#6e7681" }}>
+                <span className="text-xs truncate" style={{ color: C.textFaint }}>
                   {tool.desc}
                 </span>
               </motion.div>
             ))}
-            <div className="flex items-center gap-2 px-2 py-1" style={{ color: "#4b5563" }}>
-              <span className="text-xs pl-2">· · 57 more tools</span>
+            <div className="flex items-center gap-2 px-2 py-1">
+              <span style={{ width: 16 }} />
+              <span style={{ width: 20 }} />
+              <span className="text-xs" style={{ color: C.textDim, width: 120 }}>
+                · · 59 more
+              </span>
+              <span className="text-xs" style={{ color: C.textDim }}>
+                tools
+              </span>
             </div>
           </div>
 
+          {/* Bottom hint bar */}
           <div
-            className="text-xs px-3 py-2 rounded-md flex items-center gap-4 flex-wrap"
-            style={{ background: "rgba(255,255,255,0.03)", color: "#8b949e" }}
+            className="text-xs px-3 py-2.5 rounded-md flex items-center gap-5 flex-wrap"
+            style={{ background: "rgba(255,255,255,0.03)", color: C.textMuted }}
           >
-            <span>
-              <span style={{ color: "#7ee787" }}>▲▼</span> scroll
+            <span className="inline-flex items-center gap-1.5">
+              <span style={{ color: C.accent }}>Use ▲▼ or j/k</span>
+              <span>: scroll</span>
             </span>
-            <span>
-              <span style={{ color: "#7ee787" }}>↵</span> run
+            <span className="inline-flex items-center gap-1.5">
+              <span style={{ color: C.accent }}>↵</span>
+              <span>run</span>
             </span>
-            <span>
-              <span style={{ color: "#7ee787" }}>/</span> search
-            </span>
-            <span>
-              <span style={{ color: "#7ee787" }}>q</span> quit
+            <span className="inline-flex items-center gap-1.5">
+              <span style={{ color: C.accent }}>q</span>
+              <span>: quit</span>
             </span>
           </div>
         </div>
@@ -179,8 +210,9 @@ function TerminalMockup() {
   );
 }
 
+
 const STATS = [
-  { value: "63", label: "tools", icon: <Package size={16} weight="duotone" /> },
+  { value: "65", label: "tools", icon: <Package size={16} weight="duotone" /> },
   { value: "3", label: "platforms", icon: <Cpu size={16} weight="duotone" /> },
   { value: "MIT", label: "license", icon: <Shield size={16} weight="duotone" /> },
   { value: "7/7", label: "tests passing", icon: <SealCheck size={16} weight="duotone" /> },
@@ -237,7 +269,7 @@ bash main.sh toc README.md --apply --check-links`,
   {
     label: "System install",
     code: `# System-wide launcher — call from anywhere
-bash setup.sh
+bash setup.sh --no-menu
 utility help
 utility port 3000
 utility pass --mode passphrase --words 6`,
@@ -292,7 +324,7 @@ export function HomePage() {
                   />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                 </span>
-                <span className="font-mono">v2.0 · 65 tools · MIT · Bash 5+</span>
+                <span className="font-mono">v5.3.0 · 65 tools · MIT · Bash 5+</span>
               </motion.div>
 
               <motion.h1
@@ -302,7 +334,7 @@ export function HomePage() {
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] mb-5"
                 style={{ color: "var(--text)" }}
               >
-                Sixty-three terminal tools,{" "}
+                Sixty-five terminal tools,{" "}
                 <span className="relative inline-block">
                   <span className="text-gradient-accent font-serif italic">one dashboard.</span>
                   <motion.svg
@@ -401,10 +433,10 @@ export function HomePage() {
                   }}
                 >
                   <span style={{ color: "var(--accent)" }}>$</span>
-                  <span>curl -sSL utilitykit.dev/i | bash</span>
+                  <span>curl -fsSL /support coming soon/</span>
                 </div>
                 <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-                  or clone the repo
+                  or just clone the repo
                 </span>
               </motion.div>
             </div>
