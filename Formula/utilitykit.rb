@@ -14,7 +14,7 @@ class Utilitykit < Formula
   desc "Suite of 51 self-contained Bash terminal tools behind one dashboard"
   homepage "https://github.com/ThatOn3Gu7/UtilityKit"
   url "https://github.com/ThatOn3Gu7/UtilityKit/archive/refs/tags/v5.10.0.tar.gz"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000" # placeholder — packaging/update-formula.sh fills this in
+  sha256 "ac1c799c3de831a9f8d899c885c153a5cbd968e8a0d2dcca6f6b21134bee5ba4"
   license "MIT"
   head "https://github.com/ThatOn3Gu7/UtilityKit.git", branch: "master"
 
