@@ -15,43 +15,51 @@ import { CodeBlock } from "@/components/CodeBlock";
 const STEP_COMMANDS = [
   {
     step: "01",
-    title: "Clone the repository",
+    title: "Install UtilityKit",
     description:
-      "Clone UtilityKit anywhere. No package manager, no build step — just Bash 5+.",
-    code: `git clone https://github.com/Thaton3gu7/UtilityKit.git
-cd UtilityKit`,
-    note: null,
+      "Three ways in. Homebrew and Termux need no clone at all; the checkout path works everywhere else. All three give you the same `utility` launcher.",
+    code: `# Homebrew (macOS / Linux) — the repo doubles as a tap
+brew tap thaton3gu7/utilitykit https://github.com/ThatOn3Gu7/UtilityKit.git
+brew install utilitykit
+
+# Termux — .deb straight from the latest GitHub release
+curl -fLO https://github.com/ThatOn3Gu7/UtilityKit/releases/latest/download/utilitykit_all.deb
+pkg install ./utilitykit_all.deb
+
+# From a checkout — anywhere else, or for hacking on the tools
+git clone https://github.com/Thaton3gu7/UtilityKit.git
+cd UtilityKit && bash setup.sh --no-menu`,
+    note: "Homebrew and Termux packages also install bash/zsh tab-completions, so `utility <TAB>` works out of the box. setup.sh places the launcher in ~/.local/bin — make sure that's on your PATH.",
   },
   {
     step: "02",
     title: "Run the interactive dashboard",
     description:
-      "Launch the arrow-key dashboard to browse all 65 tools. Or install a system-wide launcher so you can call it from anywhere.",
+      "Launch the arrow-key dashboard to browse all 65 tools.",
     code: `# Interactive dashboard (▲/▼ or j/k, ↵ to run, q to quit)
-bash main.sh
+utility
 
-# Or install a system-wide launcher (default name: utility)
-bash setup.sh --no-menu
-utility help`,
-    note: "setup.sh places the launcher in ~/.local/bin. Make sure that's on your PATH.",
+# Or straight from a checkout, without installing
+bash main.sh`,
+    note: null,
   },
   {
     step: "03",
     title: "Try a direct CLI command",
     description:
-      "Every tool works directly from main.sh — no menu required. Useful for scripting and automation.",
+      "Every tool works directly from the launcher — no menu required. Useful for scripting and automation.",
     code: `# Find which process owns port 3000
-bash main.sh port 3000
+utility port 3000
 
 # Generate a 6-word passphrase
-bash main.sh pass --mode passphrase --words 6
+utility pass --mode passphrase --words 6
 
 # Compare .env against .env.example
-bash main.sh env --dir . --compare
+utility env --dir . --compare
 
 # Pretty-print a JSON file
-bash main.sh json package.json --summary`,
-    note: null,
+utility json package.json --summary`,
+    note: "From a checkout, `bash main.sh <command>` behaves identically to `utility <command>`.",
   },
   {
     step: "04",
@@ -59,12 +67,12 @@ bash main.sh json package.json --summary`,
     description:
       "Browse all 65 tools with live search and category filters. Each tool has its own docs page with options, examples, and related tools.",
     code: `# Run the built-in integrity checker
-bash main.sh doctor
+utility doctor
 
 # Show help for any tool without the menu
-bash main.sh pass --help
-bash main.sh port --help`,
-    note: "bash main.sh doctor verifies every tool's registry entry, dispatch route, and --help output in one pass.",
+utility pass --help
+utility port --help`,
+    note: "utility doctor verifies every tool's registry entry, dispatch route, and --help output in one pass.",
   },
 ];
 
@@ -86,9 +94,9 @@ const ENV_VARS = [
 ];
 
 const REQUIREMENTS = [
-  { req: "Bash 5+", note: "Check with bash --version. macOS ships Bash 3 — install Bash 5 via Homebrew." },
-  { req: "Git", note: "Required to clone the repository. Most systems have it." },
-  { req: "No root", note: "All tools and the setup.sh installer run entirely in user space." },
+  { req: "Bash 5+", note: "Check with bash --version. macOS ships Bash 3 — the Homebrew formula pulls in Bash 5 automatically." },
+  { req: "Git", note: "Only needed for the from-checkout install. The Homebrew tap and Termux .deb don't require it." },
+  { req: "No root", note: "All tools and every install method run entirely in user space." },
   { req: "Python 3 (opt.)", note: "Powers json, csv, yaml, toc, and links tools for their Python-backed features." },
   { req: "jq (opt.)", note: "Used by api, github, and other tools for JSON formatting. Falls back gracefully." },
 ];
@@ -268,7 +276,7 @@ export function GettingStartedPage() {
             <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--text-muted)" }}>
               Run the built-in doctor to confirm all 65 tools are correctly registered and their dispatch routes work end-to-end.
             </p>
-            <CodeBlock code={`bash main.sh doctor`} label="integrity check" />
+            <CodeBlock code={`utility doctor`} label="integrity check" />
             <p
               className="text-xs mt-3 flex items-start gap-2 px-3 py-2 rounded-lg"
               style={{

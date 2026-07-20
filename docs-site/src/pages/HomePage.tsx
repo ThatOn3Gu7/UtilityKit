@@ -251,6 +251,20 @@ const FEATURES = [
 
 const INSTALL_TABS = [
   {
+    label: "Homebrew",
+    code: `# macOS / Linux — the repo doubles as a tap
+brew tap thaton3gu7/utilitykit https://github.com/ThatOn3Gu7/UtilityKit.git
+brew install utilitykit
+utility`,
+  },
+  {
+    label: "Termux",
+    code: `# Grab the .deb from the latest release — no clone needed
+curl -fLO https://github.com/ThatOn3Gu7/UtilityKit/releases/latest/download/utilitykit_all.deb
+pkg install ./utilitykit_all.deb
+utility`,
+  },
+  {
     label: "Interactive",
     code: `# Clone and launch the interactive dashboard
 git clone https://github.com/Thaton3gu7/UtilityKit.git
@@ -268,7 +282,7 @@ bash main.sh toc README.md --apply --check-links`,
   },
   {
     label: "System install",
-    code: `# System-wide launcher — call from anywhere
+    code: `# From a checkout: system-wide launcher — call from anywhere
 bash setup.sh --no-menu
 utility help
 utility port 3000
@@ -324,7 +338,7 @@ export function HomePage() {
                   />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                 </span>
-                <span className="font-mono">v5.3.0 · 65 tools · MIT · Bash 5+</span>
+                <span className="font-mono">v5.10.0 · 65 tools · MIT · Bash 5+</span>
               </motion.div>
 
               <motion.h1
@@ -502,7 +516,7 @@ export function HomePage() {
                 <span className="font-serif italic text-gradient-accent">in seconds</span>
               </h2>
               <p className="text-base" style={{ color: "var(--text-muted)" }}>
-                Clone and go — no build step, no dependencies beyond Bash 5+.
+                brew install, pkg install, or clone and go — no build step, no dependencies beyond Bash 5+.
               </p>
             </div>
           </AnimatedIn>

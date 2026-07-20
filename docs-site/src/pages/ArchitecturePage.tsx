@@ -206,12 +206,17 @@ export function ArchitecturePage() {
               >
                 Directory layout
               </div>
-              <pre className="text-xs font-mono leading-relaxed" style={{ color: "var(--text)" }}>
+              <pre className="text-xs font-mono leading-relaxed overflow-x-auto" style={{ color: "var(--text)" }}>
 {`UtilityKit/
 ├── main.sh              `}<span style={{ color: "var(--text-subtle)" }}>← central router</span>{`
-├── setup.sh             `}<span style={{ color: "var(--text-subtle)" }}>← system-wide installer</span>{`
+├── setup.sh             `}<span style={{ color: "var(--text-subtle)" }}>← from-checkout installer</span>{`
 ├── lib/
 │   └── uk_common.sh     `}<span style={{ color: "var(--text-subtle)" }}>← shared library</span>{`
+├── completions/         `}<span style={{ color: "var(--text-subtle)" }}>← generated bash/zsh tab-completions</span>{`
+├── Formula/
+│   └── utilitykit.rb    `}<span style={{ color: "var(--text-subtle)" }}>← Homebrew formula (repo doubles as a tap)</span>{`
+├── packaging/           `}<span style={{ color: "var(--text-subtle)" }}>← Termux .deb builder + release tooling</span>{`
+├── docs-site/           `}<span style={{ color: "var(--text-subtle)" }}>← this documentation site (React + Vite)</span>{`
 └── modules/
     ├── _pass/
     │   ├── _pass.sh          `}<span style={{ color: "var(--accent)" }}>← tool entry point</span>{`
