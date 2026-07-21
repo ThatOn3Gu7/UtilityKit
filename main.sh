@@ -1308,6 +1308,9 @@ run_tool() {
     fi
     ;;
   setup | install) bash "$UK_ROOT_DIR/setup.sh" "$@" ;;
+  tools | list | catalog)
+    uk_tools_catalog "$@"
+    ;;
   help | --help | -h) uk_main_show_help ;;
   doctor | diagnostics)
     uk_doctor "$@"
@@ -1467,6 +1470,67 @@ uk_doctor() {
   [[ "$problems" -eq 0 ]]
 }
 
+uk_tools_catalog() {
+  local json=0
+  case "${1:-}" in
+    --json) json=1 ;;
+    --format)
+      if [[ "${2:-}" == "json" ]]; then json=1; fi
+      ;;
+  esac
+
+  if ((json)); then
+    local first=1
+    printf '['
+    local rec key action icon color_var name desc menu
+    for rec in "${UK_REGISTRY[@]}"; do
+      IFS='|' read -r key action icon color_var name desc menu <<<"$rec"
+      ((first)) || printf ','
+      uk_json_obj \
+        "$(uk_json_str "key" "$key")" \
+        "$(uk_json_str "action" "$action")" \
+        "$(uk_json_str "name" "$name")" \
+        "$(uk_json_str "description" "$desc")"
+      first=0
+    done
+    printf ']\n'
+  else
+    local rec key action name desc
+    local -a rows=()
+    local -a keys=() acts=() names=() descs=()
+    for rec in "${UK_REGISTRY[@]}"; do
+      IFS='|' read -r key action _ _ name desc _ <<<"$rec"
+      keys+=("$key")
+      acts+=("$action")
+      names+=("$name")
+      descs+=("$desc")
+    done
+
+    local kw=12 aw=10 nw=18 dw=35
+    for ((i = 0; i < ${#keys[@]}; i++)); do
+      ((${#keys[i]} > kw)) && kw=${#keys[i]}
+      ((${#acts[i]} > aw)) && aw=${#acts[i]}
+      ((${#names[i]} > nw)) && nw=${#names[i]}
+      ((${#descs[i]} > dw)) && dw=${#descs[i]}
+    done
+    ((kw < 3)) && kw=3
+    ((aw < 6)) && aw=6
+    ((nw < 4)) && nw=4
+    ((dw < 11)) && dw=11
+
+    local sep="+-${kw}-+-${aw}-+-${nw}-+-${dw}-+"
+    sep="${sep// /-}"
+    printf '%s\n' "$sep"
+    printf '| %-*s | %-*s | %-*s | %-*s |\n' "$kw" "Key" "$aw" "Action" "$nw" "Name" "$dw" "Description"
+    printf '%s\n' "$sep"
+    for ((i = 0; i < ${#keys[@]}; i++)); do
+      printf '| %-*s | %-*s | %-*s | %-*s |\n' "$kw" "${keys[i]}" "$aw" "${acts[i]}" "$nw" "${names[i]}" "$dw" "${descs[i]}"
+    done
+    printf '%s\n' "$sep"
+    printf '  %d tools\n' "${#keys[@]}"
+  fi
+}
+
 uk_main_show_help() {
   uk_main_banner
   cat <<'EOF'
@@ -1478,6 +1542,7 @@ Usage:
 
 Core commands:
 
+  tools      List all available tools (use --json for JSON output)
   apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
   proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
   cheat, setup, docker

@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.10.5] - 2026-07-21
+
+### Added
+- **`main.sh tools` command.** `bash main.sh tools` renders a full-width table of every registered tool (key, action, name, description) from the single-source-of-truth `UK_REGISTRY`; `bash main.sh tools --json` emits a valid JSON array of objects suitable for external UIs and scripts. Aliases: `list`, `catalog`.
+
 ## [5.10.0] - 2026-07-19
 
 ### Added
