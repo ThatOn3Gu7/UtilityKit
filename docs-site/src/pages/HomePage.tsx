@@ -126,15 +126,20 @@ function TerminalMockup() {
           </div>
 
           {/* ASCII Header Box */}
-          <pre
-            className="mb-4 text-sm leading-snug"
-            style={{ color: C.accent, fontFamily: "inherit", margin: 0 }}
+          <div
+            className="mb-4 rounded-md px-4 py-2.5 text-center"
+            style={{
+              border: `1px solid ${C.textFaint}`,
+              fontFamily: "inherit",
+            }}
           >
-{`╔══════════════════════════════════╗
-║        UtilityKit Dashboard            ║
-║      65 tools · bash main.sh           ║
-╚══════════════════════════════════╝`}
-          </pre>
+            <div className="text-sm font-semibold" style={{ color: C.text }}>
+              UtilityKit Dashboard
+            </div>
+            <div className="text-sm" style={{ color: C.accent }}>
+              65 tools · bash main.sh
+            </div>
+          </div>
 
           {/* Tool List */}
           <div className="space-y-0.5 mb-4">
