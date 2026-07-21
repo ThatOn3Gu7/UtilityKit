@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
+import { useInView } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -56,21 +57,23 @@ function TerminalMockup() {
   const [activeLine, setActiveLine] = useState(0);
   const [cursor, setCursor] = useState(true);
   const reduce = useReducedMotion();
-
+  const rootRef = useRef(null);
+  const inView = useInView(rootRef, { margin: "-100px" });
+  
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || !inView) return;
     const c = setInterval(() => setCursor((v) => !v), 530);
     return () => clearInterval(c);
-  }, [reduce]);
+  }, [reduce, inView]);
 
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || !inView) return;
     const l = setInterval(() => setActiveLine((v) => (v + 1) % TERMINAL_TOOLS.length), 1800);
     return () => clearInterval(l);
-  }, [reduce]);
+  }, [reduce, inView]);
 
   return (
-    <div className="relative w-full max-w-xl mx-auto">
+    <div ref={rootRef} className="relative w-full max-w-xl mx-auto">
       <div
         className="absolute -inset-6 rounded-3xl pointer-events-none"
         style={{
@@ -272,7 +275,7 @@ utility`,
   {
     label: "Interactive",
     code: `# Clone and launch the interactive dashboard
-git clone https://github.com/Thaton3gu7/UtilityKit.git
+git clone https://github.com/ThatOn3Gu7/UtilityKit.git
 cd UtilityKit
 bash main.sh`,
   },
