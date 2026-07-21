@@ -223,43 +223,23 @@ sa_main() {
     "$UK_C_BOLD" "$UK_C_BRIGHT_CYAN" "$SA_CONFIG" "$UK_C_RESET" ""
   printf '  %s%s%s\n\n' "$UK_C_DIM" "$(printf '%*s' 52 '' | tr ' ' '-')" "$UK_C_RESET"
 
+  local -a menu_items=()
   local i
   for i in "${!hosts[@]}"; do
-    printf '  %s%2d)%s  %s%-22s%s %s→  ssh %s%s\n' \
-      "$UK_C_BOLD" "$((i + 1))" "$UK_C_RESET" \
-      "$UK_C_CYAN" "${hosts[$i]}" "$UK_C_RESET" \
-      "$UK_C_DIM" "${hosts[$i]}" "$UK_C_RESET"
+    menu_items+=("${hosts[$i]}|ssh ${hosts[$i]}")
   done
+  menu_items+=("Add new host|add a new SSH config entry")
 
-  # Add an extra option for adding a new host
-  local add_option_num=$((${#hosts[@]} + 1))
-  printf '  %s%2d)%s  %s%-22s%s %s→  %sAdd new host%s\n' \
-    "$UK_C_BOLD" "$add_option_num" "$UK_C_RESET" \
-    "$UK_C_GREEN" "Add new host" "$UK_C_RESET" \
-    "$UK_C_DIM" "$UK_C_RESET" ""
+  printf '  %sGitHub/GitLab hosts close after auth — that is normal.%s\n' \
+    "$UK_C_DIM" "$UK_C_RESET"
+  printf '  %sRun with --copy-id user@host to push your public key.%s\n' \
+    "$UK_C_DIM" "$UK_C_RESET"
 
-  # ── Info notes ───────────────────────────────────────────────────
-  printf '\n  %s%s Tip:%s Select a number to open an SSH session in this terminal.%s\n' \
-    "$UK_C_DIM" "$UK_I_INFO" "$UK_C_RESET" "$UK_C_RESET"
-  printf '  %s%s Note:%s GitHub · GitLab · Bitbucket hosts close immediately after auth — that is normal.%s\n' \
-    "$UK_C_DIM" "$UK_I_WARN" "$UK_C_RESET" "$UK_C_RESET"
-  printf '  %s%s Copy-ID:%s Run with %s--copy-id user@host%s to push your public key.%s\n\n' \
-    "$UK_C_DIM" "$UK_I_INFO" "$UK_C_RESET" \
-    "$UK_C_CYAN" "$UK_C_RESET" "$UK_C_RESET"
-
-  if uk_is_interactive; then
-    printf '  %s Enter host number (or press Enter to quit): %s' \
-      "$UK_I_ARROW" "$UK_C_RESET"
-    read -r i </dev/tty
-    [[ -n "$i" ]] || return 0
-    if ! [[ "$i" =~ ^[0-9]+$ ]] || ((i < 1 || i > add_option_num)); then
-      uk_warn "Invalid selection: '$i'. Enter a number between 1 and $add_option_num."
-      return 1
-    fi
-    if ((i == add_option_num)); then
+  if uk_menu --prompt "SSH Hosts" "${menu_items[@]}"; then
+    if ((UK_MENU_SELECTED == ${#hosts[@]})); then
       sa_add_host ''
     else
-      sa_run_ssh "${hosts[$((i - 1))]}"
+      sa_run_ssh "${hosts[$UK_MENU_SELECTED]}"
     fi
   fi
 }

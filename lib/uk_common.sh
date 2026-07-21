@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.10.5'
+readonly UK_VERSION='5.10.6'
 
 # uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
 # (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
@@ -1094,4 +1094,217 @@ uk_out_format_from_args() {
       ;;
   esac
   return 0
+}
+
+# =============================================================================
+# uk_read_key — single keypress reader for interactive menus.
+#
+# Reads one keypress and echoes a normalized name:
+#   UP, DOWN, ENTER, ESC, or the literal character typed.
+# Supports arrow keys (with and without numeric-keypad prefix),
+# Enter (empty read), Escape, and regular characters.
+# =============================================================================
+uk_read_key() {
+  local key
+  IFS= read -rsn1 key 2>/dev/null || true
+  if [[ "$key" == $'\x1b' ]]; then
+    read -rsn2 -t 0.1 key 2>/dev/null || true
+    case "$key" in
+    '[A' | 'OA') echo "UP" ;;
+    '[B' | 'OB') echo "DOWN" ;;
+    *) echo "ESC" ;;
+    esac
+  elif [[ "$key" == "" ]]; then
+    echo "ENTER"
+  else
+    echo "$key"
+  fi
+}
+
+# =============================================================================
+# uk_menu — interactive arrow-key navigable list selector.
+#
+# Renders a scrollable, arrow-key navigable list with optional descriptions
+# and icons. Automatically falls back to a numbered prompt on non-TTY output.
+#
+# Usage:
+#   uk_menu [--prompt STR] [--default N] [--] item1 item2 ...
+#
+# Each item can be a simple label:
+#     "Option A"
+#   or a pipe-delimited enriched record:
+#     "Display Name|short description|icon-glyph"
+#
+# Output:
+#   UK_MENU_SELECTED  — 0-based index of the chosen item
+# Return:
+#   0 on selection, 1 if the user quit / cancelled
+#
+# Navigation:
+#   ↑/↓ or k/j  — move selection
+#   Enter        — confirm selection
+#   q / Q        — quit / cancel
+#
+# Non-TTY fallback:
+#   Prints a numbered list and waits for a numeric answer on stdin.
+# =============================================================================
+uk_menu() {
+  local prompt="" default=0
+  local -a items=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --prompt) shift; prompt="${1:-}"; shift ;;
+      --default) shift; default="${1:-0}"; shift ;;
+      --) shift; break ;;
+      *) break ;;
+    esac
+  done
+  items=("$@")
+  local n=${#items[@]}
+  [[ "$n" -eq 0 ]] && return 1
+
+  # Parse pipe-delimited items -> labels, descs, icons
+  local -a labels=() descs=() icons=()
+  local item rest label desc icon
+  for item in "${items[@]}"; do
+    label="${item%%|*}"
+    rest="${item#*|}"
+    labels+=("$label")
+    if [[ "$rest" == "$item" ]]; then
+      descs+=(""); icons+=("")
+    else
+      desc="${rest%%|*}"
+      rest="${rest#*|}"
+      descs+=("$desc")
+      if [[ "$rest" == "$desc" ]]; then
+        icons+=("")
+      else
+        icons+=("$rest")
+      fi
+    fi
+  done
+
+  # ---- Non-TTY fallback: numbered prompt --------------------------------
+  if ! uk_is_interactive; then
+    local i
+    for ((i = 0; i < n; i++)); do
+      printf '  %d) %s' "$((i+1))" "${labels[i]}"
+      [[ -n "${descs[i]:-}" ]] && printf '  (%s)' "${descs[i]}"
+      printf '\n'
+    done
+    printf ' %s Choose [1-%d] (0 to cancel): ' "$UK_I_ARROW" "$n" >&2
+    local reply
+    read -r reply
+    if [[ "$reply" == "0" || -z "$reply" ]]; then
+      return 1
+    fi
+    if [[ "$reply" =~ ^[0-9]+$ ]] && ((reply >= 1 && reply <= n)); then
+      UK_MENU_SELECTED=$((reply - 1))
+      return 0
+    fi
+    return 1
+  fi
+
+  # ---- Interactive arrow-key menu --------------------------------------
+  local selected_index="$default"
+  local viewport_start=0
+  local viewport_count=8
+
+  # Cursor management: hide on entry, restore on exit
+  trap 'tput cnorm 2>/dev/null || printf "\033[?25h"; trap - EXIT INT TERM HUP; return 1' EXIT INT TERM HUP
+  tput civis 2>/dev/null || printf '\033[?25l'
+
+  while true; do
+    # Boundary wrapping
+    if ((selected_index < 0)); then
+      selected_index=$((n - 1))
+    elif ((selected_index >= n)); then
+      selected_index=0
+    fi
+
+    # Viewport sliding window
+    if ((selected_index < viewport_start)); then
+      viewport_start=$selected_index
+    elif ((selected_index >= viewport_start + viewport_count)); then
+      viewport_start=$((selected_index - viewport_count + 1))
+    fi
+
+    # Clear and render
+    printf '\033[H\033[J'
+
+    if [[ -n "$prompt" ]]; then
+      printf '  %s%s%s\n\n' "$UK_C_BOLD$UK_C_GREEN" "$prompt" "$UK_C_RESET"
+    fi
+
+    # Upwards scroll indicator
+    if ((viewport_start > 0)); then
+      printf '     %s▲%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    else
+      printf '\n'
+    fi
+
+    local i ic cl lb ds
+    for ((i = viewport_start; i < viewport_start + viewport_count && i < n; i++)); do
+      ic="${icons[i]:-}"
+      cl="${UK_C_WHITE}"
+      lb="${labels[i]}"
+      ds="${descs[i]:-}"
+
+      if ((i == selected_index)); then
+        if [[ -n "$ic" ]]; then
+          printf '  %s➔%s  %s%s %s%s  %s(%s)%s\n' \
+            "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
+            "$UK_C_BOLD$cl" "$ic" "$lb" "$UK_C_RESET" \
+            "$UK_C_BOLD" "$ds" "$UK_C_RESET"
+        else
+          printf '  %s➔%s  %s%s%s  %s(%s)%s\n' \
+            "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
+            "$UK_C_BOLD$cl" "$lb" "$UK_C_RESET" \
+            "$UK_C_BOLD" "$ds" "$UK_C_RESET"
+        fi
+      else
+        if [[ -n "$ic" ]]; then
+          printf '     %s%s %s%s  %s(%s)%s\n' \
+            "$cl" "$ic" "$UK_C_RESET" \
+            "$UK_C_BOLD" "$lb" "$UK_C_RESET" \
+            "$UK_C_DIM" "$ds" "$UK_C_RESET"
+        else
+          printf '     %s%s  %s(%s)%s\n' \
+            "$UK_C_BOLD" "$lb" "$UK_C_RESET" \
+            "$UK_C_DIM" "$ds" "$UK_C_RESET"
+        fi
+      fi
+    done
+
+    # Downwards scroll indicator
+    if ((viewport_start + viewport_count < n)); then
+      printf '     %s▼%s\n' "$UK_C_DIM" "$UK_C_RESET"
+    else
+      printf '\n'
+    fi
+
+    # Footer
+    printf '\n  %s↑/↓ or k/j navigate     Enter select     q quit%s\n' \
+      "$UK_C_DIM" "$UK_C_RESET"
+
+    # Read key
+    local key
+    key=$(uk_read_key)
+    case "$key" in
+      UP|k|K) ((selected_index--)) ;;
+      DOWN|j|J) ((selected_index++)) ;;
+      ENTER)
+        tput cnorm 2>/dev/null || printf '\033[?25h'
+        trap - EXIT INT TERM HUP
+        UK_MENU_SELECTED="$selected_index"
+        return 0
+        ;;
+      q|Q)
+        tput cnorm 2>/dev/null || printf '\033[?25h'
+        trap - EXIT INT TERM HUP
+        return 1
+        ;;
+    esac
+  done
 }

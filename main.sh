@@ -1563,24 +1563,6 @@ Use bash main.sh <command> --help for each tool's detailed options.
 EOF
 }
 
-# Keypress listener translating Arrows, Enter and Vim keys.
-uk_read_key() {
-  local key
-  IFS= read -rsn1 key 2>/dev/null || true
-  if [[ "$key" == $'\x1b' ]]; then
-    read -rsn2 -t 0.1 key 2>/dev/null || true
-    case "$key" in
-    '[A' | 'OA') echo "UP" ;;
-    '[B' | 'OB') echo "DOWN" ;;
-    *) echo "ESC" ;;
-    esac
-  elif [[ "$key" == "" ]]; then
-    echo "ENTER"
-  else
-    echo "$key"
-  fi
-}
-
 # Flat arrays for the master unified list
 declare -a M_ICONS=()
 declare -a M_COLORS=()

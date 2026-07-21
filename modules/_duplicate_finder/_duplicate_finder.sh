@@ -212,29 +212,28 @@ df_main() {
     fi
 
     printf '\n'
-    printf '  1) Report only          (show duplicates, make no changes)\n'
-    printf '  2) Delete duplicates    (remove dupes, keep the first copy of each)\n'
-    printf '  3) Replace with hardlinks (save space while keeping both paths intact)\n'
-    printf '\n Choose an action [1-3]: '
-    read -r mode </dev/tty
-
-    case "$mode" in
-    2)
-      DF_ACTION='delete'
-      if uk_confirm 'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
-        DF_APPLY=1
-      fi
-      ;;
-    3)
-      DF_ACTION='hardlink'
-      if uk_confirm 'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
-        DF_APPLY=1
-      fi
-      ;;
-    *)
-      DF_ACTION='report'
-      ;;
-    esac
+    if uk_menu --prompt "Choose an action" \
+      "Report only|show duplicates, make no changes" \
+      "Delete duplicates|remove dupes, keep the first copy" \
+      "Replace with hardlinks|save space while keeping both paths"; then
+      case "$UK_MENU_SELECTED" in
+      1)
+        DF_ACTION='delete'
+        if uk_confirm 'Apply deletion now? (duplicates will be permanently removed)' 'N'; then
+          DF_APPLY=1
+        fi
+        ;;
+      2)
+        DF_ACTION='hardlink'
+        if uk_confirm 'Apply hardlinking now? (duplicate files will be replaced with hardlinks)' 'N'; then
+          DF_APPLY=1
+        fi
+        ;;
+      *)
+        DF_ACTION='report'
+        ;;
+      esac
+    fi
   fi
 
   df_scan
