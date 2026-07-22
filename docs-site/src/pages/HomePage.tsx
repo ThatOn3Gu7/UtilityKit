@@ -159,10 +159,10 @@ function TerminalMockup() {
                 }}
               >
                 <span 
-                  className="text-xs text-center flex-shrink-0"
+                  className="text-xs text-center flex-shrink-0 font-mono"
                   style={{ color: i === activeLine ? C.accent : C.textDim, width: 16 }}
                 >
-                  {i === activeLine ? "▶" : " "}
+                  {i === activeLine ? ">" : " "}
                 </span>
                 <span 
                   className="flex items-center justify-center flex-shrink-0"
@@ -218,6 +218,38 @@ function TerminalMockup() {
   );
 }
 
+function PassWidget() {
+  const [mode, setMode] = useState<"passphrase" | "string">("passphrase");
+  const [out, setOut] = useState("");
+  const words = ["correct","horse","battery","staple","orange","dragon","river","mountain","coffee","guitar","planet","rocket","shadow","forest","thunder","crystal","phoenix","avalanche","nebula","cascade","eagle","falcon","storm","wolf","zenith","orbit","solar","lunar","comet","quasar","vortex","neutron","pixel","vector","matrix","cipher","quantum"];
+  const gen = () => {
+    if (mode === "passphrase") {
+      const picks = Array.from({length:4},()=>words[Math.floor(Math.random()*words.length)]);
+      setOut(picks.join("-"));
+    } else {
+      const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+      setOut(Array.from({length:24},()=>chars[Math.floor(Math.random()*chars.length)]).join(""));
+    }
+  };
+  useEffect(()=>gen(),[mode]);
+  return (
+    <div className="rounded-2xl p-6 sm:p-8" style={{background:"var(--bg-elevated)",border:"1px solid var(--border)"}}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:"var(--accent-subtle)",color:"var(--accent)"}}>⚿</div>
+        <h3 className="font-semibold" style={{color:"var(--text)"}}>Try it: password generator</h3>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <button onClick={()=>setMode("passphrase")} className="px-3 py-1.5 rounded-lg text-xs font-medium border" style={{borderColor:mode==="passphrase"?"var(--accent)":"var(--border)",color:mode==="passphrase"?"var(--accent)":"var(--text-muted)",background:mode==="passphrase"?"var(--accent-subtle)":"transparent"}}>Passphrase</button>
+        <button onClick={()=>setMode("string")} className="px-3 py-1.5 rounded-lg text-xs font-medium border" style={{borderColor:mode==="string"?"var(--accent)":"var(--border)",color:mode==="string"?"var(--accent)":"var(--text-muted)",background:mode==="string"?"var(--accent-subtle)":"transparent"}}>Random string</button>
+      </div>
+      <div className="flex items-center gap-3 mb-4">
+        <code className="flex-1 font-mono text-sm px-3 py-2.5 rounded-lg truncate" style={{background:"var(--bg-inset)",color:"var(--accent)",border:"1px solid var(--border)"}}>{out}</code>
+        <button onClick={()=>navigator.clipboard.writeText(out)} className="px-3 py-2.5 rounded-lg text-xs font-medium border" style={{borderColor:"var(--border)",color:"var(--text-muted)"}}>Copy</button>
+      </div>
+      <button onClick={gen} className="w-full py-2.5 rounded-lg text-sm font-medium" style={{background:"var(--accent)",color:"var(--accent-fg)"}}>Generate another</button>
+    </div>
+  );
+}
 
 const STATS = [
   { value: "65", label: "tools", icon: <Package size={16} weight="duotone" /> },
@@ -346,10 +378,10 @@ export function HomePage() {
                   />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                 </span>
-                <span className="font-mono">v5.10.0 · 65 tools · MIT · Bash 5+</span>
+                <span className="font-mono">v5.10.6 · 65 tools · MIT · Bash 5+</span>
               </motion.div>
 
-              <motion.h1
+             <motion.h1
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
@@ -358,7 +390,7 @@ export function HomePage() {
               >
                 Sixty-five terminal tools,{" "}
                 <span className="relative inline-block">
-                  <span className="text-gradient-accent font-serif italic">one dashboard.</span>
+                  <span className="text-gradient-accent">one dashboard.</span>
                   <motion.svg
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
@@ -386,7 +418,7 @@ export function HomePage() {
                 style={{ color: "var(--text-muted)" }}
               >
                 A modular Bash toolkit for Linux, macOS, and Termux. Every tool runs standalone or navigates from a single arrow-key menu.{" "}
-                <span className="font-serif italic" style={{ color: "var(--text)" }}>
+                <span className="font-medium italic" style={{ color: "var(--text)" }}>
                   No build step. No root. No dependencies.
                 </span>
               </motion.p>
@@ -437,29 +469,6 @@ export function HomePage() {
                   Star
                   <ArrowUpRight size={12} className="opacity-60" />
                 </a>
-              </motion.div>
-
-              {/* Quick command hint */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="mt-10 flex items-center gap-3"
-              >
-                <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs"
-                  style={{
-                    background: "var(--bg-inset)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  <span style={{ color: "var(--accent)" }}>$</span>
-                  <span>curl -fsSL /support coming soon/</span>
-                </div>
-                <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-                  or just clone the repo
-                </span>
               </motion.div>
             </div>
 
@@ -556,20 +565,16 @@ export function HomePage() {
           </AnimatedIn>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={{ y: -4 }}
-                className="group relative rounded-2xl p-6 overflow-hidden"
-                style={{
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border)",
-                }}
-              >
+              {FEATURES.map((f, i) => (
+                <motion.div
+                  key={f.title}
+                  whileHover={{ y: -4 }}
+                  className="group relative rounded-2xl p-6 overflow-hidden"
+                  style={{
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
                 <div
                   className="absolute inset-x-0 top-0 h-px opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{
@@ -691,64 +696,24 @@ export function HomePage() {
 
       {/* DOCTOR CTA */}
       <section className="py-20 border-t" style={{ borderColor: "var(--border)" }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <AnimatedIn>
-            <div
-              className="relative rounded-3xl p-8 sm:p-12 text-center overflow-hidden"
-              style={{
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <div
-                className="absolute inset-0 pointer-events-none opacity-40"
-                style={{
-                  background: "radial-gradient(ellipse at 50% 0%, var(--accent-glow) 0%, transparent 60%)",
-                }}
-              />
-              <div className="relative">
-                <div
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5"
-                  style={{
-                    background: "var(--accent-subtle)",
-                    color: "var(--accent)",
-                    border: "1px solid color-mix(in oklab, var(--accent) 25%, transparent)",
-                  }}
-                >
-                  <CheckCircle size={13} weight="fill" />
-                  <span className="font-mono">PASS 7/7 · integrity checker</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: "var(--text)" }}>
-                  <span className="font-serif italic">Trust,</span> but verify.
-                </h2>
-                <p className="text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: "var(--text-muted)" }}>
-                  <code
-                    className="font-mono text-sm px-2 py-0.5 rounded"
-                    style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
-                  >
-                    bash main.sh doctor
-                  </code>{" "}
-                  audits every tool's registry entry, dispatch route, and{" "}
-                  <code
-                    className="font-mono text-sm px-2 py-0.5 rounded"
-                    style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
-                  >
-                    --help
-                  </code>{" "}
-                  output in one pass. If it fails, we ship no release.
-                </p>
-                <Link
-                  to="/docs/architecture"
-                  className="inline-flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4"
-                  style={{ color: "var(--accent)" }}
-                >
-                  Read the architecture
-                  <ArrowRight size={13} />
-                </Link>
-              </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="grid md:grid-cols-2 gap-6 items-start">
+          <PassWidget />
+          <div className="flex flex-col justify-center h-full">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5 w-fit" style={{background:"var(--accent-subtle)",color:"var(--accent)",border:"1px solid color-mix(in oklab, var(--accent) 25%, transparent)"}}>
+              <CheckCircle size={13} weight="fill" />
+              <span className="font-mono">PASS 7/7 · integrity checker</span>
             </div>
-          </AnimatedIn>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{color:"var(--text)"}}>Trust, but verify.</h2>
+            <p className="text-base leading-relaxed mb-6" style={{color:"var(--text-muted)"}}>
+              <code className="font-mono text-sm px-2 py-0.5 rounded" style={{background:"var(--bg-inset)",color:"var(--accent)"}}>bash main.sh doctor</code> audits every tool's registry entry, dispatch route, and <code className="font-mono text-sm px-2 py-0.5 rounded" style={{background:"var(--bg-inset)",color:"var(--accent)"}}>--help</code> output in one pass. If it fails, we ship no release.
+            </p>
+            <Link to="/docs/architecture" className="inline-flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4" style={{color:"var(--accent)"}}>
+              Read the architecture <ArrowRight size={13} />
+            </Link>
+          </div>
         </div>
+      </div>
       </section>
     </div>
   );

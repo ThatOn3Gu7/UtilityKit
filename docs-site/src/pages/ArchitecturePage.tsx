@@ -181,8 +181,26 @@ export function ArchitecturePage() {
               <Cube size={11} weight="fill" /> DOCS · DESIGN
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4" style={{ color: "var(--text)" }}>
-              <span className="font-serif italic">The </span>
-              <span className="text-gradient-accent">architecture</span>
+              <span className="font-serif">The </span>
+                <span className="relative inline-block">
+                  <span className="text-gradient-accent">architecture</span>
+                  <motion.svg
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 1, delay: 0.8, ease: "easeInOut" }}
+                    viewBox="0 0 300 12"
+                    className="absolute left-0 -bottom-2 w-full h-3 pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <motion.path
+                      d="M2 8 Q 80 2, 150 6 T 298 5"
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </motion.svg>
+                </span>
             </h1>
             <p className="text-base leading-relaxed max-w-xl" style={{ color: "var(--text-muted)" }}>
               Three core patterns keep modules independent, the router thin, and shared behavior centralized. Understanding them makes extending the toolkit straightforward.

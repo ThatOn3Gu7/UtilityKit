@@ -21,24 +21,33 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const navigate = useNavigate();
 
-  const results = query.trim().length > 0
-    ? TOOLS.filter((t) => {
-        const q = query.toLowerCase();
-        return (
-          t.name.toLowerCase().includes(q) ||
-          t.command.toLowerCase().includes(q) ||
-          t.description.toLowerCase().includes(q)
-        );
-      }).slice(0, 8)
-    : TOOLS.slice(0, 6);
+  const results =
+    query.trim().length > 0
+      ? TOOLS.filter((t) => {
+          const q = query.toLowerCase();
+          return (
+            t.name.toLowerCase().includes(q) ||
+            t.command.toLowerCase().includes(q) ||
+            t.description.toLowerCase().includes(q)
+          );
+        }).slice(0, 8)
+      : TOOLS.slice(0, 6);
 
-  useEffect(() => { setActiveIdx(0); }, [query]);
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [query]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, results.length - 1)); }
-      if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.min(i + 1, results.length - 1));
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.max(i - 1, 0));
+      }
       if (e.key === "Enter" && results[activeIdx]) {
         navigate(`/tools/${results[activeIdx].command}`);
         onClose();
@@ -55,7 +64,10 @@ function SearchModal({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4"
-      style={{ background: "color-mix(in oklab, var(--bg-inset) 60%, transparent)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "color-mix(in oklab, var(--bg-inset) 60%, transparent)",
+        backdropFilter: "blur(6px)",
+      }}
       onClick={onClose}
     >
       <motion.div
@@ -70,7 +82,10 @@ function SearchModal({ onClose }: { onClose: () => void }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b" style={{ borderColor: "var(--border)" }}>
+        <div
+          className="flex items-center gap-3 px-4 py-3.5 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
           <MagnifyingGlass size={18} style={{ color: "var(--text-muted)" }} />
           <input
             autoFocus
@@ -108,10 +123,16 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                   <li key={tool.command}>
                     <button
                       onMouseEnter={() => setActiveIdx(i)}
-                      onClick={() => { navigate(`/tools/${tool.command}`); onClose(); }}
+                      onClick={() => {
+                        navigate(`/tools/${tool.command}`);
+                        onClose();
+                      }}
                       className="w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors"
                       style={{
-                        background: i === activeIdx ? "var(--accent-subtle)" : "transparent",
+                        background:
+                          i === activeIdx
+                            ? "var(--accent-subtle)"
+                            : "transparent",
                       }}
                     >
                       <span
@@ -126,7 +147,10 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
+                          <span
+                            className="text-sm font-medium truncate"
+                            style={{ color: "var(--text)" }}
+                          >
                             {tool.name}
                           </span>
                           <code
@@ -147,7 +171,10 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                         </p>
                       </div>
                       {i === activeIdx && (
-                        <ArrowRight size={13} style={{ color: "var(--accent)" }} />
+                        <ArrowRight
+                          size={13}
+                          style={{ color: "var(--accent)" }}
+                        />
                       )}
                     </button>
                   </li>
@@ -155,9 +182,15 @@ function SearchModal({ onClose }: { onClose: () => void }) {
               </ul>
             </>
           ) : (
-            <div className="px-4 py-10 text-center" style={{ color: "var(--text-subtle)" }}>
+            <div
+              className="px-4 py-10 text-center"
+              style={{ color: "var(--text-subtle)" }}
+            >
               <div className="text-sm">No tools found for "{query}"</div>
-              <div className="text-xs mt-1" style={{ color: "var(--text-faint)" }}>
+              <div
+                className="text-xs mt-1"
+                style={{ color: "var(--text-faint)" }}
+              >
                 Try a different keyword or command.
               </div>
             </div>
@@ -181,9 +214,21 @@ function SearchModal({ onClose }: { onClose: () => void }) {
 }
 
 const NAV_LINKS = [
-  { label: "Tools", href: "/tools", icon: <Wrench size={14} weight="duotone" /> },
-  { label: "Getting Started", href: "/docs/getting-started", icon: <Sparkle size={14} weight="duotone" /> },
-  { label: "Architecture", href: "/docs/architecture", icon: <BookOpen size={14} weight="duotone" /> },
+  {
+    label: "Tools",
+    href: "/tools",
+    icon: <Wrench size={14} weight="duotone" />,
+  },
+  {
+    label: "Getting Started",
+    href: "/docs/getting-started",
+    icon: <Sparkle size={14} weight="duotone" />,
+  },
+  {
+    label: "Architecture",
+    href: "/docs/architecture",
+    icon: <BookOpen size={14} weight="duotone" />,
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -217,8 +262,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, [searchOpen]);
 
-  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
-  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [location.pathname]);
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [location.pathname]);
 
   return (
     <div
@@ -232,21 +281,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="sticky top-0 z-40 transition-all duration-200"
         style={{
-          background: scrolled ? "color-mix(in oklab, var(--bg) 78%, transparent)" : "transparent",
-          borderBottom: `1px solid ${scrolled ? "var(--border)" : "transparent"}`,
+          background: scrolled
+            ? "color-mix(in oklab, var(--bg) 78%, transparent)"
+            : "transparent",
+          borderBottom: `1px solid ${
+            scrolled ? "var(--border)" : "transparent"
+          }`,
           backdropFilter: scrolled ? "saturate(180%) blur(14px)" : "none",
           WebkitBackdropFilter: scrolled ? "saturate(180%) blur(14px)" : "none",
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className={`flex items-center justify-between transition-all ${scrolled ? "py-3" : "py-4"}`}>
+          <div
+            className={`flex items-center justify-between transition-all ${
+              scrolled ? "py-3" : "py-4"
+            }`}
+          >
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
               <motion.div
-                whileHover={{ rotate: [-2, 6, -2, 0], transition: { duration: 0.5 } }}
+                whileHover={{
+                  rotate: [-2, 6, -2, 0],
+                  transition: { duration: 0.5 },
+                }}
                 className="relative w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm"
                 style={{
-                  background: "linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 60%, #3b82f6) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 60%, #3b82f6) 100%)",
                   color: "var(--accent-fg)",
                   boxShadow: "var(--shadow-glow)",
                 }}
@@ -255,14 +316,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <span
                   className="absolute -inset-0.5 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{
-                    background: "linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%)",
+                    background:
+                      "linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%)",
                     filter: "blur(10px)",
                     zIndex: -1,
                   }}
                 />
               </motion.div>
               <div className="flex flex-col leading-none">
-                <span className="font-semibold tracking-tight text-[15px]" style={{ color: "var(--text)" }}>
+                <span
+                  className="font-semibold tracking-tight text-[15px]"
+                  style={{ color: "var(--text)" }}
+                >
                   UtilityKit
                 </span>
                 <span
@@ -277,7 +342,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
               {NAV_LINKS.map((link) => {
-                const active = location.pathname.startsWith(link.href.split("?")[0]);
+                const active = location.pathname.startsWith(
+                  link.href.split("?")[0]
+                );
                 return (
                   <Link
                     key={link.href}
@@ -291,8 +358,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <motion.span
                         layoutId="nav-pill"
                         className="absolute inset-0 rounded-lg"
-                        style={{ background: "var(--bg-subtle)", border: "1px solid var(--border)" }}
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        style={{
+                          background: "var(--bg-subtle)",
+                          border: "1px solid var(--border)",
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 30,
+                        }}
                       />
                     )}
                     <span className="relative flex items-center gap-1.5">
@@ -390,14 +464,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   style={{ borderColor: "var(--border)" }}
                 >
                   {NAV_LINKS.map((link) => {
-                    const active = location.pathname.startsWith(link.href.split("?")[0]);
+                    const active = location.pathname.startsWith(
+                      link.href.split("?")[0]
+                    );
                     return (
                       <Link
                         key={link.href}
                         to={link.href}
                         className="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
                         style={{
-                          background: active ? "var(--bg-subtle)" : "transparent",
+                          background: active
+                            ? "var(--bg-subtle)"
+                            : "transparent",
                           color: active ? "var(--text)" : "var(--text-muted)",
                         }}
                       >
@@ -427,7 +505,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 relative z-10">{children}</main>
 
       {/* FOOTER */}
-      <footer className="mt-24 border-t relative z-10" style={{ borderColor: "var(--border)" }}>
+      <footer
+        className="mt-24 border-t relative z-10"
+        style={{ borderColor: "var(--border)" }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             <div className="col-span-2">
@@ -435,17 +516,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
                   style={{
-                    background: "linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 60%, #3b82f6) 100%)",
+                    background:
+                      "linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 60%, #3b82f6) 100%)",
                     color: "var(--accent-fg)",
                   }}
                 >
                   <Terminal size={16} weight="fill" />
                 </div>
-                <span className="font-semibold" style={{ color: "var(--text)" }}>UtilityKit</span>
+                <span
+                  className="font-semibold"
+                  style={{ color: "var(--text)" }}
+                >
+                  UtilityKit
+                </span>
               </div>
-              <p className="text-sm max-w-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                63 self-contained Bash tools unified under a single dashboard.
-                <span className="font-serif italic"> Cross-platform. No root. No build step.</span>
+              <p
+                className="text-sm max-w-sm leading-relaxed"
+                style={{ color: "var(--text-muted)" }}
+              >
+                65 self-contained Bash tools unified under a single dashboard.
+                <span className="font-serif italic">
+                  {" "}
+                  Cross-platform. No root. No build step.
+                </span>
               </p>
               <div className="flex items-center gap-2 mt-4 flex-wrap">
                 {["MIT", "Bash 5+", "Linux · macOS · Termux"].map((tag) => (
@@ -455,7 +548,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     style={{
                       background: "var(--accent-subtle)",
                       color: "var(--accent)",
-                      border: "1px solid color-mix(in oklab, var(--accent) 20%, transparent)",
+                      border:
+                        "1px solid color-mix(in oklab, var(--accent) 20%, transparent)",
                     }}
                   >
                     {tag}
@@ -463,22 +557,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
             </div>
-            <FooterCol title="Docs" links={[
-              { label: "Getting Started", to: "/docs/getting-started" },
-              { label: "Architecture", to: "/docs/architecture" },
-              { label: "All Tools", to: "/tools" },
-            ]} />
-            <FooterCol title="Categories" links={[
-              { label: "Core Suite", to: "/tools?category=core-suite" },
-              { label: "Developer", to: "/tools?category=developer-tools" },
-              { label: "System", to: "/tools?category=system-network" },
-              { label: "Security", to: "/tools?category=files-security" },
-            ]} />
-            <FooterCol title="Project" links={[
-              { label: "GitHub", href: "https://github.com/Thaton3gu7/UtilityKit", external: true },
-              { label: "License", href: "https://github.com/Thaton3gu7/UtilityKit/blob/main/LICENSE", external: true },
-              { label: "Contribute", href: "https://github.com/Thaton3gu7/UtilityKit/blob/main/CONTRIBUTING.md", external: true },
-            ]} />
+            <FooterCol
+              title="Docs"
+              links={[
+                { label: "Getting Started", to: "/docs/getting-started" },
+                { label: "Architecture", to: "/docs/architecture" },
+                { label: "All Tools", to: "/tools" },
+              ]}
+            />
+            <FooterCol
+              title="Categories"
+              links={[
+                { label: "Core Suite", to: "/tools?category=core-suite" },
+                { label: "Developer", to: "/tools?category=developer-tools" },
+                { label: "System", to: "/tools?category=system-network" },
+                { label: "Security", to: "/tools?category=files-security" },
+              ]}
+            />
+            <FooterCol
+              title="Project"
+              links={[
+                {
+                  label: "GitHub",
+                  href: "https://github.com/Thaton3gu7/UtilityKit",
+                  external: true,
+                },
+                {
+                  label: "License",
+                  href: "https://github.com/Thaton3gu7/UtilityKit/blob/main/LICENSE",
+                  external: true,
+                },
+                {
+                  label: "Contribute",
+                  href: "https://github.com/Thaton3gu7/UtilityKit/blob/main/CONTRIBUTING.md",
+                  external: true,
+                },
+              ]}
+            />
           </div>
 
           <div
@@ -488,10 +603,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <p className="text-xs" style={{ color: "var(--text-faint)" }}>
               © 2025 UtilityKit Contributors · MIT
             </p>
-            <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: "var(--text-faint)" }}>
+            <div
+              className="flex items-center gap-1.5 text-xs font-mono"
+              style={{ color: "var(--text-faint)" }}
+            >
               <span
                 className="w-1.5 h-1.5 rounded-full inline-block"
-                style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }}
+                style={{
+                  background: "var(--accent)",
+                  boxShadow: "0 0 8px var(--accent)",
+                }}
               />
               PASS 7/7 · 65 tools · 3 platforms
             </div>
@@ -506,13 +627,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FooterCol({ title, links }: {
+function FooterCol({
+  title,
+  links,
+}: {
   title: string;
   links: { label: string; to?: string; href?: string; external?: boolean }[];
 }) {
   return (
     <div>
-      <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-subtle)" }}>
+      <h4
+        className="text-[10px] font-semibold uppercase tracking-wider mb-3"
+        style={{ color: "var(--text-subtle)" }}
+      >
         {title}
       </h4>
       <ul className="space-y-2.5">
@@ -535,7 +662,9 @@ function FooterCol({ title, links }: {
                 style={{ color: "var(--text-muted)" }}
               >
                 {l.label}
-                {l.external && <ArrowUpRight size={10} className="opacity-60" />}
+                {l.external && (
+                  <ArrowUpRight size={10} className="opacity-60" />
+                )}
               </a>
             )}
           </li>
@@ -544,4 +673,3 @@ function FooterCol({ title, links }: {
     </div>
   );
 }
-

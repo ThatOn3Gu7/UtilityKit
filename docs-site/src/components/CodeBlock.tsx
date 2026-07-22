@@ -28,7 +28,7 @@ function highlight(line: string): React.ReactNode {
     tokens.push(<span key="prompt" style={{ color: SYNTAX.comment }}>$ </span>);
     rest = rest.slice(2);
   }
-  const cmdMatch = rest.match(/^(bash|git|utility|NO_COLOR|NO_UNICODE|cd|source|export)\b/);
+  const cmdMatch = rest.match(/^(bash|git|utility|curl|pkg|go|npm|node|python|pip|docker|ssh|scp|cat|echo|mkdir|rm|cp|mv|ls|find|grep|sed|awk|jq|tar|gzip|chmod|chown|sudo|cd|source|export)\b/);
   if (cmdMatch) {
     tokens.push(<span key="cmd" style={{ color: SYNTAX.cmd, fontWeight: 500 }}>{cmdMatch[0]}</span>);
     rest = rest.slice(cmdMatch[0].length);
