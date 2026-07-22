@@ -1,0 +1,77 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-port_inspector \- Find which process is listening on a local TCP port, display network interface information, and optionally terminate the owning process.
+.SH SYNOPSIS
+.B utility port_inspector
+[\fIoptions\fP]
+.SH DESCRIPTION
+Find which process is listening on a local TCP port, display network interface information, and optionally terminate the owning process.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBPort lookup\fP — identifies the process holding any local TCP port using \fClsof\fP or \fCss\fP
+.IP \(bu 4
+\fBInterface summary\fP — shows active network interfaces and their IP addresses
+.IP \(bu 4
+\fBProcess termination\fP — optionally sends \fCSIGTERM\fP to the process owning the port
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.IP \(bu 4
+\fBCross-platform\fP — works on Linux, macOS, and Termux using available system tools
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _port_inspector/_port_inspector.sh 3000
+
+bash _port_inspector/_port_inspector.sh 3000 --kill
+
+bash _port_inspector/_port_inspector.sh
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCPORT\fP   |   The local TCP port number to inspect
+\fC--kill\fP   |   Terminate the process owning the port without interactive confirmation
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH HOW IT WORKS
+.PP
+The tool attempts port inspection in this order:
+.PP
+.IP \(em 4
+Uses \fClsof -nP -iTCP:<port> -sTCP:LISTEN\fP if available
+.IP \(em 4
+Falls back to \fCss -ltnp sport = :<port>\fP if \fClsof\fP is not installed
+.IP \(em 4
+Extracts the PID from whichever tool succeeded
+.IP \(em 4
+Prompts whether to send \fCSIGTERM\fP to that PID (or skips the prompt with \fC--kill\fP)
+.PP
+Network interface output uses \fCip -brief addr\fP if available, falling back to \fCifconfig\fP.
+.PP
+.PP
+.PP
+.SH EXAMPLES
+.PP
+.EX
+bash _port_inspector/_port_inspector.sh 8080
+
+bash _port_inspector/_port_inspector.sh 5432 --kill
+
+.EE
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success or no process found on that port
+\fC1\fP   |   Missing required tools (\fClsof\fP and \fCss\fP both unavailable)

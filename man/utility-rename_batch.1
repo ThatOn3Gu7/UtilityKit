@@ -1,0 +1,76 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-rename_batch \- A production-ready, transactional terminal script written in pure Bash to safely and recursively adjust file extensions across targeted system directory paths. Optimized specifically for fast execution in specialized low-overhead or sandboxed environments like Termux on Android.
+.SH SYNOPSIS
+.B utility rename_batch
+[\fIoptions\fP]
+.SH DESCRIPTION
+A production-ready, transactional terminal script written in pure Bash to safely and recursively adjust file extensions across targeted system directory paths. Optimized specifically for fast execution in specialized low-overhead or sandboxed environments like Termux on Android.
+.SH ✨ CORE HIGHLIGHTS
+.PP
+.IP \(bu 4
+\fBUltra-Fast Scanning Infrastructure:\fP Utilizes direct GNU \fCfind\fP field formatting loops and native parameter mappings to eliminate process-forking overhead (\fCbasename\fP/\fCstat\fP).
+.IP \(bu 4
+\fBTransactional Rollback Defense:\fP Traps unexpected terminal interruptions (\fCCtrl+C\fP). If stopped mid-process, it prompts a guided option to reverse all modified operations in inverted order, perfectly restoring your original storage environment.
+.IP \(bu 4
+\fBDynamic Display Layout Budgeting:\fP Implements an advanced active layout quota window to print a beautifully balanced mix of changes and skips without overrunning the display interface.
+.IP \(bu 4
+\fBSafety Exclusion Controls:\fP Automatically skips mission-critical repository markers, license blocks, configuration profiles, and project lockfiles out of the box.
+.IP \(bu 4
+\fBAutomated Interactive Setup:\fP Can be run completely bare without arguments; the script automatically initializes a conversational wizard prompt to guide you through directories and setups.
+.PP
+.PP
+.PP
+.SH 🚀 USAGE
+.PP
+.SS Command Line Interface Syntax
+.EX
+./rename-batch.sh <source_directory> <new_extension> [output_directory] [flags]
+.EE
+.PP
+.SS Interactive Wizard Fallback
+If you execute the script without passing any parameters, it will automatically launch an interactive setup guide inside your terminal:
+.EX
+./rename-batch.sh
+.EE
+.PP
+.SH ⚙️ OPTIONS & FLAGS
+.PP
+Flag   |   Long Option   |   Description
+-f   |   --force, --all   |   Overrides safety filters to process files normally skipped by configuration/exclusion rules (e.g., README.md, LICENSE).
+-h   |   --help   |   Renders comprehensive help definitions, usage criteria, and code examples.
+-v   |   --version   |   Prints structural tool runtime capabilities, environment configuration status, and version tag.
+.PP
+.SH 📝 PRACTICAL EXAMPLES
+.PP
+.EX
+./rename-batch.sh ./ProjectR txt
+
+./rename-batch.sh ./ProjectR py /sdcard/StagedBackup
+
+./rename-batch.sh . bak --force
+
+./rename-batch.sh
+.EE
+.PP
+.SH 📊 TERMINAL & ENVIRONMENT ADAPTABILITY
+.PP
+The tool dynamically monitors terminal capabilities on the fly to guarantee seamless operation across different setups:
+.PP
+.IP \(bu 4
+\fBUnicode Matrix Fallback:\fP Automatically drops complex layout glyph structures down to safe standard ASCII alternative signs if older shell environments or raw terminal configurations are running.
+.IP \(bu 4
+\fBColor Stream Inspections:\fP Checks for active NO_COLOR environment markers or broken TTY stdout pipes to guarantee logging files stay perfectly readable without escape codes cluttering the text.
+.PP
+.SH ❌ EXIT STATUS CODES
+.PP
+The script provides explicit shell exit returns to make integration into your broader automation flows straightforward:
+.PP
+.IP \(bu 4
+\fB0\fP — \fBSuccess:\fP All target elements handled perfectly, or everything was skipped cleanly.
+.IP \(bu 4
+\fB1\fP — \fBFatal Error:\fP Missing input values, invalid target directory parameters, or unresolvable access restrictions.
+.IP \(bu 4
+\fB2\fP — \fBPartial Failure:\fP The scanning completed, but specific system files threw errors during renaming.
+.IP \(bu 4
+\fB130\fP — \fBInterrupted:\fP The user manually killed execution with Ctrl+C (Rollback prompts are handled here).

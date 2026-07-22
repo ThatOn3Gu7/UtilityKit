@@ -1,0 +1,71 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-clipboard_history \- Persistent clipboard history with fuzzy search and pin support. Stores entries
+.SH SYNOPSIS
+.B utility clipboard_history
+[\fIoptions\fP]
+.SH DESCRIPTION
+Persistent clipboard history with fuzzy search and pin support. Stores entries
+.SH FEATURES
+.PP
+.IP \(bu 4
+Add from \fBarg\fP, \fBstdin\fP, or \fBcurrent clipboard\fP.
+.IP \(bu 4
+List / preview newest first with pinned markers and relative timestamps.
+.IP \(bu 4
+Copy any entry back to the clipboard (\fCget N\fP).
+.IP \(bu 4
+Pin entries so history trimming won't drop them.
+.IP \(bu 4
+Case-insensitive regex \fCfind\fP.
+.IP \(bu 4
+JSON output on \fClist\fP, \fCfind\fP, \fCshow\fP.
+.IP \(bu 4
+Store file is \fCchmod 600\fP — treat it like a secret.
+.PP
+.SH BACKENDS (AUTO-DETECTED)
+.PP
+Purpose   |   Order tried
+Write     |   \fCwl-copy\fP → \fCxclip\fP → \fCpbcopy\fP → \fCtermux-clipboard-set\fP → \fCclip.exe\fP
+Read      |   \fCwl-paste\fP → \fCxclip -o\fP → \fCpbpaste\fP → \fCtermux-clipboard-get\fP → \fCpowershell Get-Clipboard\fP
+.PP
+Missing dependencies degrade gracefully — read/write fall back to printing
+to stdout with a warning.
+.PP
+.SH USAGE
+.PP
+.EX
+clipboard add "quick note"
+echo "from stdin" | clipboard add
+clipboard add                       # pull current OS clipboard
+clipboard list
+clipboard list --json
+clipboard find TODO
+clipboard get 1                     # copy newest back to clipboard
+clipboard get --last                # same as: get 1
+clipboard show 3 --no-clip          # print without touching clipboard
+clipboard pin 3
+clipboard unpin 3
+clipboard remove 5
+clipboard clear --force
+clipboard path                      # print store path
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag          |   Meaning
+\fC--max N\fP     |   Cap history to \fCN\fP (default 200). Pins never trimmed.
+\fC--no-clip\fP   |   Skip actually writing to the OS clipboard.
+\fC--json\fP      |   Machine-readable output (list, find, show).
+\fC--quiet\fP     |   Suppress success/info lines.
+\fC--force\fP     |   Skip confirmation on \fCclear\fP.
+.PP
+.SH TERMUX NOTES
+.PP
+Install \fCtermux-api\fP and enable clipboard permission to read/write.
+Without it, \fCadd\fP/\fCget\fP still work but only via stdin/print fallback.
+.PP
+.SH EXIT CODES
+.PP
+\fC0\fP on success; \fC1\fP on missing input, out-of-range selector, or store I/O
+failure.

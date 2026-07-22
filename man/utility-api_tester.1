@@ -1,0 +1,123 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-api_tester \- A lightweight CLI HTTP client for running one-off requests or saving and replaying reusable request profiles, with timing breakdowns and formatted response output.
+.SH SYNOPSIS
+.B utility api_tester
+[\fIoptions\fP]
+.SH DESCRIPTION
+A lightweight CLI HTTP client for running one-off requests or saving and replaying reusable request profiles, with timing breakdowns and formatted response output.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBOne-off requests\fP — fire a quick HTTP request without saving anything
+.IP \(bu 4
+\fBSaved profiles\fP — store named request configurations and replay them later
+.IP \(bu 4
+\fBTiming breakdown\fP — shows DNS, TCP, TTFB, and total time for every request
+.IP \(bu 4
+\fBJSON formatting\fP — pretty-prints JSON responses automatically using \fCjq\fP if available
+.IP \(bu 4
+\fBStatus code coloring\fP — green for 2xx, yellow for 3xx, red for 4xx/5xx
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _api_tester/_api_tester.sh
+
+bash _api_tester/_api_tester.sh --method GET --url https://api.example.com/items
+
+bash _api_tester/_api_tester.sh --method POST --url https://api.example.com/items \
+  --header 'Content-Type: application/json' \
+  --body '{"name":"demo"}'
+
+bash _api_tester/_api_tester.sh --method POST --url https://api.example.com/items \
+  --header 'Content-Type: application/json' \
+  --body-file ./payload.json
+
+bash _api_tester/_api_tester.sh --save staging-users \
+  --method GET --url https://staging.example.com/users \
+  --header 'Authorization: Bearer TOKEN'
+
+bash _api_tester/_api_tester.sh --run staging-users
+
+bash _api_tester/_api_tester.sh --show staging-users
+
+bash _api_tester/_api_tester.sh --list
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--method METHOD\fP   |   HTTP method (default: \fCGET\fP)
+\fC--url URL\fP   |   Request URL including protocol
+\fC--header 'K: V'\fP   |   Request header (can be repeated for multiple headers)
+\fC--body TEXT\fP   |   Request body as inline text
+\fC--body-file FILE\fP   |   Request body read from a file
+\fC--save NAME\fP   |   Save the request as a named profile
+\fC--run NAME\fP   |   Execute a previously saved profile
+\fC--show NAME\fP   |   Print the contents of a saved profile
+\fC--list\fP   |   List all saved profile names
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH REQUEST OUTPUT
+.PP
+.EX
+  Request
+  ------------------------------------------------
+  Method:  GET
+  URL:     https://api.example.com/items
+  Header:  Authorization: Bearer TOKEN
+
+  Timing
+  ------------------------------------------------
+  Status:  200
+  DNS:     0.012s
+  TCP:     0.034s
+  TTFB:    0.187s
+  Total:   0.201s
+
+  Response body
+  ------------------------------------------------
+  {
+    "items": [
+      { "id": 1, "name": "demo" }
+    ]
+  }
+.EE
+.PP
+.PP
+.PP
+.SH SAVED PROFILES
+.PP
+Profiles are stored as plain bash variable files under:
+.PP
+.EX
+~/.local/share/utilitykit/api_profiles/
+.EE
+.PP
+Each profile captures the method, URL, headers, and body so it can be replayed exactly with \fC--run\fP.
+.PP
+.PP
+.PP
+.SH REQUIREMENTS
+.PP
+.IP \(bu 4
+\fCcurl\fP — required for all requests
+.IP \(bu 4
+\fCjq\fP — optional, used for JSON pretty-printing
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Missing URL, profile not found, or \fCcurl\fP not installed

@@ -1,0 +1,36 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-file_watcher \- Run a command whenever files matching a glob change. Supports inotify (Linux),
+.SH SYNOPSIS
+.B utility file_watcher
+[\fIoptions\fP]
+.SH DESCRIPTION
+Run a command whenever files matching a glob change. Supports inotify (Linux),
+.SH USAGE
+.PP
+.EX
+watch -p '*.sh' -c 'make test'
+watch -d ./src -p '*.py' -p '*.js' -c 'npm test' --debounce 2
+watch -p '*' --polling 5 -c 'rsync -a . backup/'
+watch --initial -c './build.sh' .
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC-p, --pattern GLOB\fP   |   Watch pattern (repeatable)   |   all files
+\fC-d, --dir DIR\fP   |   Watch directory   |   \fC.\fP
+\fC-c, --cmd CMD\fP   |   Command   |   —
+\fC-s, --debounce N\fP   |   Debounce seconds   |   1
+\fC-i, --ignore GLOB\fP   |   Ignore pattern   |   —
+\fC-r, --initial\fP   |   Run once on start   |   off
+\fC--polling N\fP   |   Force polling interval   |   auto
+.PP
+.SH BACKENDS
+.PP
+.IP \(em 4
+\fBinotifywait\fP — Linux (\fCapt install inotify-tools\fP)
+.IP \(em 4
+\fBfswatch\fP — macOS/Termux (\fCbrew install fswatch\fP)
+.IP \(em 4
+\fBpoll\fP — universal fallback (pure bash \fCfind\fP + \fCstat\fP)

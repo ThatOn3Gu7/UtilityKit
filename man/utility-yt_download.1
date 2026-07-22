@@ -1,0 +1,124 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-yt_download \- Interactive YouTube (and supported site) video/audio downloader wrapping `yt-dlp`.
+.SH SYNOPSIS
+.B utility yt_download
+[\fIoptions\fP]
+.SH DESCRIPTION
+Interactive YouTube (and supported site) video/audio downloader wrapping `yt-dlp`.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBFull format listing\fP — runs \fCyt-dlp -F\fP and shows every available format code
+.IP \(bu 4
+\fBFlexible format selection\fP — enter any format specifier (\fC137+140\fP, \fCbv*+ba/b\fP, \fCbest\fP, etc.)
+.IP \(bu 4
+\fBAudio extraction\fP — download audio-only in mp3, m4a, opus, flac, or aac
+.IP \(bu 4
+\fBSubtitles\fP — auto-download and embed all available subtitle tracks
+.IP \(bu 4
+\fBThumbnails & metadata\fP — embed into the file for rich player support
+.IP \(bu 4
+\fBPlaylist support\fP — toggle between single video and full playlist download
+.IP \(bu 4
+\fBCustom output\fP — choose directory and filename template
+.IP \(bu 4
+\fBCLI subcommands\fP — \fClist\fP, \fCinfo\fP, \fCaudio\fP, \fCdownload\fP for scripting
+.IP \(bu 4
+\fBStandalone\fP — works as \fCbash _yt_download.sh\fP or via \fCmain.sh ytdl\fP
+.PP
+.PP
+.PP
+.SH INTERACTIVE WIZARD
+.PP
+.EX
+bash _yt_download.sh
+.EE
+or through the hub:
+.EX
+bash main.sh ytdl
+.EE
+.PP
+The wizard walks through:
+.IP \(em 4
+URL input
+.IP \(em 4
+Fetches title, channel, duration
+.IP \(em 4
+Displays full format table
+.IP \(em 4
+Prompts for format code(s)
+.IP \(em 4
+Asks about audio-only, subtitles, thumbnails, metadata, playlist
+.IP \(em 4
+Output directory + filename template
+.IP \(em 4
+Summary & confirmation → download
+.PP
+.PP
+.PP
+.SH CLI SUBCOMMANDS
+.PP
+.EX
+bash main.sh ytdl list https://youtube.com/watch?v=...
+
+bash main.sh ytdl info https://youtube.com/watch?v=...
+
+bash main.sh ytdl audio https://youtube.com/watch?v=...
+
+bash main.sh ytdl audio https://youtube.com/watch?v=... --audio-format opus
+
+bash main.sh ytdl download https://youtube.com/watch?v=... \
+  --format 137+140 \
+  --subs \
+  --output ~/Videos
+.EE
+.PP
+.PP
+.PP
+.SH DOWNLOAD OPTIONS
+.PP
+Option   |   Default   |   Description
+\fC--format CODE\fP   |   \fCbv*+ba/b\fP   |   Format specifier (from \fClist\fP output)
+\fC--audio-only\fP   |   off   |   Extract audio stream only
+\fC--audio-format FMT\fP   |   \fCmp3\fP   |   Audio codec: mp3, m4a, opus, flac, aac
+\fC--subs\fP   |   off   |   Embed all available subtitles
+\fC--no-thumb\fP   |   off   |   Skip embedding thumbnail
+\fC--no-meta\fP   |   off   |   Skip embedding metadata
+\fC--playlist\fP   |   off   |   Download all items in a playlist
+\fC--output DIR\fP   |   \fC~/Downloads/YouTube\fP   |   Custom output directory
+\fC-h, --help\fP   |   —   |   Show help
+.PP
+.PP
+.PP
+.SH FORMAT SPECIFIER EXAMPLES
+.PP
+Value   |   What it does
+\fCbest\fP   |   Best single-file combined stream
+\fCbv*+ba/b\fP   |   Best video + best audio, merge; fallback to combined
+\fC137+140\fP   |   1080p h264 video + medium m4a audio
+\fC137\fP   |   1080p video only (no audio stream)
+\fCbestvideo+bestaudio\fP   |   Explicit best of each, will merge
+\fCworst\fP   |   Lowest quality
+.PP
+See yt-dlp format selection docs] for all options.
+.PP
+.PP
+.PP
+.SH REQUIREMENTS
+.PP
+.IP \(bu 4
+\fByt-dlp\fP — install via:
+  ```bash
+  pip install yt-dlp
+  brew install yt-dlp       # macOS
+  sudo apt install yt-dlp   # Debian/Ubuntu
+  ```
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success or cancelled by user
+\fC1\fP   |   Missing \fCyt-dlp\fP or download failure

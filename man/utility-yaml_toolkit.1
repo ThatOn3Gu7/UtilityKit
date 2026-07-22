@@ -1,0 +1,51 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-yaml_toolkit \- Lint, validate, convert between YAML and JSON, extract values by dot-notation
+.SH SYNOPSIS
+.B utility yaml_toolkit
+[\fIoptions\fP]
+.SH DESCRIPTION
+Lint, validate, convert between YAML and JSON, extract values by dot-notation
+.SH BACKENDS (TRIED IN ORDER)
+.PP
+.IP \(em 4
+\fByq\fP (Go version) — full-featured, recommended
+.IP \(em 4
+\fBpython3 + PyYAML\fP — pip install pyyaml
+.PP
+.SH USAGE
+.PP
+.EX
+yaml lint config.yaml
+yaml tojson config.yaml
+yaml toyml data.json
+yaml get config.yaml database.host
+yaml keys config.yaml
+yaml pretty config.yaml
+yaml merge base.yaml overlay.yaml
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC--indent N\fP   |   Indentation spaces   |   2
+\fC--json\fP   |   Machine-readable output   |   off
+\fC--no-color\fP   |   Disable ANSI   |   off
+.PP
+.SH SUBCOMMANDS
+.PP
+Subcommand   |   Description
+\fClint\fP   |   Validate YAML syntax
+\fCtojson\fP   |   Convert YAML to JSON
+\fCtoyml\fP   |   Convert JSON to YAML
+\fCget FILE KEY\fP   |   Extract value by dot-notation
+\fCmerge BASE OVERLAY\fP   |   Deep-merge overlay into base
+\fCkeys\fP   |   List top-level keys
+\fCpretty\fP   |   Pretty-print formatted YAML
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Validation failure or missing key
+\fC2\fP   |   No backend available / argument error

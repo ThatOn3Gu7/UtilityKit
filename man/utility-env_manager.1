@@ -1,0 +1,98 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-env_manager \- Manage `.env` profiles, validate environment file syntax, compare active keys against an example file, and encrypt or decrypt secret files using `gpg` or `openssl`.
+.SH SYNOPSIS
+.B utility env_manager
+[\fIoptions\fP]
+.SH DESCRIPTION
+Manage `.env` profiles, validate environment file syntax, compare active keys against an example file, and encrypt or decrypt secret files using `gpg` or `openssl`.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBProfile switching\fP — copy any \fC.env.<profile>\fP file over your active \fC.env\fP in one step
+.IP \(bu 4
+\fBSyntax validation\fP — scan an env file line by line and flag any malformed \fCkey=value\fP entries
+.IP \(bu 4
+\fBKey comparison\fP — diff your active \fC.env\fP against \fC.env.example\fP to find missing or extra keys
+.IP \(bu 4
+\fBEncryption\fP — encrypt secret files using \fCgpg -c\fP (preferred) or \fCopenssl aes-256-cbc\fP fallback
+.IP \(bu 4
+\fBDecryption\fP — decrypt \fC.gpg\fP or \fC.enc\fP files back to plaintext
+.IP \(bu 4
+\fBInteractive mode\fP — running the tool without arguments launches a guided menu
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _env_manager/_env_manager.sh --dir . --compare
+
+bash _env_manager/_env_manager.sh --dir . --validate
+
+bash _env_manager/_env_manager.sh --validate .env.production
+
+bash _env_manager/_env_manager.sh --dir . --profile staging --apply
+
+bash _env_manager/_env_manager.sh --dir . --profile staging
+
+bash _env_manager/_env_manager.sh --encrypt .env.production
+
+bash _env_manager/_env_manager.sh --decrypt .env.production.gpg
+
+bash _env_manager/_env_manager.sh
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--dir DIR\fP   |   Project directory containing \fC.env\fP files (default: \fC.\fP)
+\fC--profile NAME\fP   |   Profile name to inspect or switch to (e.g. \fClocal\fP, \fCstaging\fP, \fCproduction\fP)
+\fC--apply\fP   |   Actually copy the selected profile to \fC.env\fP (default is dry-run)
+\fC--compare\fP   |   Compare active \fC.env\fP keys against \fC.env.example\fP
+\fC--validate [FILE]\fP   |   Validate syntax of FILE, or active \fC.env\fP if no file given
+\fC--encrypt FILE\fP   |   Encrypt FILE using \fCgpg\fP or \fCopenssl\fP
+\fC--decrypt FILE\fP   |   Decrypt a \fC.gpg\fP or \fC.enc\fP file
+\fC--active FILE\fP   |   Override the active env filename (default: \fC.env\fP)
+\fC--example FILE\fP   |   Override the example env filename (default: \fC.env.example\fP)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH PROFILE CONVENTIONS
+.PP
+The tool expects profile files to follow the \fC.env.<name>\fP naming convention inside the project directory:
+.PP
+.EX
+project/
+├── .env               ← active file (loaded by your app)
+├── .env.example       ← reference file checked in to version control
+├── .env.local         ← local development overrides
+├── .env.staging       ← staging environment values
+└── .env.production    ← production values (encrypt before committing)
+.EE
+.PP
+Switching to a profile with \fC--apply\fP copies the selected file over \fC.env\fP. Without \fC--apply\fP the tool performs a dry-run and shows what would happen.
+.PP
+.PP
+.PP
+.SH ENCRYPTION BACKENDS
+.PP
+The tool tries \fCgpg\fP first and falls back to \fCopenssl\fP if \fCgpg\fP is not available:
+.PP
+.IP \(bu 4
+\fCgpg -c\fP produces a \fC.gpg\fP file using symmetric passphrase encryption
+.IP \(bu 4
+\fCopenssl enc -aes-256-cbc -pbkdf2\fP produces a \fC.enc\fP file
+.PP
+Decryption automatically detects the file extension and uses the matching backend.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Missing file, invalid profile, or encryption/decryption failure

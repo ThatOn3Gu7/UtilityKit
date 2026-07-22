@@ -1,0 +1,103 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-git_sweep \- Preview and clean up a Git repository by removing merged branches, clearing stashes, sweeping untracked build artifacts, and compressing object storage with `git gc`.
+.SH SYNOPSIS
+.B utility git_sweep
+[\fIoptions\fP]
+.SH DESCRIPTION
+Preview and clean up a Git repository by removing merged branches, clearing stashes, sweeping untracked build artifacts, and compressing object storage with `git gc`.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBMerged branch detection\fP — finds fully merged local and remote branches that are safe to delete
+.IP \(bu 4
+\fBStash cleanup\fP — lists and optionally clears all stashes in the repository
+.IP \(bu 4
+\fBArtifact sweep\fP — previews and removes untracked build files using \fCgit clean -fdx\fP
+.IP \(bu 4
+\fBObject compression\fP — runs \fCgit gc --prune=now\fP to compact the repository's object storage
+.IP \(bu 4
+\fBSafe by default\fP — all destructive actions require explicit confirmation before anything is changed
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments shows a full preview then prompts for each action
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _git_sweep/_git_sweep.sh
+
+bash _git_sweep/_git_sweep.sh --repo ~/projects/myapp
+
+bash _git_sweep/_git_sweep.sh --repo . --delete-merged-local --apply
+
+bash _git_sweep/_git_sweep.sh --repo . --delete-merged-local --delete-merged-remote --apply
+
+bash _git_sweep/_git_sweep.sh --repo . --gc --apply
+
+bash _git_sweep/_git_sweep.sh --repo . --delete-merged-local --clean-artifacts --gc --apply
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--repo DIR\fP   |   Repository directory to operate on (default: \fC.\fP)
+\fC--delete-merged-local\fP   |   Delete fully merged local branches
+\fC--delete-merged-remote\fP   |   Delete fully merged remote branches from \fCorigin\fP
+\fC--drop-stashes\fP   |   Clear all git stashes
+\fC--clean-artifacts\fP   |   Remove untracked build files with \fCgit clean -fdx\fP
+\fC--gc\fP   |   Run \fCgit gc --prune=now\fP to compress object storage
+\fC--apply\fP   |   Execute selected actions (nothing is changed without this flag)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH WHAT QUALIFIES AS A MERGED BRANCH
+.PP
+The tool compares branches against the repository's default branch, which is detected automatically in this order:
+.PP
+.IP \(em 4
+\fCorigin/HEAD\fP symbolic ref
+.IP \(em 4
+First match among \fCmain\fP, \fCmaster\fP, \fCtrunk\fP
+.IP \(em 4
+Current checked-out branch as fallback
+.PP
+Only branches fully contained in the default branch's history are listed as candidates. The default branch itself, \fCmain\fP, \fCmaster\fP, and \fCtrunk\fP are always excluded from deletion regardless of merge status.
+.PP
+.PP
+.PP
+.SH PREVIEW OUTPUT
+.PP
+Running in interactive mode always shows a full preview before any prompts:
+.PP
+.EX
+  Merged local branches
+  ------------------------------------------------
+  • feat/login-page
+  • fix/typo-in-readme
+
+  Merged remote branches
+  ------------------------------------------------
+  (none found)
+
+  Git stashes
+  ------------------------------------------------
+  • stash@{0}: WIP on main: abc1234 some message
+
+  Untracked build artifacts preview
+  ------------------------------------------------
+  • Would remove dist/
+  • Would remove node_modules/.cache/
+.EE
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Not a git repository, or unknown option passed

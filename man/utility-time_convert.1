@@ -1,0 +1,46 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-time_convert \- Convert between epoch, ISO 8601, RFC 3339, RFC 2822, and human-readable
+.SH SYNOPSIS
+.B utility time_convert
+[\fIoptions\fP]
+.SH DESCRIPTION
+Convert between epoch, ISO 8601, RFC 3339, RFC 2822, and human-readable
+.SH SUBCOMMANDS
+.PP
+Command   |   Description
+\fCnow\fP   |   Current time in all formats
+\fCepoch [TS]\fP   |   Convert epoch seconds (default: now)
+\fCparse TIMESTAMP\fP   |   Parse any timestamp → epoch + ISO
+\fCcron EXPR\fP   |   Show next N cron fire times
+\fCtz [ZONE]\fP   |   Timezone info or list available zones
+\fCdiff TS1 TS2\fP   |   Duration between two timestamps
+.PP
+.SH USAGE
+.PP
+.EX
+time now
+time epoch 1700000000
+time epoch 1700000000 --tz UTC
+time parse '2024-01-15T10:30:00Z'
+time cron '*/15 * * * *' --count 5
+time tz Asia/Tokyo
+time diff '2024-01-01' '2024-12-31'
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning
+\fC--tz TIMEZONE\fP   |   Interpret/display in timezone
+\fC--count N\fP   |   Cron: number of future fires (default 5)
+\fC--json\fP   |   Machine-readable output
+\fC--no-color\fP   |   Disable ANSI
+.PP
+.SH DEPENDENCIES
+.PP
+.IP \(bu 4
+\fCdate\fP (GNU or BSD) — core conversions
+.IP \(bu 4
+\fCpython3\fP + \fCcroniter\fP — cron parsing (\fCpip install croniter\fP)
+.IP \(bu 4
+\fCpython3\fP + \fCzoneinfo\fP — timezone listing (Python 3.9+)

@@ -1,0 +1,40 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-uuid_gen \- Generate UUID v4, v7 (time-ordered), ULID, NanoID, short IDs, hex strings,
+.SH SYNOPSIS
+.B utility uuid_gen
+[\fIoptions\fP]
+.SH DESCRIPTION
+Generate UUID v4, v7 (time-ordered), ULID, NanoID, short IDs, hex strings,
+.SH TYPES
+.PP
+Type   |   Example   |   Default length
+\fCuuid4\fP   |   \fCf47ac10b-58cc-4372-a567-0e02b2c3d479\fP   |   36
+\fCuuid7\fP   |   \fC018f3a7e-7e3b-7e8c-8a1b-9c0d1e2f3a4b\fP   |   36
+\fCulid\fP   |   \fC01ARZ3NDEKTSV4RRFFQ69G5FAV\fP   |   26
+\fCnanoid\fP   |   \fCV1StGXR8_Z5jdHi6B-myT\fP   |   21 (configurable)
+\fCshort\fP   |   \fCa3Bf8K2x\fP   |   8 (configurable)
+\fChex\fP   |   \fCa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6\fP   |   32 (configurable)
+\fCsnowflake\fP   |   \fC1541815603606036480\fP   |   64-bit int
+.PP
+.SH USAGE
+.PP
+.EX
+uuid                          # default: one UUID v4
+uuid uuid7 --count 5
+uuid nanoid --len 16
+uuid ulid --count 3 --json
+uuid short --upper --count 10 --sep ','
+uuid hex --len 64
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC--count N\fP   |   Generate N IDs   |   1
+\fC--len N\fP   |   Custom length (nanoid, short, hex)   |   type default
+\fC--upper\fP   |   Uppercase output   |   lowercase
+\fC--sep SEP\fP   |   Separator for bulk output   |   newline
+\fC--json\fP   |   JSON array output   |   off
+\fC--clip\fP   |   Copy first result to clipboard   |   off
+\fC--quiet\fP   |   Suppress info   |   off

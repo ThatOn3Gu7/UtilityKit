@@ -5,6 +5,8 @@
 ### Added
 - **Shared `uk_menu()` interactive list selector in `lib/uk_common.sh`.** Extracted the arrow-key + viewport navigation from `main.sh`'s dashboard into a reusable function that any tool can call: `uk_menu --prompt "Choose" "Option A|description|icon" "Option B|..."`. Supports pipe-delimited enriched items (label, description, icon), viewport scrolling for long lists, vim/arrow keys, and automatic non-TTY fallback to a numbered prompt. `uk_read_key()` was also extracted to `uk_common.sh` from `main.sh` so all tools share the same key reader.
 - **`_duplicate_finder.sh` and `_ssh_assistant.sh` migrated to `uk_menu()`.** Both tools now use the shared interactive menu instead of hand-rolled numbered prompts, gaining arrow-key navigation with zero per-tool viewport code.
+- **`scripts/gen_man.sh` — man page generator from `_README.md` files.** A hand-rolled awk converter (no pandoc required) transforms every `modules/_<tool>/_<tool>_README.md` into `man/utility-<tool>.1`. Supports markdown sections, code blocks, lists, tables, and inline formatting (bold, italic, code, links). 65 man pages generated.
+- **`setup.sh` installs man pages.** `man/` is copied alongside other support directories, and `setup.sh` now exports `MANPATH` to include the installed man pages in `.bashrc`/`.zshrc`.
 
 ## [5.10.5] - 2026-07-21
 

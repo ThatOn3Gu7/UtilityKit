@@ -1,0 +1,118 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-ssl_checker \- Fetch TLS certificate metadata for any domain, calculate remaining validity days, run DNS record lookups, and probe for legacy TLS 1.0 and 1.1 support.
+.SH SYNOPSIS
+.B utility ssl_checker
+[\fIoptions\fP]
+.SH DESCRIPTION
+Fetch TLS certificate metadata for any domain, calculate remaining validity days, run DNS record lookups, and probe for legacy TLS 1.0 and 1.1 support.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBCertificate inspection\fP — retrieves subject, issuer, and expiry date via \fCopenssl s_client\fP
+.IP \(bu 4
+\fBExpiry warning\fP — flags certificates expiring within 30 days and errors on already-expired ones
+.IP \(bu 4
+\fBDNS records\fP — looks up A, AAAA, MX, and TXT records using \fCdig\fP or \fCnslookup\fP
+.IP \(bu 4
+\fBLegacy TLS probe\fP — tests whether the server still accepts TLS 1.0 or TLS 1.1 connections
+.IP \(bu 4
+\fBCustom port support\fP — works on any port, not just 443
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _ssl_checker/_ssl_checker.sh example.com
+
+bash _ssl_checker/_ssl_checker.sh example.com --port 8443
+
+bash _ssl_checker/_ssl_checker.sh example.com --no-dns
+
+bash _ssl_checker/_ssl_checker.sh example.com --no-tls
+
+bash _ssl_checker/_ssl_checker.sh example.com --no-dns --no-tls
+
+bash _ssl_checker/_ssl_checker.sh
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCHOST\fP   |   Domain or hostname to inspect
+\fC--port N\fP   |   Port to connect on (default: \fC443\fP)
+\fC--no-dns\fP   |   Skip DNS record lookups
+\fC--no-tls\fP   |   Skip legacy TLS 1.0 and 1.1 probe
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH OUTPUT SECTIONS
+.PP
+.SS Certificate details
+.PP
+.EX
+  notBefore=Jan  1 00:00:00 2025 GMT
+  notAfter=Jan  1 00:00:00 2026 GMT
+
+Subject:  CN=example.com
+Issuer :  C=US, O=Let's Encrypt, CN=R3
+Days left: 194
+.EE
+.PP
+The tool colors the days-left value green when healthy, yellow when under 30 days, and red when expired.
+.PP
+.SS DNS records
+.PP
+.EX
+  DNS records for example.com
+  ------------------------------------------------
+  A       93.184.216.34
+  AAAA    (no record)
+  MX      0 .
+  TXT     v=spf1 -all
+.EE
+.PP
+.SS Legacy TLS probe
+.PP
+.EX
+  ✔ TLS 1.0 rejected.
+  ✔ TLS 1.1 rejected.
+.EE
+.PP
+A warning is shown if either protocol is still accepted, since both are considered insecure.
+.PP
+.PP
+.PP
+.SH REQUIREMENTS
+.PP
+.IP \(bu 4
+\fCopenssl\fP — required for certificate fetching and TLS probing
+.IP \(bu 4
+\fCdig\fP or \fCnslookup\fP — required for DNS lookups (skipped gracefully if neither is available)
+.IP \(bu 4
+\fCpython3\fP — used internally to calculate days remaining from the certificate expiry date
+.PP
+.PP
+.PP
+.SH COMMON PORTS
+.PP
+Port   |   Use case
+\fC443\fP   |   Standard HTTPS
+\fC8443\fP   |   Alternate HTTPS
+\fC465\fP   |   SMTPS (email)
+\fC993\fP   |   IMAPS (email)
+\fC5001\fP   |   Common local dev HTTPS
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   \fCopenssl\fP not installed, connection failed, or certificate already expired

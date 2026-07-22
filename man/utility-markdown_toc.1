@@ -1,0 +1,135 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-markdown_toc \- Generate or refresh a table of contents in a markdown file based on its headings, validate relative links, and align pipe tables.
+.SH SYNOPSIS
+.B utility markdown_toc
+[\fIoptions\fP]
+.SH DESCRIPTION
+Generate or refresh a table of contents in a markdown file based on its headings, validate relative links, and align pipe tables.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBTOC generation\fP — scans headings and inserts a linked table of contents with correct anchor slugs
+.IP \(bu 4
+\fBTOC refresh\fP — if markers already exist in the file the TOC is updated in place without disrupting surrounding content
+.IP \(bu 4
+\fBRelative link validation\fP — checks that every relative link in the file points to an existing file
+.IP \(bu 4
+\fBTable alignment\fP — pads pipe table columns so they line up cleanly
+.IP \(bu 4
+\fBDry-run by default\fP — previews all changes without writing to the file
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _markdown_toc/_markdown_toc.sh
+
+bash _markdown_toc/_markdown_toc.sh README.md
+
+bash _markdown_toc/_markdown_toc.sh README.md --apply
+
+bash _markdown_toc/_markdown_toc.sh README.md --apply --check-links
+
+bash _markdown_toc/_markdown_toc.sh README.md --apply --align-tables
+
+bash _markdown_toc/_markdown_toc.sh README.md --apply --check-links --align-tables
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCFILE\fP   |   Markdown file to process
+\fC--apply\fP   |   Write changes to the file (dry-run preview if omitted)
+\fC--check-links\fP   |   Validate all relative links in the file
+\fC--align-tables\fP   |   Pad pipe table columns for visual alignment
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH TOC MARKERS
+.PP
+The tool uses HTML comment markers to track where the TOC lives in the file:
+.PP
+.EX
+<!-- utilitykit:toc:start -->
+- [Features](#features)
+- [Usage](#usage)
+- [Options](#options)
+<!-- utilitykit:toc:end -->
+.EE
+.PP
+On the first run the markers and TOC are inserted automatically after the first \fC#\fP heading. On subsequent runs the content between the markers is replaced with a freshly generated TOC.
+.PP
+.PP
+.PP
+.SH ANCHOR SLUG RULES
+.PP
+Heading anchors are generated using the same rules GitHub Markdown uses:
+.PP
+.IP \(bu 4
+Converted to lowercase
+.IP \(bu 4
+Spaces replaced with hyphens
+.IP \(bu 4
+Non-alphanumeric characters removed
+.IP \(bu 4
+Leading and trailing hyphens stripped
+.PP
+For example \fC## My Cool Section!\fP becomes \fC#my-cool-section\fP.
+.PP
+.PP
+.PP
+.SH LINK VALIDATION OUTPUT
+.PP
+.EX
+  Relative link validation
+  ------------------------------------------------
+  OK    docs/guide.md
+  OK    CONTRIBUTING.md
+  MISS  docs/missing-file.md
+.EE
+.PP
+\fCOK\fP means the target file exists. \fCMISS\fP means it does not — useful for catching broken documentation links before pushing.
+.PP
+.PP
+.PP
+.SH TABLE ALIGNMENT
+.PP
+Before:
+.PP
+.EX
+| Name | Version | Notes |
+|---|---|---|
+| bash | 5.2 | required |
+| python3 | 3.10 | optional |
+.EE
+.PP
+After \fC--align-tables\fP:
+.PP
+.EX
+| Name    | Version | Notes    |
+| ------- | ------- | -------- |
+| bash    | 5.2     | required |
+| python3 | 3.10    | optional |
+.EE
+.PP
+.PP
+.PP
+.SH REQUIREMENTS
+.PP
+.IP \(bu 4
+\fCpython3\fP — used for link validation and table alignment
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   No file specified

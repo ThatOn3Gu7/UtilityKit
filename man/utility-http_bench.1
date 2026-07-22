@@ -1,0 +1,44 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-http_bench \- Lightweight HTTP benchmark: N requests, configurable concurrency, reports p50/p95/p99,
+.SH SYNOPSIS
+.B utility http_bench
+[\fIoptions\fP]
+.SH DESCRIPTION
+Lightweight HTTP benchmark: N requests, configurable concurrency, reports p50/p95/p99,
+.SH BACKENDS (TRIED IN ORDER)
+.PP
+.IP \(em 4
+\fBhey\fP — Go-based, best statistics (pip install hey or download binary)
+.IP \(em 4
+\fBwrk\fP — C-based, high performance (apt install wrk)
+.IP \(em 4
+\fBcurl\fP — built-in, always available
+.PP
+.SH USAGE
+.PP
+.EX
+bench https://example.com
+bench https://api.example.com -n 200 -c 10
+bench https://httpbin.org/post -m POST -d '{"key":"value"}' -H 'Content-Type: application/json'
+bench https://example.com -n 1000 -c 50 --json
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC-n, --requests N\fP   |   Total requests   |   50
+\fC-c, --concurrency N\fP   |   Parallel workers   |   5
+\fC-m, --method M\fP   |   HTTP method   |   GET
+\fC-H, --header H\fP   |   Custom header (repeatable)   |   —
+\fC-d, --data DATA\fP   |   Request body   |   —
+\fC--timeout SEC\fP   |   Per-request timeout   |   10
+\fC--keep-alive\fP   |   HTTP keep-alive   |   off
+\fC--json\fP   |   Machine-readable output   |   off
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success (even if errors)
+\fC1\fP   |   All requests failed
+\fC2\fP   |   Argument / dependency error

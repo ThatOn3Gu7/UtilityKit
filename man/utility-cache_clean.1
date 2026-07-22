@@ -1,0 +1,129 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-cache_clean \- A beautiful, safe, cross-platform bash CLI tool that intelligently cleans stale
+.SH SYNOPSIS
+.B utility cache_clean
+[\fIoptions\fP]
+.SH DESCRIPTION
+A beautiful, safe, cross-platform bash CLI tool that intelligently cleans stale
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBSafe by default\fP: shows a dry-run preview, lists every file that will be
+  deleted, and asks for a second confirmation before any permanent deletion.
+.IP \(bu 4
+\fBTargeted scanning\fP: only inspects known cache directories of detected
+  package managers. Never wanders into project folders or scans the whole disk.
+.IP \(bu 4
+\fBModular plugins\fP: 17 built-in plugins covering language-specific and
+  system package managers (npm, yarn, pnpm, bun, pip, cargo, go, gem, composer,
+  dotnet, conan, vcpkg, apt, pacman, dnf, brew, apk).
+.IP \(bu 4
+\fBCross-platform\fP: works on Linux, macOS, Git Bash for Windows, and Android
+  (Termux) without root.
+.IP \(bu 4
+\fBPortable POSIX-ish bash\fP: no external dependencies beyond common shell tools
+  (\fCdu\fP, \fCfind\fP, \fCwc\fP, \fCawk\fP, optional \fCstat\fP).
+.IP \(bu 4
+\fBResponsive layout\fP: switches to a compact card view on narrow/mobile
+  terminals and auto-detects terminal width for the best fit.
+.PP
+.SH INSTALL
+.PP
+.EX
+chmod +x _cache_clean.sh
+ln -s "$PWD/_cache_clean.sh" ~/.local/bin/cacheclean
+.EE
+.PP
+Or just run it directly from the repository directory:
+.PP
+.EX
+./_cache_clean.sh
+.EE
+.PP
+.SH USAGE
+.PP
+.EX
+cacheclean                          # dry-run preview + prompt
+cacheclean --yes                    # preview, then auto-delete
+cacheclean --delete                 # same as --yes
+cacheclean --older-than 30 --yes    # delete files older than 30 days
+cacheclean --no-color --quiet       # scriptable, colorless, final summary only
+cacheclean --debug                  # verbose internal tracing
+cacheclean --no-fancy               # force plain ASCII symbols and borders
+cacheclean --fancy                  # force emojis + colors (keeps ASCII borders on Termux)
+cacheclean --help                   # show all options
+.EE
+.PP
+The tool asks for \fBtwo confirmations\fP: a first prompt after the dry-run
+preview, then a second prompt that lists every file that will be deleted.
+\fC--yes\fP skips both prompts but still shows the file list.
+.PP
+On Termux (Android) the tool defaults to \fBASCII borders + emojis\fP because many
+fonts don't render box-drawing glyphs well. Use \fC--fancy\fP to keep emojis; on
+Termux it will still use ASCII borders unless you also set
+\fCCACHECLEAN_FANCY_BORDERS=1\fP.
+.PP
+.SH WRITING A PLUGIN
+.PP
+A plugin is a plain bash file in \fCplugins/\fP named after the package manager it
+handles (e.g., \fCgo.sh\fP). It must define five functions using the file basename as
+a prefix:
+.PP
+.EX
+go_plugin_info() {
+  printf 'go|go|🐹\n'          # id|display_name|icon
+}
+
+go_detect() {
+  command -v go >/dev/null 2>&1
+}
+
+go_get_cache_dirs() {
+  printf '%s\n' "$HOME/go/pkg/mod/cache"
+}
+
+go_scan_cache() {
+  local dir
+  while IFS= read -r dir; do
+    [ -z "$dir" ] && continue
+    if [ ! -d "$dir" ]; then
+      cc_emit_err "$dir" "directory not found"
+      continue
+    fi
+    local total_kb
+    total_kb=$(cc_du_kb "$dir")
+    cc_emit_tot "$dir" "$total_kb"
+
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      cc_emit_orphan "$dir" "$f" "stale module cache"
+    done < <(cc_find_old "$dir" "$CC_OLDER_THAN")
+  done < <(go_get_cache_dirs)
+}
+
+go_clean_orphans() {
+  cc_clean_orphans_from_file "$1"
+}
+.EE
+.PP
+The engine provides these helper functions for all plugins:
+.PP
+.IP \(bu 4
+\fCcc_find_old DIR DAYS\fP — files older than \fCDAYS\fP days.
+.IP \(bu 4
+\fCcc_find_partial DIR\fP — incomplete/empty downloads.
+.IP \(bu 4
+\fCcc_find_locks DIR\fP — stale lock files when \fClsof\fP is available.
+.IP \(bu 4
+\fCcc_du_kb DIR\fP — directory size in KiB.
+.IP \(bu 4
+\fCcc_file_size FILE\fP — file size in bytes.
+.IP \(bu 4
+\fCcc_emit_tot DIR KB\fP, \fCcc_emit_orphan DIR PATH REASON\fP, \fCcc_emit_err DIR MSG\fP.
+.IP \(bu 4
+\fCcc_clean_orphans_from_file SCAN_FILE\fP — generic deletion of recorded orphans.
+.PP
+.SH LICENSE
+.PP
+Public domain / MIT — use, modify, and share freely.

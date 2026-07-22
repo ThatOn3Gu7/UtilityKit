@@ -1,0 +1,98 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-duplicate_finder \- Detect exact duplicate files in a directory tree using a two-stage approach — size comparison first, then content hashing — and optionally delete duplicates or replace them with hardlinks.
+.SH SYNOPSIS
+.B utility duplicate_finder
+[\fIoptions\fP]
+.SH DESCRIPTION
+Detect exact duplicate files in a directory tree using a two-stage approach — size comparison first, then content hashing — and optionally delete duplicates or replace them with hardlinks.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBTwo-stage detection\fP — matches file sizes first to avoid hashing every file, then confirms duplicates by hash
+.IP \(bu 4
+\fBMultiple actions\fP — report only, delete duplicates, or replace duplicates with hardlinks
+.IP \(bu 4
+\fBSafe by default\fP — dry-run preview is shown before any files are modified
+.IP \(bu 4
+\fBVersion control aware\fP — automatically skips \fC.git\fP, \fC.hg\fP, and \fC.svn\fP directories
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _duplicate_finder/_duplicate_finder.sh
+
+bash _duplicate_finder/_duplicate_finder.sh ~/Downloads
+
+bash _duplicate_finder/_duplicate_finder.sh ~/Downloads --delete
+
+bash _duplicate_finder/_duplicate_finder.sh ~/Downloads --delete --apply
+
+bash _duplicate_finder/_duplicate_finder.sh ~/Downloads --hardlink --apply
+
+bash _duplicate_finder/_duplicate_finder.sh ~/Pictures --delete --apply
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCDIR\fP   |   Directory to scan (default: \fC.\fP)
+\fC--delete\fP   |   Delete duplicate copies, keeping the first file per hash
+\fC--hardlink\fP   |   Replace duplicates with hardlinks pointing to the first file
+\fC--apply\fP   |   Execute the chosen action (dry-run preview if omitted)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH HOW DUPLICATES ARE DETECTED
+.PP
+.IP \(em 4
+Every file under the target directory is scanned and grouped by byte size
+.IP \(em 4
+Files in groups with more than one member are hashed using \fCsha256sum\fP (falls back to \fCshasum -a 256\fP, then \fCmd5sum\fP)
+.IP \(em 4
+Files sharing the same hash are confirmed duplicates
+.IP \(em 4
+The first file encountered for each hash is kept — all others are the duplicates
+.PP
+This approach avoids hashing large files unnecessarily, making scans fast even on directories with thousands of files.
+.PP
+.PP
+.PP
+.SH ACTION REFERENCE
+.PP
+Action   |   Effect on duplicates   |   Originals
+report   |   No changes   |   Untouched
+delete   |   Duplicate files are permanently removed   |   Kept
+hardlink   |   Duplicate paths are replaced with hardlinks to the original   |   Kept, now shared inode
+.PP
+Hardlinking saves disk space while keeping both file paths accessible. Both paths point to the same data on disk. Editing one will affect the other.
+.PP
+.PP
+.PP
+.SH OUTPUT PREVIEW
+.PP
+.EX
+  Duplicate groups found
+  ------------------------------------------------
+
+  Keep:   ~/Downloads/photo.jpg
+  Dupe:   ~/Downloads/photo_copy.jpg  (will be removed if applied)
+
+  Keep:   ~/Downloads/report.pdf
+  Dupe:   ~/Downloads/report (1).pdf  (will be removed if applied)
+.EE
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Unknown option passed

@@ -1,0 +1,69 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-ip_info \- Public + local IP report with reverse DNS, ASN, GeoIP, and WHOIS.
+.SH SYNOPSIS
+.B utility ip_info
+[\fIoptions\fP]
+.SH DESCRIPTION
+Public + local IP report with reverse DNS, ASN, GeoIP, and WHOIS.
+.SH SECTIONS
+.PP
+.IP \(bu 4
+\fBLocal\fP: hostname, gateway, per-interface IPv4/IPv6/MAC.
+.IP \(bu 4
+\fBPublic\fP: IPv4 and (if available) IPv6.
+.IP \(bu 4
+\fBGeo\fP: country, region, city, coords, timezone, ISP, ASN.
+.IP \(bu 4
+\fBWHOIS\fP: registrar, org, netblock range, name servers, dates.
+.PP
+.SH DATA SOURCES
+.PP
+Purpose   |   URL
+Public IPv4   |   ipinfo.io/ip → ifconfig.co → ifconfig.me → api.ipify.org
+Public IPv6   |   ipv6.icanhazip.com → api64.ipify.org → ifconfig.co
+GeoIP + ASN   |   ip-api.com (free tier, ~45 rpm)
+WHOIS         |   local \fCwhois\fP binary
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning
+\fCTARGET\fP   |   IPv4, IPv6, or hostname. Optional.
+\fC--local\fP   |   Show local interfaces.
+\fC--public\fP   |   Look up public IP.
+\fC--whois\fP   |   Include WHOIS.
+\fC--geo\fP   |   Include GeoIP + ASN (default when target given).
+\fC--no-network\fP   |   Skip every HTTP call (local-only report).
+\fC--timeout SEC\fP   |   HTTP timeout per request (default 5).
+\fC--json\fP   |   JSON output.
+\fC--no-color\fP   |   Disable ANSI.
+.PP
+.SH DEFAULTS
+.PP
+.IP \(bu 4
+No target      → \fC--local --public --geo\fP
+.IP \(bu 4
+Target given   → \fC--geo\fP
+.IP \(bu 4
+\fC--no-network\fP forces local-only regardless of other flags.
+.PP
+.SH EXAMPLES
+.PP
+.EX
+ipinfo                       # local + public + geo
+ipinfo 1.1.1.1               # remote lookup
+ipinfo github.com --whois
+ipinfo --local --no-network
+ipinfo --json > report.json
+.EE
+.PP
+.SH DEPENDENCIES
+.PP
+.IP \(bu 4
+\fCcurl\fP (required for any network lookup)
+.IP \(bu 4
+\fCwhois\fP (optional — enables the WHOIS section)
+.IP \(bu 4
+\fCpython3\fP (optional — cleaner JSON parsing)
+.IP \(bu 4
+\fCip\fP / \fCifconfig\fP / \fCroute\fP / \fCnetstat\fP (any one enables the local section)

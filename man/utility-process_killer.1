@@ -1,0 +1,104 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-process_killer \- Display a live memory and swap usage overview, list the top processes by memory consumption, and optionally send a signal to terminate a specific process by PID.
+.SH SYNOPSIS
+.B utility process_killer
+[\fIoptions\fP]
+.SH DESCRIPTION
+Display a live memory and swap usage overview, list the top processes by memory consumption, and optionally send a signal to terminate a specific process by PID.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBMemory overview\fP — shows RAM and swap usage with a color-coded progress bar
+.IP \(bu 4
+\fBTop process list\fP — displays the 10 highest memory-consuming processes with PID, user, CPU, and memory columns
+.IP \(bu 4
+\fBProcess termination\fP — sends \fCSIGTERM\fP or \fCSIGKILL\fP to any PID you specify
+.IP \(bu 4
+\fBExit confirmation\fP — reports whether the process actually stopped after the signal was sent
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments shows the overview then prompts for a PID
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _process_killer/_process_killer.sh
+
+bash _process_killer/_process_killer.sh
+
+bash _process_killer/_process_killer.sh --pid 1234
+
+bash _process_killer/_process_killer.sh --pid 1234 --signal KILL
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--pid PID\fP   |   PID of the process to terminate
+\fC--signal TERM\  |  KILL\fP   |   Signal to send (default: \fCTERM\fP)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH SIGNAL REFERENCE
+.PP
+Signal   |   Effect   |   When to use
+\fCTERM\fP   |   Polite stop — process can clean up before exiting   |   Always try this first
+\fCKILL\fP   |   Forced immediate stop — cannot be ignored or caught   |   Only if TERM has no effect
+.PP
+.PP
+.PP
+.SH MEMORY OVERVIEW
+.PP
+.EX
+  Memory overview
+  ------------------------------------------------
+  RAM    1,823 MB / 7,822 MB  ######------
+  Swap     128 MB / 2,048 MB  #-----------
+.EE
+.PP
+RAM usage is shown in green, swap in cyan. The bar fills proportionally to current usage.
+.PP
+.PP
+.PP
+.SH TOP PROCESS LIST
+.PP
+.EX
+  Top processes by memory
+  ------------------------------------------------
+  PID      USER         %CPU   %MEM   COMMAND
+  3421     sahil        12.4   18.2   node
+  1892     sahil         0.1    9.7   chrome
+  4103     root          0.0    4.1   java
+.EE
+.PP
+.PP
+.PP
+.SH PROCESS TERMINATION OUTPUT
+.PP
+When a PID is provided the tool describes the target process before sending the signal, then confirms whether it exited:
+.PP
+.EX
+  Target process: 3421 sahil  12.4  18.2 node
+  ✔ Sent SIGTERM to PID 3421 and the process exited.
+.EE
+.PP
+If the process is still running after the signal:
+.PP
+.EX
+  ⚠ Signal sent, but PID 3421 is still running.
+.EE
+.PP
+In that case re-run with \fC--signal KILL\fP to force-stop it.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success or inspection only
+\fC1\fP   |   PID does not exist or is not visible to the current user

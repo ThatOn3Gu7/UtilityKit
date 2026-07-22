@@ -39,7 +39,7 @@ setup_validate_launcher() {
 # operations (cloning, copying). Respects NO_COLOR / NO_UNICODE like the
 # rest of the suite, and is skipped entirely in interactive mode since the
 # uk_prompt/uk_header flow already gives the user feedback there.
-SETUP_TOTAL_STEPS=7
+SETUP_TOTAL_STEPS=8
 SETUP_STEP_NUM=0
 
 setup_step() {
@@ -178,7 +178,7 @@ setup_copy_dirs() {
     cp -a "$dir_path/." "$dest/"
   done < <({
     find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null | sort
-    for d in lib docs tests scripts completions; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+    for d in lib docs tests scripts completions man; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
   })
 
   for file in main.sh setup.sh README.md CHANGES.md changes.md CONTRIBUTING.md LICENSE; do
@@ -189,7 +189,7 @@ setup_copy_dirs() {
 if ((INTERACTIVE == 0)); then
   dir_count=$({
     find "$SOURCE_DIR/modules" -maxdepth 1 -mindepth 1 -type d -name '_*' 2>/dev/null
-    for d in lib docs tests scripts completions; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
+    for d in lib docs tests scripts completions man; do [[ -d "$SOURCE_DIR/$d" ]] && echo "$SOURCE_DIR/$d"; done
   } | wc -l | tr -d ' ')
   setup_detail "Copying $dir_count tool/support directories into $INSTALL_DIR"
   setup_run_with_spinner "Copying files" setup_copy_dirs
@@ -261,6 +261,31 @@ if [[ -f "$INSTALL_DIR/completions/utility.bash" ]]; then
   fi
 else
   setup_detail 'No completions/ directory in source — skipped (run scripts/gen_completions.sh)'
+fi
+
+setup_step 'Configuring MANPATH for man pages'
+if [[ -d "$INSTALL_DIR/man" ]]; then
+  manpath_line='export MANPATH="'"$INSTALL_DIR/man"':$MANPATH"'
+  for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+    [[ -f "$rc" ]] || continue
+    if ! grep -Fq "$manpath_line" "$rc" 2>/dev/null; then
+      printf '\n# Added by UtilityKit\n%s\n' "$manpath_line" >>"$rc"
+      setup_detail "Appended MANPATH export to $rc"
+    else
+      setup_detail "$rc already has MANPATH reference — skipped"
+    fi
+  done
+  if [[ -n "${ZDOTDIR:-}" && "$ZDOTDIR" != "$HOME" && -f "$ZDOTDIR/.zshrc" ]]; then
+    rc="$ZDOTDIR/.zshrc"
+    if ! grep -Fq "$manpath_line" "$rc" 2>/dev/null; then
+      printf '\n# Added by UtilityKit\n%s\n' "$manpath_line" >>"$rc"
+      setup_detail "Appended MANPATH export to $rc"
+    else
+      setup_detail "$rc already has MANPATH reference — skipped"
+    fi
+  fi
+else
+  setup_detail 'No man/ directory in install — skipped (run scripts/gen_man.sh)'
 fi
 
 [[ -n "$TEMP_CLONE" ]] && rm -rf "$TEMP_CLONE"

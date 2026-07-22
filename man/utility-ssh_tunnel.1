@@ -1,0 +1,29 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-ssh_tunnel \- Create, list, kill, and restart SSH port-forwards.
+.SH SYNOPSIS
+.B utility ssh_tunnel
+[\fIoptions\fP]
+.SH DESCRIPTION
+Create, list, kill, and restart SSH port-forwards.
+.SH USAGE
+.PP
+.EX
+tunnel create server.com:3000 --local 3000 --user deploy --name api
+tunnel list
+tunnel list --json
+tunnel kill 1
+tunnel restart api
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning
+\fC--local PORT\fP   |   Local port (default: same as remote)
+\fC--user USER\fP   |   SSH user
+\fC--key FILE\fP   |   SSH identity file
+\fC--autossh\fP   |   Auto-restart with autossh
+\fC--name NAME\fP   |   Tunnel name for management
+\fC--json\fP   |   Machine-readable list output
+.PP
+Config: \fC${XDG_CONFIG_HOME:-~/.config}/utilitykit/tunnels.conf\fP

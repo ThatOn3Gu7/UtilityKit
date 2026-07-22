@@ -1,0 +1,34 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-pdf_toolkit \- Merge, split, extract text, compress, rotate, and inspect PDFs.
+.SH SYNOPSIS
+.B utility pdf_toolkit
+[\fIoptions\fP]
+.SH DESCRIPTION
+Merge, split, extract text, compress, rotate, and inspect PDFs.
+.SH DEPENDENCIES
+.PP
+Tool   |   Package   |   Purpose
+\fCqpdf\fP   |   \fCqpdf\fP   |   Core operations (recommended)
+\fCpdftotext\fP   |   \fCpoppler-utils\fP   |   Text extraction
+\fCgs\fP   |   \fCghostscript\fP   |   Compression
+\fCpdfinfo\fP   |   \fCpoppler-utils\fP   |   Metadata
+.PP
+.SH USAGE
+.PP
+.EX
+pdf info document.pdf
+pdf count document.pdf
+pdf merge a.pdf b.pdf --output merged.pdf
+pdf split document.pdf --output ./pages/
+pdf text document.pdf
+pdf compress document.pdf --output compressed.pdf
+pdf rotate document.pdf 90
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning
+\fC--output FILE\fP   |   Output path
+\fC--pages RANGE\fP   |   Page range (e.g. 1-3,5)
+\fC--json\fP   |   Machine-readable output

@@ -1,0 +1,44 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-update_managers \- Detect every package manager installed on the machine (system, app-store,
+.SH SYNOPSIS
+.B utility update_managers
+[\fIoptions\fP]
+.SH DESCRIPTION
+Detect every package manager installed on the machine (system, app-store,
+.SH USAGE
+.PP
+.EX
+./main.sh update              # rich interactive menu
+./main.sh update --list       # detect and list managers, then exit
+./main.sh update --yes        # non-interactive: update everything detected
+./main.sh update --dry-run    # show what would run, change nothing
+./main.sh update --only apt,brew,npm
+./main.sh update --skip snap
+./main.sh update --help
+
+bash _update_managers.sh --help
+.EE
+.PP
+Aliases in the hub: \fCupdate\fP, \fCupdate-managers\fP, \fCupgrade\fP.
+.PP
+.SH HIGHLIGHTS
+.PP
+.IP \(bu 4
+\fBLive command display\fP — the spinner flips through each sub-command as it
+  runs (e.g. \fCapt-get update\fP → \fCapt-get upgrade -y\fP → \fCapt-get autoremove -y\fP).
+.IP \(bu 4
+\fBSmart failure reason\fP — on failure the most relevant error line is grepped
+  from the log and shown under the spinner and in the summary.
+.IP \(bu 4
+\fBIsolated failures\fP — one manager failing never aborts the rest of the batch.
+.IP \(bu 4
+\fBSafe privileges\fP — uses \fCsudo\fP/\fCdoas\fP only when needed; skips elevation on
+  Termux.
+.PP
+.SH CROSS-PLATFORM BEHAVIOR
+.PP
+All commands are designed to work on Linux, macOS, and Termux/minimal terminals
+where possible. Each manager is detected at runtime; unavailable managers are
+simply skipped. When a dependency is missing, the tool prints a clear message
+and continues safely.

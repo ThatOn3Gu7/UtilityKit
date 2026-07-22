@@ -1,0 +1,110 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-media_convert \- Batch convert images and videos to modern formats, optionally stripping EXIF metadata from images and compressing video output using ffmpeg.
+.SH SYNOPSIS
+.B utility media_convert
+[\fIoptions\fP]
+.SH DESCRIPTION
+Batch convert images and videos to modern formats, optionally stripping EXIF metadata from images and compressing video output using ffmpeg.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBImage conversion\fP — converts PNG, JPG, JPEG, and WebP files using ImageMagick or ffmpeg
+.IP \(bu 4
+\fBVideo conversion\fP — converts MP4, MOV, MKV, and AVI files using ffmpeg with libx264
+.IP \(bu 4
+\fBEXIF stripping\fP — removes location, camera, and timestamp metadata from images
+.IP \(bu 4
+\fBQuality control\fP — configurable output quality for image conversion
+.IP \(bu 4
+\fBDirectory scanning\fP — recursively finds all matching files in a source directory
+.IP \(bu 4
+\fBDry-run by default\fP — previews conversions without writing any files
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided setup prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _media_convert/_media_convert.sh
+
+bash _media_convert/_media_convert.sh --kind image --to webp ~/Pictures
+
+bash _media_convert/_media_convert.sh --kind image --to webp --apply ~/Pictures
+
+bash _media_convert/_media_convert.sh --kind image --to webp --quality 85 --strip-exif --apply ~/Pictures
+
+bash _media_convert/_media_convert.sh --kind image --to jpg --apply ./photo.png
+
+bash _media_convert/_media_convert.sh --kind video --to mp4 --apply ~/Videos
+
+bash _media_convert/_media_convert.sh --kind image --to webp --output ~/converted --apply ~/Pictures
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCPATH...\fP   |   Source file or directory to convert
+\fC--kind image\  |  video\fP   |   Type of media to convert (default: \fCimage\fP)
+\fC--to FORMAT\fP   |   Target format extension (default: \fCwebp\fP for image, \fCmp4\fP for video)
+\fC--quality N\fP   |   Output quality for images, 1–100 (default: \fC82\fP)
+\fC--strip-exif\fP   |   Strip EXIF metadata from image output
+\fC--output DIR\fP   |   Directory to write converted files to (default: \fC./converted_<kind>\fP)
+\fC--apply\fP   |   Execute conversions (dry-run preview if omitted)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH SUPPORTED FORMATS
+.PP
+.SS Image input formats
+\fCpng\fP, \fCjpg\fP, \fCjpeg\fP, \fCwebp\fP
+.PP
+.SS Image output formats
+Format   |   Notes
+\fCwebp\fP   |   Best size/quality ratio, modern browsers and apps
+\fCjpg\fP   |   Universal compatibility
+\fCpng\fP   |   Lossless, larger file size
+.PP
+.SS Video input formats
+\fCmp4\fP, \fCmov\fP, \fCmkv\fP, \fCavi\fP
+.PP
+.SS Video output formats
+Format   |   Notes
+\fCmp4\fP   |   Widest compatibility, uses libx264
+\fCmkv\fP   |   Open container format
+.PP
+.PP
+.PP
+.SH CONVERSION BACKENDS
+.PP
+Kind   |   Primary tool   |   Fallback
+Image   |   \fCmagick\fP (ImageMagick)   |   \fCffmpeg\fP
+Video   |   \fCffmpeg\fP   |   None — required
+.PP
+Video conversion always requires \fCffmpeg\fP. Image conversion uses ImageMagick when available for better quality control and EXIF stripping support.
+.PP
+.PP
+.PP
+.SH OUTPUT LOCATION
+.PP
+Converted files are written to the output directory using the original filename with the new extension:
+.PP
+.EX
+~/Pictures/holiday.jpg  →  ./converted_image/holiday.webp
+~/Videos/demo.mov       →  ./converted_video/demo.mp4
+.EE
+.PP
+Original files are never modified or deleted.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   No source paths given, or required tool not installed

@@ -1,0 +1,46 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-regex_lab \- Live regex tester: pattern + sample text, prints matches, named captures,
+.SH SYNOPSIS
+.B utility regex_lab
+[\fIoptions\fP]
+.SH DESCRIPTION
+Live regex tester: pattern + sample text, prints matches, named captures,
+.SH BACKENDS (AUTO-DETECTED)
+.PP
+.IP \(em 4
+\fBperl\fP — preferred, full PCRE support
+.IP \(em 4
+\fBgrep -P\fP — fast for simple extraction
+.IP \(em 4
+\fBpython3\fP — PCRE fallback with capture support
+.PP
+.SH USAGE
+.PP
+.EX
+regex '\\d+' 'hello 42 world 99'
+regex -p '\\w+' -f /var/log/syslog
+regex -p 'foo(bar)' -s 's/foo(bar)/baz$1/' -t 'foobar qux'
+echo 'abc123' | regex -p '[a-z]+' -i
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC-p, --pattern PAT\fP   |   Regex pattern   |   —
+\fC-t, --text TEXT\fP   |   Sample text (or positional)   |   —
+\fC-f, --file FILE\fP   |   Read text from FILE   |   —
+\fC-i, --stdin\fP   |   Read text from stdin   |   —
+\fC-s, --sub SUB\fP   |   Substitution expression   |   —
+\fC-m, --multiline\fP   |   Multiline anchors   |   off
+\fC-c, --case-insensitive\fP   |   Case-insensitive   |   off
+\fC--color\fP   |   Colorize matches   |   off
+\fC--json\fP   |   Machine-readable output   |   off
+\fC--no-color\fP   |   Disable ANSI   |   off
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Matches found (or substitution applied)
+\fC1\fP   |   No matches
+\fC2\fP   |   Argument / dependency error

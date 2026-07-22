@@ -1,0 +1,102 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-cheat_sheet \- A personal markdown snippet store. Save, tag, list, display, and search short command references or notes directly from the terminal.
+.SH SYNOPSIS
+.B utility cheat_sheet
+[\fIoptions\fP]
+.SH DESCRIPTION
+A personal markdown snippet store. Save, tag, list, display, and search short command references or notes directly from the terminal.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBAdd snippets\fP — save any text as a named markdown file with optional tags
+.IP \(bu 4
+\fBList snippets\fP — show all saved snippet names at a glance
+.IP \(bu 4
+\fBShow snippets\fP — display the full contents of any saved snippet
+.IP \(bu 4
+\fBSearch snippets\fP — grep across all saved snippet content and names
+.IP \(bu 4
+\fBFile input\fP — import an existing file as a snippet instead of typing inline
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a persistent menu loop
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _cheat_sheet/_cheat_sheet.sh --add docker-logs --text 'docker logs -f app' --tags docker,logs
+
+bash _cheat_sheet/_cheat_sheet.sh --add my-nginx-conf --file ./nginx.conf --tags nginx,config
+
+bash _cheat_sheet/_cheat_sheet.sh --list
+
+bash _cheat_sheet/_cheat_sheet.sh --show docker-logs
+
+bash _cheat_sheet/_cheat_sheet.sh --search docker
+
+bash _cheat_sheet/_cheat_sheet.sh
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--add NAME\fP   |   Save a new snippet with the given name
+\fC--text TEXT\fP   |   Snippet content as an inline string
+\fC--file FILE\fP   |   Import content from an existing file
+\fC--tags a,b\fP   |   Comma-separated tags stored in the snippet header
+\fC--list\fP   |   List all saved snippet names
+\fC--show NAME\fP   |   Display the full contents of a named snippet
+\fC--search TERM\fP   |   Search all snippets for a term
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH STORAGE LOCATION
+.PP
+Snippets are saved as individual markdown files under:
+.PP
+.EX
+~/.local/share/utilitykit/cheat_sheets/
+.EE
+.PP
+Each file is named using a slugified version of the snippet name. Tags are stored in an HTML comment header at the top of each file:
+.PP
+.EX
+<!-- tags: docker,logs -->
+
+docker logs -f app
+.EE
+.PP
+.PP
+.PP
+.SH INTERACTIVE MENU
+.PP
+Running the tool without arguments opens a persistent loop with four actions:
+.PP
+.EX
+  1) List saved snippets     (show all snippet names you have stored)
+  2) Add a new snippet       (save a one-liner or short block with tags)
+  3) Show a snippet          (display full contents of a saved snippet)
+  4) Search snippets         (grep across all saved snippet content)
+  q) Return to dashboard
+.EE
+.PP
+The loop stays open after each action until you press \fCq\fP, so you can list, show, and search without relaunching the tool each time.
+.PP
+.PP
+.PP
+.SH MULTI-LINE SNIPPETS
+.PP
+When adding a snippet interactively and you leave the text prompt blank, the tool drops into free-form input mode — type as many lines as you need, then press \fCCtrl+D\fP to save.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Missing required argument or unknown option

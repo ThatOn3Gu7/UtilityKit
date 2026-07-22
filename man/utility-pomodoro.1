@@ -1,0 +1,98 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-pomodoro \- A colorful terminal focus timer based on the Pomodoro Technique. Alternates between work and break blocks for a configurable number of cycles, displays a live progress bar during each block, and logs completed sessions to a persistent file.
+.SH SYNOPSIS
+.B utility pomodoro
+[\fIoptions\fP]
+.SH DESCRIPTION
+A colorful terminal focus timer based on the Pomodoro Technique. Alternates between work and break blocks for a configurable number of cycles, displays a live progress bar during each block, and logs completed sessions to a persistent file.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBConfigurable cycles\fP — set custom work duration, break duration, and number of cycles
+.IP \(bu 4
+\fBLive progress bar\fP — color-coded bar updates every second during work and break blocks
+.IP \(bu 4
+\fBSession logging\fP — completed work cycles are appended to a persistent log file
+.IP \(bu 4
+\fBBell and vibration\fP — plays a terminal bell at the end of each block, with Termux vibration support
+.IP \(bu 4
+\fBSeconds mode\fP — use \fC--unit seconds\fP for quick testing without waiting full minutes
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided setup prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _pomodoro/_pomodoro.sh
+
+bash _pomodoro/_pomodoro.sh --work 50 --break 10 --cycles 2
+
+bash _pomodoro/_pomodoro.sh --no-bell
+
+bash _pomodoro/_pomodoro.sh --work 5 --break 2 --cycles 2 --unit seconds --no-bell
+
+bash _pomodoro/_pomodoro.sh
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--work N\fP   |   Work block duration (default: \fC25\fP)
+\fC--break N\fP   |   Break block duration (default: \fC5\fP)
+\fC--cycles N\fP   |   Number of work/break cycles to run (default: \fC4\fP)
+\fC--unit minutes\  |  seconds\fP   |   Time unit for durations (default: \fCminutes\fP)
+\fC--no-bell\fP   |   Disable terminal bell and Termux vibration
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH PROGRESS BAR
+.PP
+During each block the timer prints a live updating line:
+.PP
+.EX
+◆ Work focus       23s  ████████████------------
+☕ Break time        4s  ██████████████████------
+.EE
+.PP
+Work blocks display in green, break blocks in cyan. The bar fills from left to right as time passes.
+.PP
+.PP
+.PP
+.SH SESSION LOG
+.PP
+Completed work cycles are logged automatically to:
+.PP
+.EX
+~/.local/state/utilitykit/pomodoro.log
+.EE
+.PP
+Each entry includes a timestamp and the cycle number:
+.PP
+.EX
+2026-06-20 14:32:01 | completed work cycle 1
+2026-06-20 14:58:44 | completed work cycle 2
+.EE
+.PP
+.PP
+.PP
+.SH POMODORO TECHNIQUE REFERENCE
+.PP
+Style   |   Work   |   Break   |   Cycles
+Classic   |   25 min   |   5 min   |   4
+Long focus   |   50 min   |   10 min   |   2
+Ultradian   |   90 min   |   20 min   |   2
+Quick test   |   5 sec   |   2 sec   |   3
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   All cycles completed successfully
+\fC1\fP   |   Unknown option passed

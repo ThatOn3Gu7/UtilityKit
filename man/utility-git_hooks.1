@@ -1,0 +1,31 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-git_hooks \- Install, remove, list, and inspect git hook templates.
+.SH SYNOPSIS
+.B utility git_hooks
+[\fIoptions\fP]
+.SH DESCRIPTION
+Install, remove, list, and inspect git hook templates.
+.SH USAGE
+.PP
+.EX
+hooks install                   # install all built-in hooks
+hooks install pre-commit pre-push  # install specific hooks
+hooks remove                    # remove all hooks
+hooks list                      # show installed status
+hooks list --json               # machine-readable
+hooks show pre-commit           # display hook content
+hooks init                      # install, no prompts
+.EE
+.PP
+.SH BUILT-IN HOOKS
+.PP
+Hook   |   Purpose
+\fCpre-commit\fP   |   Lint staged files
+\fCprepare-commit-msg\fP   |   Prefix branch name
+\fCcommit-msg\fP   |   Reject WIP/fixup/squash
+\fCpost-commit\fP   |   Show commit summary
+\fCpre-push\fP   |   Run tests
+\fCpost-checkout\fP   |   Log branch switch
+\fCpost-merge\fP   |   Post-merge hook
+\fCpre-rebase\fP   |   Auto-stash changes

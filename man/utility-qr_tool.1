@@ -1,0 +1,86 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-qr_tool \- Encode text, URLs, Wi-Fi credentials, and vCards into QR codes — render to
+.SH SYNOPSIS
+.B utility qr_tool
+[\fIoptions\fP]
+.SH DESCRIPTION
+Encode text, URLs, Wi-Fi credentials, and vCards into QR codes — render to
+.SH ENCODERS (TRIED IN ORDER)
+.PP
+.IP \(em 4
+\fB\fCqrencode\fP\fP — recommended, tiny native binary.
+.IP \(em 4
+\fB\fCpython3\fP + \fCqrcode[pil]\fP\fP — pure-Python fallback.
+.PP
+.SH DECODERS (TRIED IN ORDER)
+.PP
+.IP \(em 4
+\fB\fCzbarimg\fP\fP (from \fCzbar-tools\fP).
+.IP \(em 4
+\fB\fCpython3\fP + \fCpyzbar\fP + \fCPillow\fP\fP.
+.PP
+.SH INSTALL
+.PP
+Platform   |   Command
+Debian / Ubuntu   |   \fCsudo apt install qrencode zbar-tools\fP
+Fedora / RHEL     |   \fCsudo dnf install qrencode zbar\fP
+macOS (Homebrew)  |   \fCbrew install qrencode zbar\fP
+Termux            |   \fCpkg install qrencode zbar\fP
+Fallback (any)    |   \fCpip install "qrcode[pil]" pyzbar pillow\fP
+.PP
+.SH USAGE
+.PP
+.EX
+qr encode  --text "https://example.com"
+qr encode  --text "hello world" --out ./qr.png
+qr encode  --wifi HomeNet --psk hunter2 --enc WPA
+qr encode  --wifi Guest --enc nopass
+qr encode  --vcard "Ada Lovelace" --email ada@example.com --phone 555-0100
+qr decode  --image ./qr.png
+qr decode  --image ./photo.jpg --json
+.EE
+.PP
+.SS Options
+.PP
+Flag   |   Meaning   |   Default
+\fC--text TXT\fP   |   Encode plain text or URL   |   —
+\fC--wifi SSID\fP   |   Encode a Wi-Fi login   |   —
+\fC--psk PASS\fP   |   Wi-Fi password   |   empty
+\fC--enc WPA\  |  WEP\  |  nopass\fP   |   Wi-Fi authentication   |   \fCWPA\fP
+\fC--hidden\fP   |   Mark SSID as hidden   |   off
+\fC--vcard NAME\fP   |   Encode a minimal vCard 3.0   |   —
+\fC--phone\fP, \fC--email\fP, \fC--org\fP, \fC--title\fP   |   Extra vCard fields   |   —
+\fC--out FILE\fP   |   Write PNG to FILE   |   terminal
+\fC--size SMALL\  |  LARGE\fP   |   Terminal render density   |   SMALL
+\fC--level L\  |  M\  |  Q\  |  H\fP   |   Error correction   |   M
+\fC--margin N\fP   |   Quiet-zone modules   |   2
+\fC--json\fP   |   JSON output (decode)   |   off
+\fC--no-color\fP   |   Disable ANSI colors   |   off
+.PP
+.SH WI-FI PAYLOAD FORMAT
+.PP
+The Wi-Fi payload follows the ZXing convention:
+.PP
+.EX
+WIFI:T:<enc>;S:<ssid>;P:<pass>;H:<hidden>;;
+.EE
+.PP
+Reserved characters (\fC\\fP, \fC;\fP, \fC,\fP, \fC:\fP, \fC"\fP) in SSID and PSK are escaped
+automatically.
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP    |   Success
+\fC1\fP    |   Invalid input / decode found no QR
+\fC2\fP    |   No encoder / decoder installed
+.PP
+.SH TERMUX NOTES
+.PP
+.IP \(bu 4
+\fCqrencode\fP produces UTF-8 block glyphs that render cleanly in Termux.
+.IP \(bu 4
+ASCII fallback (\fC--size LARGE\fP) is picked automatically when \fCNO_UNICODE=1\fP.
+.IP \(bu 4
+\fCzbar\fP needs the camera off during decode; the tool reads image files only.

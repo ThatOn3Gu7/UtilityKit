@@ -1,0 +1,113 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-shredder \- Securely erase files by overwriting their contents multiple times before deletion, making recovery significantly harder than a standard `rm`.
+.SH SYNOPSIS
+.B utility shredder
+[\fIoptions\fP]
+.SH DESCRIPTION
+Securely erase files by overwriting their contents multiple times before deletion, making recovery significantly harder than a standard `rm`.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBMulti-pass overwrite\fP — writes random data over the file contents for each configured pass
+.IP \(bu 4
+\fB\fCshred\fP integration\fP — uses the system \fCshred\fP command if available for best results
+.IP \(bu 4
+\fBFallback overwrite\fP — uses \fC/dev/urandom\fP overwrite followed by truncation and \fCrm\fP when \fCshred\fP is not installed
+.IP \(bu 4
+\fBConfigurable passes\fP — choose how many overwrite passes to perform
+.IP \(bu 4
+\fBDry-run by default\fP — previews what would happen without touching any files
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments launches a guided prompt
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _shredder/_shredder.sh
+
+bash _shredder/_shredder.sh secret.txt
+
+bash _shredder/_shredder.sh --apply secret.txt
+
+bash _shredder/_shredder.sh --passes 7 --apply secret.txt
+
+bash _shredder/_shredder.sh --passes 3 --apply secret.txt credentials.env private.key
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fCFILE...\fP   |   One or more files to erase
+\fC--passes N\fP   |   Number of overwrite passes (default: \fC3\fP)
+\fC--apply\fP   |   Execute secure erasure (dry-run preview if omitted)
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH HOW IT WORKS
+.PP
+When \fCshred\fP is available:
+.PP
+.EX
+shred -n <passes> -z -u <file>
+.EE
+.PP
+This overwrites the file \fCN\fP times with random data, then once with zeros (\fC-z\fP), then unlinks the file (\fC-u\fP).
+.PP
+When \fCshred\fP is not available (fallback):
+.PP
+.IP \(em 4
+Reads the file size in bytes
+.IP \(em 4
+Writes that many bytes of \fC/dev/urandom\fP output over the file, repeated for each pass
+.IP \(em 4
+Truncates the file to zero bytes
+.IP \(em 4
+Removes the file with \fCrm\fP
+.PP
+.PP
+.PP
+.SH PASS REFERENCE
+.PP
+Passes   |   Standard   |   Notes
+\fC1\fP   |   Basic   |   Fast, minimal protection
+\fC3\fP   |   Default   |   Good general-purpose choice
+\fC7\fP   |   DoD 5220.22-M   |   US Department of Defense standard
+\fC35\fP   |   Gutmann   |   Maximum, very slow
+.PP
+.PP
+.PP
+.SH DRY-RUN OUTPUT
+.PP
+.EX
+  Dry-run preview
+  ------------------------------------------------
+  File:    ~/secret.txt
+  Method:  shred -n 3 -z -u
+  Passes:  3
+  (re-run with --apply to permanently erase this file)
+.EE
+.PP
+.PP
+.PP
+.SH IMPORTANT NOTES
+.PP
+.IP \(bu 4
+Secure erasure is most effective on traditional spinning hard drives. On SSDs and flash storage, wear leveling and overprovisioning mean the OS may write data to different physical cells, making full overwrite harder to guarantee at the hardware level.
+.IP \(bu 4
+This tool erases the file contents and path. It does not wipe filesystem metadata, journal entries, or backup snapshots.
+.IP \(bu 4
+Once \fC--apply\fP is used the file cannot be recovered through normal means. Verify the correct file path before confirming.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   No files specified

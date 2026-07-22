@@ -1,0 +1,103 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-move_in_batch \- A production-ready, interactive terminal script written in pure Bash to safely copy or move files in bulk from a target directory to an output directory. Supports exclusion patterns, directory flattening, collision-safe renaming, and a full-colour interactive preview with live progress feedback.
+.SH SYNOPSIS
+.B utility move_in_batch
+[\fIoptions\fP]
+.SH DESCRIPTION
+A production-ready, interactive terminal script written in pure Bash to safely copy or move files in bulk from a target directory to an output directory. Supports exclusion patterns, directory flattening, collision-safe renaming, and a full-colour interactive preview with live progress feedback.
+.SH ✨ CORE HIGHLIGHTS
+.PP
+.IP \(bu 4
+\fBSafe by Default:\fP Uses \fCcp\fP (copy) as the default transfer method. Originals are never touched unless you explicitly opt into \fCmv\fP mode with \fC--method=mv\fP.
+.IP \(bu 4
+\fBFlatten Mode:\fP The \fC--flatten\fP / \fC-f\fP flag strips away all subdirectory nesting — every file lands directly in the output root, one by one, with automatic collision renaming (\fC_1\fP, \fC_2\fP, …).
+.IP \(bu 4
+\fBSmart Exclusion Grouping:\fP Directory-level exclusions like \fC.git\fP or \fCnode_modules\fP are displayed as a single compact entry (\fC.git (42 files excluded)\fP) rather than flooding the preview with every file inside them.
+.IP \(bu 4
+\fBInteractive Preview & Confirmation:\fP Before anything happens, you see a colour-coded preview of what will be transferred, what will be skipped, and a \fC[Y/n]\fP prompt to proceed.
+.IP \(bu 4
+\fBLive Progress Bar:\fP In-place animated progress with colour transitions (cyan → yellow → green) and a per-file label so you always know the script is working.
+.IP \(bu 4
+\fBCtrl+C Rollback:\fP Interrupt mid-operation and the script offers to reverse all changes, restoring the output directory to its original state.
+.IP \(bu 4
+\fBSourced or Executed:\fP Run standalone (\fCbash _move_in_batch.sh …\fP) or source it into another script (\fCsource _move_in_batch.sh\fP then call \fCmove_in_batch …\fP).
+.IP \(bu 4
+\fBTerminal-Aware:\fP Detects \fCNO_COLOR\fP, dumb terminals, and Termux — falls back to plain ASCII when Unicode or ANSI isn't available.
+.PP
+.PP
+.PP
+.SH 🚀 USAGE
+.PP
+.SS Command Line Interface
+.PP
+.EX
+bash _move_in_batch.sh -t <target> -o <output> [flags]
+.EE
+.PP
+.SS Sourced Mode
+.PP
+.EX
+source _move_in_batch.sh
+move_in_batch -t <target> -o <output> [flags]
+.EE
+.PP
+.PP
+.PP
+.SH ⚙️ OPTIONS & FLAGS
+.PP
+Flag   |   Long Option   |   Description
+\fC-t\fP   |   \fC--target\fP   |   Source directory to scan for files \fB(required)\fP
+\fC-o\fP   |   \fC--output\fP   |   Destination directory to place files into \fB(required)\fP
+\fC-e\fP   |   \fC--exclude\fP   |   Extensions or patterns to skip (e.g. \fC.git\fP \fC.md\fP \fC.tmp\fP). Directory-level patterns (\fC.git\fP, \fCnode_modules\fP) are grouped in the preview.
+\fC-f\fP   |   \fC--flatten\fP   |   Strip all subdirectory structure. Every file lands directly in the output root. Collisions are auto-resolved with \fC_1\fP, \fC_2\fP suffixes.
+\fC-m\fP   |   \fC--method\fP   |   Transfer method: \fCcp\fP (copy, \fBdefault\fP) or \fCmv\fP (move/destructive). Invalid values fall back to \fCcp\fP with a warning.
+\fC-h\fP   |   \fC--help\fP   |   Print the full help guide with usage examples.
+\fC-v\fP   |   \fC--version\fP   |   Print version, Bash version, and terminal capability status.
+.PP
+.PP
+.PP
+.SH 📝 PRACTICAL EXAMPLES
+.PP
+.EX
+bash _move_in_batch.sh -t ~/Projects/MyApp -o ~/Backup -e .md .git
+
+bash _move_in_batch.sh -t ~/Downloads -o ~/Sorted -f -m=mv
+
+bash _move_in_batch.sh --target ~/src --output ~/out --method=cp --exclude .git node_modules .log
+
+bash _move_in_batch.sh -t ~/Music/Unsorted -o ~/Music/Flat -f
+.EE
+.PP
+.PP
+.PP
+.SH 📊 TERMINAL & ENVIRONMENT ADAPTABILITY
+.PP
+The tool dynamically monitors terminal capabilities to guarantee seamless operation across different setups:
+.PP
+.IP \(bu 4
+\fBUnicode Fallback:\fP Automatically drops complex glyphs (📁, ✔, ↯) to plain ASCII alternatives (\fC[D]\fP, \fC[OK]\fP, \fC|>\fP) when the terminal doesn't support Unicode.
+.IP \(bu 4
+\fBColour Stream Detection:\fP Respects \fCNO_COLOR\fP environment markers and non-TTY stdout pipes to keep log files clean and readable.
+.IP \(bu 4
+\fBMobile-Ready:\fP Tested on Termux for Android with limited terminal width and restricted ANSI support.
+.PP
+.PP
+.PP
+.SH ❌ EXIT STATUS CODES
+.PP
+Code   |   Meaning
+\fB0\fP   |   Success — all files transferred, or all were skipped cleanly.
+\fB1\fP   |   Fatal error — missing required arguments, invalid directory, or unknown flag.
+\fB2\fP   |   Partial failure — some files failed during transfer, but others succeeded.
+\fB130\fP   |   Interrupted by user (\fCCtrl+C\fP). Rollback is offered before exit.
+.PP
+.PP
+.PP
+.SH 🔗 RELATED TOOLS
+.PP
+Tool   |   Description
+\fC_rename_batch\fP]   |   Recursive batch file renamer / copy-renamer
+\fC_apply_changes\fP]   |   Safe directory synchronization with rollback
+\fC_symlink_manager\fP]   |   Transactional symlink helper with backups
+\fC_shredder\fP]   |   Secure erase wrapper using \fCshred\fP or overwrite fallback

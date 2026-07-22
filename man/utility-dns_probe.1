@@ -1,0 +1,69 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-dns_probe \- Query DNS records across multiple resolvers and compare their answers.
+.SH SYNOPSIS
+.B utility dns_probe
+[\fIoptions\fP]
+.SH DESCRIPTION
+Query DNS records across multiple resolvers and compare their answers.
+.SH MODES
+.PP
+.IP \(bu 4
+\fBStandard\fP — query each requested type once against the chosen resolver(s).
+.IP \(bu 4
+\fBPropagation\fP — query every default public resolver + system resolver,
+  group by answer, and flag disagreements. Exits \fC1\fP if any type disagrees.
+.IP \(bu 4
+\fBJSON\fP — machine-readable dump of the full query matrix.
+.PP
+.SH BACKENDS (AUTO-DETECTED)
+.PP
+\fCdig\fP → \fCdrill\fP → \fChost\fP.
+.PP
+Install any of them:
+.PP
+Platform   |   Command
+Debian / Ubuntu   |   \fCsudo apt install dnsutils\fP
+Fedora / RHEL     |   \fCsudo dnf install bind-utils\fP
+macOS             |   ships with \fCdig\fP and \fChost\fP
+Termux            |   \fCpkg install dnsutils\fP
+.PP
+.SH DEFAULT RESOLVERS (PROPAGATION MODE)
+.PP
+Name         |   IP
+cloudflare   |   1.1.1.1
+google       |   8.8.8.8
+quad9        |   9.9.9.9
+opendns      |   208.67.222.222
+system       |   \fC/etc/resolv.conf\fP
+.PP
+.SH USAGE
+.PP
+.EX
+dns example.com
+dns example.com --type A,AAAA,MX
+dns example.com --resolver 1.1.1.1 --resolver 8.8.4.4 --system
+dns example.com --propagation
+dns example.com --json > answers.json
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning   |   Default
+\fC--type T[,T,...]\fP    |   Record types. \fCANY\fP expands to defaults.   |   \fCA,AAAA,MX,TXT,NS,CAA,SOA\fP
+\fC--resolver HOST\fP     |   Query HOST (IP or hostname). Repeatable.   |   cloudflare
+\fC--system\fP            |   Include system resolver.                   |   off
+\fC--propagation\fP       |   Compare all default resolvers.             |   off
+\fC--timeout SEC\fP       |   Per-query timeout.                         |   3
+\fC--tries N\fP           |   Retry count per query.                     |   2
+\fC--json\fP              |   JSON output.                               |   off
+\fC--no-color\fP          |   Disable ANSI.                              |   off
+.PP
+.SH EXIT CODES
+.PP
+.IP \(bu 4
+\fC0\fP success (or propagation consensus).
+.IP \(bu 4
+\fC1\fP propagation disagreement.
+.IP \(bu 4
+\fC2\fP argument or dependency error.

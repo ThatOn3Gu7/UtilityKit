@@ -1,0 +1,95 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-ssh_assistant \- Parse `~/.ssh/config` to list named hosts, connect to them quickly by number, or push your public key to a remote host using `ssh-copy-id`.
+.SH SYNOPSIS
+.B utility ssh_assistant
+[\fIoptions\fP]
+.SH DESCRIPTION
+Parse `~/.ssh/config` to list named hosts, connect to them quickly by number, or push your public key to a remote host using `ssh-copy-id`.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBHost listing\fP — reads \fC~/.ssh/config\fP and displays all named hosts with their connection command
+.IP \(bu 4
+\fBQuick connect\fP — pick a host by number from the list instead of typing the full alias
+.IP \(bu 4
+\fBKey deployment\fP — runs \fCssh-copy-id\fP to push your public key to any host
+.IP \(bu 4
+\fBGit host awareness\fP — explains intentional auth-only disconnects from GitHub, GitLab, and Bitbucket
+.IP \(bu 4
+\fBCustom config support\fP — point the tool at any SSH config file with \fC--config\fP
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments lists hosts and prompts for a selection
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _ssh_assistant/_ssh_assistant.sh
+
+bash _ssh_assistant/_ssh_assistant.sh --connect myserver
+
+bash _ssh_assistant/_ssh_assistant.sh --copy-id user@example.com
+
+bash _ssh_assistant/_ssh_assistant.sh --config ~/.ssh/work_config
+
+bash _ssh_assistant/_ssh_assistant.sh --config ~/.ssh/work_config --connect staging
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--connect HOST\fP   |   Connect directly to the named SSH host alias
+\fC--copy-id HOST\fP   |   Run \fCssh-copy-id\fP to deploy your public key to HOST
+\fC--config FILE\fP   |   Use FILE as the SSH config instead of \fC~/.ssh/config\fP
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH SSH CONFIG FORMAT
+.PP
+The tool reads \fCHost\fP entries from your SSH config file. Wildcard entries like \fCHost *\fP are ignored — only named hosts are listed:
+.PP
+.EX
+Host myserver
+  HostName 192.168.1.10
+  User deploy
+  IdentityFile ~/.ssh/id_ed25519
+
+Host staging
+  HostName staging.example.com
+  User ubuntu
+  Port 2222
+
+Host github
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/github_key
+.EE
+.PP
+Running the tool against this config produces:
+.PP
+.EX
+  Named hosts found in ~/.ssh/config:
+
+   1)  myserver    (ssh myserver)
+   2)  staging     (ssh staging)
+   3)  github      (ssh github)
+.EE
+.PP
+.PP
+.PP
+.SH GIT HOSTING SERVICES
+.PP
+When connecting to GitHub, GitLab, or Bitbucket via SSH, the remote end closes the connection immediately after a successful authentication handshake. This is expected behavior — those services do not grant interactive shell access. The tool detects these hosts and explains the disconnect so it does not look like a failure.
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success or user exited the menu
+\fC1\fP   |   Invalid host selection, \fCssh-copy-id\fP not installed, or unknown option

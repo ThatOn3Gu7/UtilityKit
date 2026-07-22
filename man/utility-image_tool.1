@@ -1,0 +1,40 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-image_tool \- Resize, convert formats, strip EXIF metadata, optimize file size, and
+.SH SYNOPSIS
+.B utility image_tool
+[\fIoptions\fP]
+.SH DESCRIPTION
+Resize, convert formats, strip EXIF metadata, optimize file size, and
+.SH BACKENDS
+.PP
+Subcommand   |   Required tool   |   Package
+info, resize, convert, strip, thumb   |   \fCconvert\fP/\fCmagick\fP   |   ImageMagick
+strip   |   \fCexiftool\fP   |   \fCapt install libimage-exiftool-perl\fP
+PNG optimize   |   \fCoptipng\fP   |   \fCapt install optipng\fP
+JPEG optimize   |   \fCjpegoptim\fP   |   \fCapt install jpegoptim\fP
+WebP optimize   |   \fCcwebp\fP   |   \fCapt install webp\fP
+.PP
+.SH USAGE
+.PP
+.EX
+image info photo.jpg
+image info photo.jpg --json
+image resize photo.jpg --width 800 --out resized.jpg
+image convert photo.png --format webp
+image strip photo.jpg --out clean.jpg
+image optimize photo.png
+image thumb photo.jpg --size 200
+.EE
+.PP
+.SH OPTIONS
+.PP
+Flag   |   Meaning
+\fC--width N\fP   |   Target width (pixels)
+\fC--height N\fP   |   Target height (pixels)
+\fC--percent N\fP   |   Resize by percentage
+\fC--format FMT\fP   |   Target format (png, jpg, webp, gif)
+\fC--quality N\fP   |   JPEG/WebP quality 1-100
+\fC--size N\fP   |   Thumbnail max dimension
+\fC--out FILE\fP   |   Output path
+\fC--json\fP   |   Machine-readable output (info only)

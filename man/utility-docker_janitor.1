@@ -1,0 +1,96 @@
+.TH UTILITYKIT 1 "July 2026" "UtilityKit v5.10.6" "UtilityKit Tools"
+.SH NAME
+utility-docker_janitor \- Preview and prune stopped containers, dangling images, and orphaned volumes from a local Docker installation. Shows a disk usage summary before any action is taken.
+.SH SYNOPSIS
+.B utility docker_janitor
+[\fIoptions\fP]
+.SH DESCRIPTION
+Preview and prune stopped containers, dangling images, and orphaned volumes from a local Docker installation. Shows a disk usage summary before any action is taken.
+.SH FEATURES
+.PP
+.IP \(bu 4
+\fBContainer pruning\fP — removes exited and stopped containers
+.IP \(bu 4
+\fBImage pruning\fP — removes dangling untagged image layers
+.IP \(bu 4
+\fBVolume pruning\fP — removes volumes no longer attached to any container
+.IP \(bu 4
+\fBDisk usage summary\fP — displays \fCdocker system df\fP output before prompting
+.IP \(bu 4
+\fBSafe by default\fP — nothing is deleted until you explicitly confirm with \fC--apply\fP
+.IP \(bu 4
+\fBInteractive mode\fP — running without arguments shows counts and prompts for each category
+.PP
+.PP
+.PP
+.SH USAGE
+.PP
+.EX
+bash _docker_janitor/_docker_janitor.sh
+
+bash _docker_janitor/_docker_janitor.sh --containers --images
+
+bash _docker_janitor/_docker_janitor.sh --containers --apply
+
+bash _docker_janitor/_docker_janitor.sh --images --apply
+
+bash _docker_janitor/_docker_janitor.sh --all --apply
+.EE
+.PP
+.PP
+.PP
+.SH OPTIONS
+.PP
+Option   |   Description
+\fC--containers\fP   |   Select stopped containers for pruning
+\fC--images\fP   |   Select dangling images for pruning
+\fC--volumes\fP   |   Select dangling volumes for pruning
+\fC--all\fP   |   Select all three categories at once
+\fC--apply\fP   |   Execute the selected prune operations
+\fC-h, --help\fP   |   Show usage
+.PP
+.PP
+.PP
+.SH WHAT EACH CATEGORY REMOVES
+.PP
+Category   |   What is removed   |   What is kept
+Containers   |   Exited and stopped containers   |   Running containers, images, volumes
+Images   |   Untagged dangling image layers   |   Named and tagged images
+Volumes   |   Volumes with no container reference   |   Volumes attached to any container
+.PP
+.PP
+.PP
+.SH PREVIEW OUTPUT
+.PP
+Before any prompts the tool always displays current counts and disk usage:
+.PP
+.EX
+  Stopped containers   3   (exited and no longer running)
+  Dangling images      7   (untagged layers with no active reference)
+  Dangling volumes     2   (volumes no longer attached to any container)
+
+  Disk usage summary:
+  TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+  Images          12        5         2.1GB     890MB (42%)
+  Containers      3         0         0B        0B
+  Local Volumes   4         2         512MB     210MB (41%)
+.EE
+.PP
+.PP
+.PP
+.SH NOTES
+.PP
+.IP \(bu 4
+Volume pruning is the most destructive option — data stored inside orphaned volumes is permanently lost
+.IP \(bu 4
+This tool is not useful inside Termux since Docker is generally unavailable on Android
+.IP \(bu 4
+The tool verifies that the Docker daemon is reachable before doing anything
+.PP
+.PP
+.PP
+.SH EXIT CODES
+.PP
+Code   |   Meaning
+\fC0\fP   |   Success
+\fC1\fP   |   Docker not found or daemon not reachable
