@@ -556,7 +556,26 @@ export function HomePage() {
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: "var(--text)" }}>
                 Built for the terminal,{" "}
-                <span className="font-serif italic">not around it</span>
+                {/* <span className="font-serif italic">not around it</span> */}
+                <span className="relative inline-block">
+                  <span className="text-gradient-accent italic">not around it</span>
+                  <motion.svg
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 1, delay: 0.8, ease: "easeInOut" }}
+                    viewBox="0 0 300 12"
+                    className="absolute left-0 -bottom-2 w-full h-3 pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <motion.path
+                      d="M2 8 Q 80 2, 150 6 T 298 5"
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </motion.svg>
+                </span>
               </h2>
               <p className="text-base leading-relaxed" style={{ color: "var(--text-muted)" }}>
                 Every design decision favors reliability and composability over surface-level polish. The shell is a first-class runtime.
@@ -696,24 +715,65 @@ export function HomePage() {
 
       {/* DOCTOR CTA */}
       <section className="py-20 border-t" style={{ borderColor: "var(--border)" }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="grid md:grid-cols-2 gap-6 items-start">
-          <PassWidget />
-          <div className="flex flex-col justify-center h-full">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5 w-fit" style={{background:"var(--accent-subtle)",color:"var(--accent)",border:"1px solid color-mix(in oklab, var(--accent) 25%, transparent)"}}>
+       <div className="max-w-4xl mx-auto px-4 sm:px-6">
+         <div
+           className="relative rounded-3xl p-8 sm:p-12 text-center overflow-hidden"
+           style={{
+             background: "var(--bg-elevated)",
+             border: "1px solid var(--border)",
+           }}
+         >
+          <div
+            className="absolute inset-0 pointer-events-none opacity-40"
+            style={{
+              background: "radial-gradient(ellipse at 50% 0%, var(--accent-glow) 0%, transparent 60%)",
+            }}
+          />
+          <div className="relative">
+            <div className="max-w-md mx-auto mb-8">
+              <PassWidget />
+            </div>
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5"
+              style={{
+                background: "var(--accent-subtle)",
+                color: "var(--accent)",
+                border: "1px solid color-mix(in oklab, var(--accent) 25%, transparent)",
+              }}
+            >
               <CheckCircle size={13} weight="fill" />
               <span className="font-mono">PASS 7/7 · integrity checker</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{color:"var(--text)"}}>Trust, but verify.</h2>
-            <p className="text-base leading-relaxed mb-6" style={{color:"var(--text-muted)"}}>
-              <code className="font-mono text-sm px-2 py-0.5 rounded" style={{background:"var(--bg-inset)",color:"var(--accent)"}}>bash main.sh doctor</code> audits every tool's registry entry, dispatch route, and <code className="font-mono text-sm px-2 py-0.5 rounded" style={{background:"var(--bg-inset)",color:"var(--accent)"}}>--help</code> output in one pass. If it fails, we ship no release.
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: "var(--text)" }}>
+              Trust, but verify.
+            </h2>
+            <p className="text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: "var(--text-muted)" }}>
+              <code
+                className="font-mono text-sm px-2 py-0.5 rounded"
+                style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
+              >
+                bash main.sh doctor
+              </code>{" "}
+              audits every tool's registry entry, dispatch route, and{" "}
+              <code
+                className="font-mono text-sm px-2 py-0.5 rounded"
+                style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
+              >
+                --help
+              </code>{" "}
+              output in one pass. If it fails, we ship no release.
             </p>
-            <Link to="/docs/architecture" className="inline-flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4" style={{color:"var(--accent)"}}>
-              Read the architecture <ArrowRight size={13} />
+            <Link
+              to="/docs/architecture"
+              className="inline-flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4"
+              style={{ color: "var(--accent)" }}
+            >
+              Read the architecture
+              <ArrowRight size={13} />
             </Link>
           </div>
         </div>
-      </div>
+       </div>
       </section>
     </div>
   );

@@ -179,7 +179,7 @@ export function TabbedCodeBlock({ tabs }: TabbedCodeBlockProps) {
         className="flex items-center justify-between border-b"
         style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
       >
-        <div className="flex overflow-x-auto">
+        <div className="flex overflow-x-auto hide-scrollbar">
           {tabs.map((tab, i) => (
             <button
               key={i}
