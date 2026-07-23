@@ -42,28 +42,25 @@ sm_setup_colors() {
   fi
 }
 sm_usage() {
-  cat <<EOF
-${C_BOLD}Usage:${C_RESET}
-  _symlink_manager.sh [OPTIONS] <source_file_or_dir> <target_link_path>
-
-${C_BOLD}Description:${C_RESET}
-  Safely creates a symbolic link at <target_link_path> pointing to <source_file_or_dir>.
-  If a file, directory, or symlink already exists at the target, it will be automatically
-  backed up before creating the new link.
-
-${C_BOLD}Options:${C_RESET}
-  ${C_CYAN}--apply${C_RESET}              Actually create symlinks and backups (default is dry-run).
-  ${C_CYAN}--backup-dir <dir>${C_RESET}   Specify a custom directory for storing backups.
-  ${C_CYAN}-y, --yes${C_RESET}            Skip interactive confirmation.
-  ${C_CYAN}-h, --help${C_RESET}           Show this help message and exit.
-
-${C_BOLD}Examples:${C_RESET}
-  # Dry-run test linking dotfiles:
-  bash _symlink_manager.sh ~/.dotfiles/.bashrc ~/.bashrc
-
-  # Apply link with confirmation:
-  bash _symlink_manager.sh --apply ~/.dotfiles/.nvim ~/.config/nvim
-EOF
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%sUsage:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
+  printf '  _symlink_manager.sh [OPTIONS] <source_file_or_dir> <target_link_path>\n\n'
+  printf '%sDescription:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
+  printf '  Safely creates a symbolic link at <target_link_path> pointing to\n'
+  printf '  <source_file_or_dir>.\n\n'
+  uk_help_section "$w" "Options" "--name-w" 26 \
+    "--apply" "Actually create symlinks and backups (default: dry-run)." \
+    "--backup-dir <dir>" "Specify a custom directory for storing backups." \
+    "-y, --yes" "Skip interactive confirmation." \
+    "-h, --help" "Show this help message and exit."
+  printf '\n%sExamples:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
+  printf '  # Dry-run test linking dotfiles:\n'
+  printf '  bash _symlink_manager.sh ~/.dotfiles/.bashrc ~/.bashrc\n\n'
+  printf '  # Apply link with confirmation:\n'
+  printf '  bash _symlink_manager.sh --apply ~/.dotfiles/.nvim ~/.config/nvim\n'
 }
 sm_main() {
   uk_banner "symlink-manager" "Transactional symlink creator with backup of existing targets" "" "$@"

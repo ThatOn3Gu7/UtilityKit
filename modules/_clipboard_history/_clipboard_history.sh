@@ -53,38 +53,31 @@ CH_MAX_DEFAULT=200
 CH_MAX_PREVIEW=80
 
 ch_usage() {
-  cat <<'USAGE'
-Usage:
-  _clipboard_history.sh <subcommand> [OPTIONS]
-
-Subcommands:
-  add [TEXT]              Add TEXT (or piped stdin, or current clipboard) to history.
-  list                    List entries (newest first).
-  get N|--last            Copy entry N (1-indexed) back to the clipboard.
-  show N|--last           Print entry N without touching the clipboard.
-  find PATTERN            Case-insensitive substring/regex search.
-  pin N                   Pin entry so trimming won't drop it.
-  unpin N                 Unpin entry.
-  remove N                Remove entry.
-  clear [--force]         Remove ALL entries (asks confirmation without --force).
-  path                    Print the on-disk store path.
-
-Options:
-  --max N          Cap history to N entries (default 200). Pins are never dropped.
-  --no-clip        Skip actually writing to the OS clipboard (add/get).
-  --json           Machine-readable output (list, find, show).
-  --quiet          Suppress info output.
-  -h, --help       Show this help.
-
-Examples:
-  echo "hello" | _clipboard_history.sh add
-  _clipboard_history.sh add "quick note"
-  _clipboard_history.sh add                # capture whatever's on the clipboard
-  _clipboard_history.sh list --json
-  _clipboard_history.sh find TODO
-  _clipboard_history.sh get 1              # copy most recent
-  _clipboard_history.sh pin 3
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _clipboard_history.sh <subcommand> [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" --name-w 28 \
+    "add [TEXT]" "Add TEXT or clipboard to history" \
+    "list" "List entries (newest first)" \
+    "get N|--last" "Copy entry N back to clipboard" \
+    "show N|--last" "Print entry N without touching clipboard" \
+    "find PATTERN" "Case-insensitive search" \
+    "pin N" "Pin entry so trimming won't drop it" \
+    "unpin N" "Unpin entry" \
+    "remove N" "Remove entry" \
+    "clear [--force]" "Remove ALL entries" \
+    "path" "Print the on-disk store path"
+  printf '\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--max N" "Cap history to N entries (default 200)" \
+    "--no-clip" "Skip writing to the OS clipboard" \
+    "--json" "Machine-readable output (list, find, show)" \
+    "--quiet" "Suppress info output" \
+    "-h, --help" "Show this help"
+  printf '\nExamples:\n  echo "hello" | _clipboard_history.sh add\n'
+  printf '  _clipboard_history.sh add "quick note"\n'
+  printf '  _clipboard_history.sh add\n  _clipboard_history.sh list --json\n'
+  printf '  _clipboard_history.sh find TODO\n'
 }
 
 # ---- Storage helpers -------------------------------------------------------

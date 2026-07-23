@@ -25,18 +25,16 @@ if ! declare -f uk_confirm >/dev/null 2>&1; then
   }
 fi
 dj_usage() {
-  cat <<USAGE
-Usage:
-  _docker_janitor.sh [OPTIONS]
-
-Options:
-  --containers   Prune stopped containers.
-  --images       Prune dangling images.
-  --volumes      Prune dangling volumes.
-  --all          Select all prune categories.
-  --apply        Execute pruning operations.
-  -h, --help     Show help.
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _docker_janitor.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--containers" "Prune stopped containers" \
+    "--images" "Prune dangling images" \
+    "--volumes" "Prune dangling volumes" \
+    "--all" "Select all prune categories" \
+    "--apply" "Execute pruning operations" \
+    "-h, --help" "Show help"
 }
 dj_check() {
   uk_has_cmd docker || {

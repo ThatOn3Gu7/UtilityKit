@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
-td_usage() { echo 'Usage: _todo_manager.sh --add TEXT [--tag TAG] | --list | --done ID | --search TERM'; }
+td_usage() {
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _todo_manager.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--add TEXT" "Add a new task." \
+    "--tag TAG" "Tag for the task (used with --add)." \
+    "--list" "List all tasks." \
+    "--done ID" "Mark task as done by ID." \
+    "--search TERM" "Search tasks by term." \
+    "-h, --help" "Show this help."
+}
 td_file() { printf '%s/todos.tsv\n' "$(uk_data_dir)"; }
 td_sanitize_field() {
   local v="${1:-}"

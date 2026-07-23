@@ -47,38 +47,38 @@ fi
 # --------------------------
 
 rl_usage() {
-  cat <<'USAGE'
-Usage:
-  _regex_lab.sh PATTERN [TEXT] [OPTIONS]
-  _regex_lab.sh [-f FILE | -i] PATTERN
-
-Options:
-  -p, --pattern PAT   Regex pattern to test
-  -t, --text TEXT     Sample text to match against
-  -f, --file FILE     Read sample text from FILE
-  -i, --stdin         Read sample text from stdin
-  -s, --sub SUB       Substitution expression (e.g. 's/foo/bar/g')
-  -m, --multiline     Treat input as multiline (^/$ match line boundaries)
-  -x, --extended      Extended regex mode (perl-compatible by default)
-  -c, --case-insensitive  Case-insensitive matching
-  --color             Colorize matches in output (requires perl or python3)
-  --json              Machine-readable output
-  --no-color          Disable ANSI (also respects NO_COLOR=1)
-  -h, --help          Show this help
-
-Backends tried: perl → grep -P → python3.
-
-Exit codes:
-  0   matches found (or substitution applied)
-  1   no matches
-  2   argument / dependency error
-
-Examples:
-  _regex_lab.sh '\d+' 'hello 42 world 99'
-  _regex_lab.sh -p '\w+' -f /var/log/syslog
-  _regex_lab.sh -p 'foo(bar)' -s 's/foo(bar)/baz$1/' -t 'foobar qux'
-  echo 'abc123' | _regex_lab.sh -p '[a-z]+' -i
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _regex_lab.sh PATTERN [TEXT] [OPTIONS]\n'
+  printf '       _regex_lab.sh [-f FILE | -i] PATTERN\n\n'
+  uk_help_section "$w" "Options" \
+    "-p, --pattern PAT" "Regex pattern to test" \
+    "-t, --text TEXT" "Sample text to match against" \
+    "-f, --file FILE" "Read sample text from FILE" \
+    "-i, --stdin" "Read sample text from stdin" \
+    "-s, --sub SUB" "Substitution expression (e.g. s/foo/bar/g)" \
+    "-m, --multiline" "Treat input as multiline (^/$ match line boundaries)" \
+    "-x, --extended" "Extended regex mode (perl-compatible by default)" \
+    "-c, --case-insensitive" "Case-insensitive matching" \
+    "--color" "Colorize matches in output" \
+    "--json" "Machine-readable output" \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)" \
+    "-h, --help" "Show this help"
+  printf '\n'
+  printf 'Backends tried: perl → grep -P → python3.\n'
+  printf '\n'
+  printf 'Exit codes:\n'
+  printf '  0   matches found (or substitution applied)\n'
+  printf '  1   no matches\n'
+  printf '  2   argument / dependency error\n'
+  printf '\n'
+  printf 'Examples:\n'
+  printf "  _regex_lab.sh '\\\d+' 'hello 42 world 99'\n"
+  printf "  _regex_lab.sh -p '\\\w+' -f /var/log/syslog\n"
+  printf "  _regex_lab.sh -p 'foo(bar)' -s 's/foo(bar)/baz\$1/' -t 'foobar qux'\n"
+  printf "  echo 'abc123' | _regex_lab.sh -p '[a-z]+' -i\n"
 }
 
 # ---- Helpers ---------------------------------------------------------------

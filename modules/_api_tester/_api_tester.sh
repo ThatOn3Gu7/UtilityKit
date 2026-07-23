@@ -19,12 +19,21 @@ at_profiles_dir() {
   printf '%s\n' "$dir"
 }
 at_usage() {
-  cat <<'USAGE'
-Usage:
-  _api_tester.sh [--method METHOD --url URL] [--header 'K: V'] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]
-  _api_tester.sh --save NAME --method METHOD --url URL [--header 'K: V'] [--body TEXT|--body-file FILE]
-  _api_tester.sh --run NAME | --show NAME | --list
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage:\n  _api_tester.sh [--method METHOD --url URL] [--header K:V] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]\n  _api_tester.sh --save NAME --method METHOD --url URL [--header K:V] [--body TEXT|--body-file FILE]\n  _api_tester.sh --run NAME | --show NAME | --list\n\n'
+  uk_help_section "$w" "Options" --name-w 28 \
+    "--method METHOD" "HTTP method (GET, POST, PUT, PATCH, DELETE)" \
+    "--url URL" "Request URL" \
+    "--header K:V" "Request header" \
+    "--body TEXT" "Request body text" \
+    "--body-file FILE" "Read request body from file" \
+    "--expect 2xx,3xx" "Expected HTTP status" \
+    "--save NAME" "Save a reusable profile" \
+    "--run NAME" "Run a saved profile" \
+    "--show NAME" "Display a saved profile" \
+    "--list" "List saved profiles" \
+    "-h, --help" "Show this help"
 }
 at_validate_profile_name() {
   [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || { uk_error "Invalid profile name: ${1:-}. Use letters, numbers, dot, underscore, dash."; return 1; }

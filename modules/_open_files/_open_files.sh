@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
-of_usage() { echo 'Usage: _open_files.sh --path PATH | --port PORT'; }
+of_usage() {
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _open_files.sh --path PATH | --port PORT\n\n'
+  uk_help_section "$w" "Options" \
+    "--path PATH" "File path to find processes using" \
+    "--port PORT" "TCP port to find processes listening on" \
+    "-h, --help" "Show this help"
+}
 of_main() {
   uk_banner "open-files" "Find processes using a path or port via lsof" "" "$@"
   local path='' port=''

@@ -2,13 +2,15 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 am_usage() {
-  cat <<'USAGE'
-Usage:
-  _archive_manager.sh --list ARCHIVE
-  _archive_manager.sh --extract ARCHIVE --dest DIR
-  _archive_manager.sh --create OUT.tar.gz PATH...
-  _archive_manager.sh --create OUT.zip PATH...
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage:\n  _archive_manager.sh --list ARCHIVE\n  _archive_manager.sh --extract ARCHIVE --dest DIR\n  _archive_manager.sh --create OUT.tar.gz PATH...\n  _archive_manager.sh --create OUT.zip PATH...\n\n'
+  uk_help_section "$w" "Options" --name-w 26 \
+    "--list ARCHIVE" "List archive contents" \
+    "--extract ARCHIVE" "Extract archive to --dest DIR" \
+    "--dest DIR" "Destination for extraction" \
+    "--create OUT" "Create archive from PATH..." \
+    "-h, --help" "Show this help"
 }
 am_check_archive_paths() {
   local archive="${1:-}"

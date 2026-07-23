@@ -49,45 +49,42 @@ fi
 IT_APPLY=0
 
 it_usage() {
-  cat <<'USAGE'
-Usage:
-  _image_tool.sh <subcommand> FILE [OPTIONS]
-
-Subcommands:
-  info FILE           Show image dimensions, format, size.
-  resize FILE        Resize image (--width, --height, --percent).
-  convert FILE       Convert between formats (--format png/jpg/webp).
-  strip FILE         Strip EXIF/metadata (requires exiftool or imagemagick).
-  optimize FILE      Optimize file size (optipng/jpegoptim/cwebp).
-  thumb FILE         Generate a thumbnail (--size 200).
-
-Options:
-  --width N          Target width in pixels.
-  --height N         Target height in pixels.
-  --percent N        Resize percentage (e.g. 50).
-  --format FMT       Target format (png, jpg, webp, gif).
-  --quality N        JPEG/WebP quality 1-100 (default 85).
-  --size N           Thumbnail max dimension.
-  --out FILE         Output path.
-  --apply            Actually write/overwrite output files (default is dry-run).
-  --recursive        Reserved; currently rejected instead of silently ignored.
-  --json             Machine-readable output (info).
-  --no-color         Disable ANSI (also respects NO_COLOR=1).
-  -h, --help         Show this help.
-
-Safety:
-  File-writing subcommands (resize, convert, strip, optimize, thumb) preview
-  only by default. Re-run with --apply to write the output file(s).
-
-Backends: ImageMagick (convert/magick), exiftool, optipng, jpegoptim, cwebp.
-
-Examples:
-  _image_tool.sh info photo.jpg
-  _image_tool.sh resize photo.jpg --width 800 --out resized.jpg
-  _image_tool.sh convert photo.png --format webp
-  _image_tool.sh strip photo.jpg --out clean.jpg
-  _image_tool.sh optimize photo.png
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _image_tool.sh <subcommand> FILE [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "info FILE" "Show image dimensions, format, size." \
+    "resize FILE" "Resize image (--width, --height, --percent)." \
+    "convert FILE" "Convert between formats (--format png/jpg/webp)." \
+    "strip FILE" "Strip EXIF/metadata (requires exiftool or imagemagick)." \
+    "optimize FILE" "Optimize file size (optipng/jpegoptim/cwebp)." \
+    "thumb FILE" "Generate a thumbnail (--size 200)."
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--width N" "Target width in pixels." \
+    "--height N" "Target height in pixels." \
+    "--percent N" "Resize percentage (e.g. 50)." \
+    "--format FMT" "Target format (png, jpg, webp, gif)." \
+    "--quality N" "JPEG/WebP quality 1-100 (default 85)." \
+    "--size N" "Thumbnail max dimension." \
+    "--out FILE" "Output path." \
+    "--apply" "Actually write/overwrite output files (default is dry-run)." \
+    "--recursive" "Reserved; currently rejected instead of silently ignored." \
+    "--json" "Machine-readable output (info)." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nSafety:\n'
+  printf '  File-writing subcommands (resize, convert, strip, optimize, thumb) preview\n'
+  printf '  only by default. Re-run with --apply to write the output file(s).\n\n'
+  printf 'Backends: ImageMagick (convert/magick), exiftool, optipng, jpegoptim, cwebp.\n\n'
+  printf 'Examples:\n'
+  printf '  _image_tool.sh info photo.jpg\n'
+  printf '  _image_tool.sh resize photo.jpg --width 800 --out resized.jpg\n'
+  printf '  _image_tool.sh convert photo.png --format webp\n'
+  printf '  _image_tool.sh strip photo.jpg --out clean.jpg\n'
+  printf '  _image_tool.sh optimize photo.png\n'
 }
 
 it_hr() {

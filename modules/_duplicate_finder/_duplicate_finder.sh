@@ -56,16 +56,14 @@ _df_hash() {
   fi
 }
 df_usage() {
-  cat <<'USAGE'
-Usage:
-  _duplicate_finder.sh [DIR] [--delete|--hardlink] [--apply]
-
-Options:
-  --delete      Delete duplicate copies, keeping the first file per hash.
-  --hardlink    Replace duplicates with hardlinks to the first file.
-  --apply       Execute the chosen action.
-  -h, --help    Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _duplicate_finder.sh [DIR] [--delete|--hardlink] [--apply]\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--delete" "Delete duplicate copies, keeping the first file per hash" \
+    "--hardlink" "Replace duplicates with hardlinks to the first file" \
+    "--apply" "Execute the chosen action" \
+    "-h, --help" "Show this help"
 }
 df_scan() {
   command -v find >/dev/null || {

@@ -8,10 +8,16 @@ SC_DNS=1
 SC_TLS=1
 
 sc_usage() {
-  cat <<'USAGE'
-Usage:
-  _ssl_checker.sh HOST [--port 443] [--no-dns] [--no-tls]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _ssl_checker.sh HOST [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--port PORT" "Port to connect on (default: 443)." \
+    "--no-dns" "Skip DNS record lookup." \
+    "--no-tls" "Skip legacy TLS protocol probe." \
+    "-h, --help" "Show this help."
 }
 sc_days_left() {
   python3 - "${1:-}" <<'PY2'

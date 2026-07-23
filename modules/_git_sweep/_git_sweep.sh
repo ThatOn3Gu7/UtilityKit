@@ -101,20 +101,20 @@ _gs_remote_merged() {
   done <<<"$output"
 }
 gs_usage() {
-  cat <<USAGE
-Usage:
-  _git_sweep.sh [OPTIONS]
-
-Options:
-  --repo DIR              Repository directory (default: .)
-  --delete-merged-local   Delete fully merged local branches.
-  --delete-merged-remote  Delete fully merged remote branches.
-  --drop-stashes          Clear git stashes.
-  --clean-artifacts       Run git clean -fdx after preview.
-  --gc                    Run git gc --prune=now.
-  --apply                 Execute destructive actions.
-  -h, --help              Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _git_sweep.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" --name-w 26 \
+    "--repo DIR" "Repository directory (default: .)" \
+    "--delete-merged-local" "Delete fully merged local branches." \
+    "--delete-merged-remote" "Delete fully merged remote branches." \
+    "--drop-stashes" "Clear git stashes." \
+    "--clean-artifacts" "Run git clean -fdx after preview." \
+    "--gc" "Run git gc --prune=now." \
+    "--apply" "Execute destructive actions." \
+    "-h, --help" "Show this help."
 }
 gs_print_lines_or_none() {
   local heading="${1:-}"

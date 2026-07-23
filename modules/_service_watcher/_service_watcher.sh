@@ -2,9 +2,18 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 sw_usage() {
-  cat <<'USAGE'
-Usage: _service_watcher.sh URL... [--expect CODES] [--interval SECONDS] [--profile NAME] [--save NAME]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _service_watcher.sh URL... [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--expect CODES" "Expected HTTP status codes (default: 2xx,3xx)." \
+    "--interval SECONDS" "Polling interval (default: 0 = one-shot)." \
+    "--profile NAME" "Load URLs from a saved profile." \
+    "--save NAME" "Save given URLs as a profile and exit." \
+    "--insecure" "Skip TLS certificate verification." \
+    "-h, --help" "Show this help."
 }
 sw_dir() {
   local d

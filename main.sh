@@ -4,6 +4,83 @@ set -euo pipefail
 readonly UK_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$UK_ROOT_DIR/lib/uk_common.sh"
 
+# ---- Main banner + help (uses box helpers from uk_common.sh) ----
+uk_fh_gradient_logo() {
+  local -a palette=(
+    $'\033[38;5;27m'  $'\033[38;5;33m'  $'\033[38;5;39m'
+    $'\033[38;5;45m'  $'\033[38;5;51m'  $'\033[38;5;123m'
+    $'\033[38;5;159m' $'\033[38;5;195m' $'\033[97m'
+  )
+  local use_color=1
+  [[ -n "${NO_COLOR:-}" || ! -t 1 ]] && use_color=0
+  local -a logo_lines=(
+'██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗'
+'██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝'
+'██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   '
+'██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   '
+'╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   '
+' ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝   '
+  )
+  [[ -n "${NO_UNICODE:-}" ]] && logo_lines=('UTILITYKIT')
+  local n=${#logo_lines[@]} i line idx
+  for i in "${!logo_lines[@]}"; do
+    line="${logo_lines[$i]}"
+    if ((use_color)); then
+      idx=$(( i * (${#palette[@]} - 1) / (n > 1 ? n - 1 : 1) ))
+      printf '%s%s%s\n' "${palette[$idx]}" "$line" "$UK_C_RESET"
+    else
+      printf '%s\n' "$line"
+    fi
+  done
+}
+uk_main_banner() {
+  clear 2>/dev/null || printf '\n'
+  local cols pad
+  cols=$(uk_fh_cols)
+  local logo_native_width=71
+  if ((cols >= logo_native_width + 4)) && [[ -z "${NO_UNICODE:-}" ]]; then
+    pad=$(( (cols - logo_native_width) / 2 ))
+    uk_fh_gradient_logo | while IFS= read -r l; do
+      printf '%*s%s\n' "$pad" '' "$l"
+    done
+  else
+    uk_fh_gradient_logo
+  fi
+  local tagline="UtilityKit Central Hub  ·  v${UK_VERSION}"
+  local tlen tpad
+  tlen=$(uk_fh_len "$tagline")
+  tpad=$(( (cols - tlen) / 2 ))
+  ((tpad < 0)) && tpad=0
+  printf '\n%*s%s%s%s\n\n' "$tpad" '' "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "$tagline" "${UK_C_RESET:-}"
+}
+uk_main_show_help() {
+  uk_main_banner
+  local cols width
+  cols=$(uk_fh_cols)
+  width=$cols
+  ((width > 100)) && width=100
+  ((width < 40)) && width=40
+  local bold="${UK_C_BOLD:-}" reset="${UK_C_RESET:-}" yellow="${UK_C_YELLOW:-}"
+  printf '%sUsage:%s ./main.sh <command> [args]\n\n' "$bold$yellow" "$reset"
+  uk_fh_box_top "$width" " Maintenance "
+  uk_fh_cmd_row "$width" "help, -h"  "Show this message and exit"
+  uk_fh_cmd_row "$width" "doctor"    "Run integrity checks on the tool registry"
+  uk_fh_cmd_row "$width" "tools"     "List all available tools"
+  uk_fh_box_bot "$width"
+  echo
+  uk_fh_box_top "$width" " All Tools "
+  local rec key action name desc
+  for rec in "${UK_REGISTRY[@]}"; do
+    IFS='|' read -r key action _ _ name desc _ <<<"$rec"
+    uk_fh_cmd_row "$width" "$action" "$desc"
+  done
+  uk_fh_box_bot "$width"
+  echo
+  printf '%sUse ./main.sh <command> --help for that tool'"'"'s detailed options.%s\n' \
+    "${UK_C_DIM:-}" "$reset"
+}
+# ---- end fancy help ----
+
 uk_source_tool() {
   local path="${1:-}"
   [[ -f "$path" ]] || {
@@ -143,26 +220,6 @@ uk_expand_path() {
     printf '%s\n' "$input"
   fi
 }
-uk_main_banner() {
-  clear 2>/dev/null || printf '\n'
-  cat <<EOF
-${UK_C_BRIGHT_CYAN}
-
-    ██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗
-    ██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝
-    ██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   
-    ██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   
-    ╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   
-     ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝${UK_C_RESET}
-
-EOF
-  printf '%s\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
-  printf "           %s %s READY%s   %s %s UtilityKit Central Hub %s Suite %sv%s%s\n" \
-    "$UK_C_GREEN" "$UK_I_READY" "$UK_C_RESET" "$UK_C_DIM$UK_I_SEP$UK_C_RESET" \
-    "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET$UK_C_DIM$UK_I_SEP$UK_C_RESET" "$UK_C_BRIGHT_BLUE" "$UK_VERSION" "$UK_C_RESET"
-  printf '%s\n\n' "${UK_C_DIM}     ----------------------------------------------------------------------${UK_C_RESET}"
-}
-
 run_apply_wizard() {
   uk_load apply_changes || return $?
   ac_wizard
@@ -1315,8 +1372,8 @@ run_tool() {
   doctor | diagnostics)
     uk_doctor "$@"
     ;;
-  --version | -v | version | v) 
-   printf ' %s%s%s UtilityKit %s\n' "$UK_C_CYAN" "$UK_I_STAR" "$UK_C_RESET" "v${UK_VERSION:- Unknown}"
+  --version | -v | version | v)
+    printf ' %s%s%s UtilityKit %s\n' "$UK_C_CYAN" "$UK_I_STAR" "$UK_C_RESET" "v${UK_VERSION:- Unknown}"
     ;;
   *)
     uk_error "Unknown command: $cmd"
@@ -1473,10 +1530,10 @@ uk_doctor() {
 uk_tools_catalog() {
   local json=0
   case "${1:-}" in
-    --json) json=1 ;;
-    --format)
-      if [[ "${2:-}" == "json" ]]; then json=1; fi
-      ;;
+  --json) json=1 ;;
+  --format)
+    if [[ "${2:-}" == "json" ]]; then json=1; fi
+    ;;
   esac
 
   if ((json)); then
@@ -1529,38 +1586,6 @@ uk_tools_catalog() {
     printf '%s\n' "$sep"
     printf '  %d tools\n' "${#keys[@]}"
   fi
-}
-
-uk_main_show_help() {
-  uk_main_banner
-  cat <<'EOF'
-Usage:
-
-  bash main.sh <command> [args]
-  # or if you have the launcher installed (default name: utility)
-  utility <command> [args]
-
-Core commands:
-
-  tools      List all available tools (use --json for JSON output)
-  apply, rename, move, cacheclean, symlink, disk, env, git, scaffold, dup,
-  proc, port, ssl, api, pass, ssh, shred, media, toc, pomodoro,
-  cheat, setup, docker
-
-New utility commands:
-
-  network, cron, dotenv, disk-health, service, git-stats, backup,
-  weather, json, tmux, font, toolbox, search, github, links, log-inspect,
-  csv, hash, archive, snapshot, open-files, battery, release, license, todo,
-  update, qr, clipboard, secret, dns, ipinfo, regex, uuid, time, bench, yaml,
-  pdf, image, fwatch, tunnel, hooks, installed
-
-Maintenance:
-
-  doctor     Run integrity checks on the tool registry and installation
-
-Use bash main.sh <command> --help for each tool's detailed options.
-EOF
 }
 
 # Flat arrays for the master unified list
@@ -1621,7 +1646,10 @@ interactive_menu_loop() {
   # and the item viewport are both hand-tuned for that width. The check is a
   # no-op on non-TTYs and when UK_NO_WIDTH_GATE=1, so smoke tests, pipes, and
   # `main.sh <cmd>` CLI invocations are unaffected.
-  uk_require_width || { printf '\n'; return 0; }
+  uk_require_width || {
+    printf '\n'
+    return 0
+  }
 
   load_all_tools
 

@@ -8,13 +8,18 @@ PS_DEST='.'
 PS_FORCE=0
 
 ps_usage() {
-  cat <<'USAGE'
-Usage:
-  _project_scaffold.sh --type TYPE --name NAME [--dest DIR] [--force]
-
-Types:
-  bash, python-flask, node-cli, go-service
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _project_scaffold.sh --type TYPE --name NAME [--dest DIR] [--force]\n\n'
+  uk_help_section "$w" "Options" \
+    "--type TYPE" "Scaffold type: bash, python-flask, node-cli, go-service" \
+    "--name NAME" "Project name (becomes directory name)" \
+    "--dest DIR" "Parent destination directory (default: .)" \
+    "--force" "Overwrite existing target" \
+    "-h, --help" "Show this help"
+  printf 'Types: bash, python-flask, node-cli, go-service\n'
 }
 ps_write_common() {
   local dir="${1:-}" title="${2:-}"

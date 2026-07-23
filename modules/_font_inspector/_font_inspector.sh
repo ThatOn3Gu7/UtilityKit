@@ -19,7 +19,15 @@ if ! declare -f uk_warn >/dev/null 2>&1; then
   }
 fi
 fi_usage() {
-  echo 'Usage: _font_inspector.sh [--list] [--filter NAME] [--glyphs]'
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _font_inspector.sh [--list] [--filter NAME] [--glyphs]\n\n'
+  uk_help_section "$w" "Options" \
+    "--list" "List available fonts on the system." \
+    "--filter NAME" "Filter fonts by name pattern." \
+    "--glyphs" "Display terminal glyph samples."
 }
 fi_main() {
   uk_banner "font-inspector" "Terminal glyph samples and optional font enumeration" "" "$@"

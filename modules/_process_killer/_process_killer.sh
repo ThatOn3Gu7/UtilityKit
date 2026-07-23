@@ -6,10 +6,15 @@ PK_PID=''
 PK_SIGNAL='TERM'
 
 pk_usage() {
-  cat <<'USAGE'
-Usage:
-  _process_killer.sh [--pid PID] [--signal TERM|KILL]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _process_killer.sh [--pid PID] [--signal TERM|KILL]\n\n'
+  uk_help_section "$w" "Options" \
+    "--pid PID" "Process ID to terminate" \
+    "--signal" "Signal to send: TERM or KILL (default: TERM)" \
+    "-h, --help" "Show this help"
 }
 pk_memory_summary() {
   printf '\n  %s%sMemory overview%s\n' "$UK_C_BOLD" "$UK_C_CYAN" "$UK_C_RESET"

@@ -24,7 +24,17 @@ if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n"
 if ! declare -f uk_header >/dev/null 2>&1; then uk_header() { printf "\n=== %s ===\n%s\n" "${1:-}" "${2:-}"; }; fi
 if ! declare -f uk_section_title >/dev/null 2>&1; then uk_section_title() { printf "\n--- %s ---\n" "$*"; }; fi
 gst_usage() {
-  echo 'Usage: _git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]'
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]\n\n'
+  uk_help_section "$w" "Options" \
+    "--repo DIR" "Repository directory (default: .)" \
+    "--since DATE" "Start date (git log --since format)." \
+    "--until DATE" "End date (git log --until format)." \
+    "--author PATTERN" "Filter by author (git log --author pattern)." \
+    "-h, --help" "Show this help."
 }
 gst_main() {
   uk_banner "git-stats" "Commit counts, most-changed files, branch activity" "" "$@"

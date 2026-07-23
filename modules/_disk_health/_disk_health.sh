@@ -4,19 +4,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 dh_usage() {
-  cat <<'USAGE'
-Usage: _disk_health.sh [OPTIONS]
-
-SMART disk health utility (requires smartctl, usually needs sudo).
-
-Options:
-  --list               List all available disks (smartctl --scan)
-  --device DEV         Specify device (e.g., /dev/sda) to inspect
-  --test-short         Start a short self‑test on the device (non‑destructive)
-  -h, --help           Show this help
-
-Without options, shows health and attributes for the first detected disk.
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _disk_health.sh [OPTIONS]\n\nSMART disk health utility (requires smartctl, usually needs sudo).\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--list" "List all available disks (smartctl --scan)" \
+    "--device DEV" "Specify device to inspect" \
+    "--test-short" "Start a short self-test on the device" \
+    "-h, --help" "Show this help"
+  printf '\nWithout options, shows health and attributes for the first detected disk.\n'
 }
 dh_require_smartctl() {
   if ! uk_has_cmd smartctl; then

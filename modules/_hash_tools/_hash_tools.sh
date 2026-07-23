@@ -30,7 +30,15 @@ ht_run_hash() {
   fi
 }
 ht_usage() {
-  echo 'Usage: _hash_tools.sh FILE|DIR...'
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _hash_tools.sh FILE|DIR...\n\n'
+  uk_help_section "$w" "Arguments" \
+    "FILE" "Compute sha256 of a single file." \
+    "DIR" "Recursively sha256 every file in a directory." \
+    "-h, --help" "Show this help."
 }
 ht_main() {
   uk_banner "hash-tools" "sha256/md5 hashing over files and directory trees" "" "$@"

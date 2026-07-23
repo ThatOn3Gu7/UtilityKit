@@ -57,55 +57,56 @@ YD_DEFAULT_DIR="${HOME}/Downloads/YouTube"
 
 # Help / Usage
 yd_usage() {
-  cat <<'USAGE'
-Usage:
-  ytdl                              Interactive download wizard
-  ytdl <URL>                        Wizard with a specific URL
-  ytdl list <URL>                   List all available formats
-  ytdl info <URL>                   Show video metadata
-  ytdl audio <URL>                  Download best audio (default mp3)
-  ytdl download <URL> [options]     Download with custom options
-
-Subcommands:
-  list      Show all available formats for a video
-  info      Display title, duration, channel, views
-  audio     Quick audio extraction
-  download  Full download with options
-
-Options (download subcommand):
-  --format CODE       Format specifier (e.g. "137+140", "best", "bv*+ba/b")
-  --audio-only        Extract audio stream only
-  --audio-format FMT  Output audio format: mp3, m4a, opus, flac, aac
-  --subs              Embed available subtitles
-  --no-thumb          Skip embedding thumbnail
-  --no-meta           Skip embedding metadata
-  --playlist          Download all playlist items
-  --output DIR        Custom output directory
-  -h, --help          Show this help
-
-Examples:
-  ytdl https://youtube.com/watch?v=dQw4w9WgXcQ
-  ytdl list https://youtube.com/watch?v=dQw4w9WgXcQ
-  ytdl download https://youtube.com/watch?v=dQw4w9WgXcQ --format 137+140 --subs
-  ytdl audio https://youtube.com/watch?v=dQw4w9WgXcQ --audio-format opus
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n'
+  printf '  ytdl                              Interactive download wizard\n'
+  printf '  ytdl <URL>                        Wizard with a specific URL\n'
+  printf '  ytdl list <URL>                   List all available formats\n'
+  printf '  ytdl info <URL>                   Show video metadata\n'
+  printf '  ytdl audio <URL>                  Download best audio (default mp3)\n'
+  printf '  ytdl download <URL> [options]     Download with custom options\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "list" "Show all available formats for a video." \
+    "info" "Display title, duration, channel, views." \
+    "audio" "Quick audio extraction." \
+    "download" "Full download with options."
+  printf '\n'
+  uk_help_section "$w" "Options" "--name-w" 22 \
+    "--format CODE" "Format specifier (e.g. \"137+140\", \"best\", \"bv*+ba/b\")." \
+    "--audio-only" "Extract audio stream only." \
+    "--audio-format FMT" "Output audio format: mp3, m4a, opus, flac, aac." \
+    "--subs" "Embed available subtitles." \
+    "--no-thumb" "Skip embedding thumbnail." \
+    "--no-meta" "Skip embedding metadata." \
+    "--playlist" "Download all playlist items." \
+    "--output DIR" "Custom output directory." \
+    "-h, --help" "Show this help."
+  printf '\nExamples:\n'
+  printf '  ytdl https://youtube.com/watch?v=dQw4w9WgXcQ\n'
+  printf '  ytdl list https://youtube.com/watch?v=dQw4w9WgXcQ\n'
+  printf '  ytdl download https://youtube.com/watch?v=dQw4w9WgXcQ --format 137+140 --subs\n'
+  printf '  ytdl audio https://youtube.com/watch?v=dQw4w9WgXcQ --audio-format opus\n'
 }
 
 yd_dl_usage() {
-  cat <<'USAGE'
-Usage: ytdl download <URL> [options]
-
-Options:
-  --format CODE       Format specifier (e.g. "137+140", "best", "bv*+ba/b")
-  --audio-only        Extract audio stream only
-  --audio-format FMT  Output audio format: mp3, m4a, opus, flac, aac
-  --subs              Embed available subtitles
-  --no-thumb          Skip embedding thumbnail
-  --no-meta           Skip embedding metadata
-  --playlist          Download all playlist items
-  --output DIR        Custom output directory
-  -h, --help          Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: ytdl download <URL> [options]\n\n'
+  uk_help_section "$w" "Options" "--name-w" 22 \
+    "--format CODE" "Format specifier (e.g. \"137+140\", \"best\", \"bv*+ba/b\")." \
+    "--audio-only" "Extract audio stream only." \
+    "--audio-format FMT" "Output audio format: mp3, m4a, opus, flac, aac." \
+    "--subs" "Embed available subtitles." \
+    "--no-thumb" "Skip embedding thumbnail." \
+    "--no-meta" "Skip embedding metadata." \
+    "--playlist" "Download all playlist items." \
+    "--output DIR" "Custom output directory." \
+    "-h, --help" "Show this help."
 }
 
 # Helpers

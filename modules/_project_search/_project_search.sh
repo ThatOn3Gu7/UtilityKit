@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
-psrch_usage() { echo 'Usage: _project_search.sh --text PATTERN|--name GLOB [DIR]'; }
+psrch_usage() {
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _project_search.sh --text PATTERN|--name GLOB [DIR]\n\n'
+  uk_help_section "$w" "Options" \
+    "--text PATTERN" "Search file contents for pattern" \
+    "--name GLOB" "Search for filenames matching glob" \
+    "-h, --help" "Show this help"
+}
 psrch_main() {
   uk_banner "project-search" "Text or filename search with rg → grep → find fallback" "" "$@"
   local text='' name='' dir='.'

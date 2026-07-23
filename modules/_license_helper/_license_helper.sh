@@ -13,13 +13,16 @@ if ! declare -f uk_warn >/dev/null 2>&1; then uk_warn() { printf "Warning: %s\n"
 # --------------------------
 
 lic_usage() {
-  cat <<USAGE
-Usage:
-  _license_helper.sh --detect
-  _license_helper.sh --generate TYPE --name NAME
-
-Types: mit, apache
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _license_helper.sh --detect\n  _license_helper.sh --generate TYPE --name NAME\n\n'
+  uk_help_section "$w" "Options" \
+    "--detect" "Detect existing license in current directory." \
+    "--generate TYPE" "Generate license (mit, apache)." \
+    "--name NAME" "Name for the license." \
+    "-h, --help" "Show this help."
 }
 lic_main() {
   uk_banner "license-helper" "Detect existing license and generate MIT or Apache 2.0" "" "$@"

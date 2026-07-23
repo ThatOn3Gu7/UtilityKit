@@ -4,14 +4,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 csvt_usage() {
-  cat <<'USAGE'
-Usage: _csv_toolkit.sh FILE [--columns] [--head N]
-
-Options:
-  --columns    Print only the header row (column names)
-  --head N     Show the first N data rows (default: 10)
-  -h, --help   Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _csv_toolkit.sh FILE [--columns] [--head N]\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--columns" "Print only the header row (column names)" \
+    "--head N" "Show the first N data rows (default: 10)" \
+    "-h, --help" "Show this help"
 }
 csvt_main() {
   uk_banner "csv-toolkit" "CSV column header print and row preview" "" "$@"

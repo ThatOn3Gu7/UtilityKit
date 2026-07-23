@@ -53,14 +53,12 @@ da_scan() {
   rm -f "$raw" "${raw}.filtered" "$sorted"
 }
 da_usage() {
-  cat <<EOF
-${C_BOLD}Usage:${C_RESET}
-  _disk_analyzer.sh [OPTIONS] [DIRECTORY]
-
-${C_BOLD}Options:${C_RESET}
-  ${C_CYAN}-n, --count <num>${C_RESET}    Number of top items to display (default: 10).
-  ${C_CYAN}-h, --help${C_RESET}           Show this help message and exit.
-EOF
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _disk_analyzer.sh [OPTIONS] [DIRECTORY]\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "-n, --count <num>" "Number of top items to display (default: 10)" \
+    "-h, --help" "Show this help message and exit"
 }
 da_main() {
   uk_banner "disk-analyzer" "Largest-items disk usage explorer with optional archiving" "" "$@"

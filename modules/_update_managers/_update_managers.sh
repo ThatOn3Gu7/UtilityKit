@@ -147,34 +147,32 @@ check_internet() {
 
 # ----------------------------- Helpers & UI ---------------------------------
 usage() {
-  cat <<EOF
-${SCRIPT_NAME} v${UK_VERSION}
-
-Detect and securely update all package managers found on this machine.
-
-Usage:
-  ${SCRIPT_NAME} [options]
-
-Modes:
-  -i, --interactive       Force interactive menu
-  -y, --yes, --all        Non-interactive: auto-update all detected managers
-      --list              Detect and list managers beautifully, then exit
-      --dry-run           Simulate operations; show commands without changing anything
-
-Filtering:
-      --only a,b,c        Run only matching manager ids, e.g., apt,brew,npm
-      --skip a,b,c        Skip matching manager ids
-
-Output:
-      --no-color          Disable ANSI colors
-      --color             Force ANSI colors
-      --ascii             Disable Unicode icons/spinners
-      --unicode           Force Unicode icons/spinners
-      --no-clear          Do not clear the screen before the banner
-      --log-file FILE     Write full combined execution logs to FILE
-  -v, --verbose           Print command output directly (disables spinner)
-  -h, --help              Show this help menu
-EOF
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%s v%s\n\n' "${SCRIPT_NAME}" "${UK_VERSION}"
+  printf 'Detect and securely update all package managers found on this machine.\n\n'
+  printf 'Usage:\n  %s [options]\n\n' "${SCRIPT_NAME}"
+  uk_help_section "$w" "Modes" \
+    "-i, --interactive" "Force interactive menu." \
+    "-y, --yes, --all" "Non-interactive: auto-update all detected managers." \
+    "--list" "Detect and list managers beautifully, then exit." \
+    "--dry-run" "Simulate operations; show commands without changing anything."
+  printf '\n'
+  uk_help_section "$w" "Filtering" \
+    "--only a,b,c" "Run only matching manager ids, e.g. apt,brew,npm." \
+    "--skip a,b,c" "Skip matching manager ids."
+  printf '\n'
+  uk_help_section "$w" "Output" \
+    "--no-color" "Disable ANSI colors." \
+    "--color" "Force ANSI colors." \
+    "--ascii" "Disable Unicode icons/spinners." \
+    "--unicode" "Force Unicode icons/spinners." \
+    "--no-clear" "Do not clear the screen before the banner." \
+    "--log-file FILE" "Write full combined execution logs to FILE." \
+    "-v, --verbose" "Print command output directly (disables spinner)." \
+    "-h, --help" "Show this help menu."
 }
 
 is_tty() { [ -t 1 ]; }

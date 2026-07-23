@@ -11,10 +11,16 @@ MT_END='<!-- utilitykit:toc:end -->'
 MT_TOC_COUNT=0
 
 mt_usage() {
-  cat <<'USAGE'
-Usage:
-  _markdown_toc.sh FILE [--apply] [--check-links] [--align-tables]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _markdown_toc.sh FILE [--apply] [--check-links] [--align-tables]\n\n'
+  uk_help_section "$w" "Options" \
+    "--apply" "Apply TOC changes to the file" \
+    "--check-links" "Validate relative markdown links" \
+    "--align-tables" "Align pipe table columns" \
+    "-h, --help" "Show this help"
 }
 mt_anchor() {
   local text="${1:-}"

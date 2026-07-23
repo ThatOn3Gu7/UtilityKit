@@ -4,15 +4,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 cm_usage() {
-  cat <<'USAGE'
-Usage: _cron_manager.sh --list | --add '*/5 * * * * cmd' [--apply] | --remove N [--apply]
-Options:
-  --list              Show current crontab with line numbers
-  --add '...'         Add a new cron entry (dry-run unless --apply)
-  --remove N          Remove line number N (dry-run unless --apply)
-  --apply             Apply changes (otherwise dry-run)
-  -h, --help          Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _cron_manager.sh --list | --add '"'"'*/5 * * * * cmd'"'"' [--apply] | --remove N [--apply]\n\n'
+  uk_help_section "$w" "Options" --name-w 24 \
+    "--list" "Show current crontab with line numbers" \
+    "--add '...'" "Add a new cron entry (dry-run unless --apply)" \
+    "--remove N" "Remove line number N (dry-run unless --apply)" \
+    "--apply" "Apply changes (otherwise dry-run)" \
+    "-h, --help" "Show this help"
 }
 cm_have() {
   uk_has_cmd crontab || {

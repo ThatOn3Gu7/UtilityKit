@@ -3,18 +3,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 # Usage
 bs_usage() {
-  cat <<'USAGE'
-Usage:
-  _backup_sync.sh --source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...
-
-Options:
-  --source, -s DIR      Source directory
-  --dest, -d DIR        Destination directory
-  --apply               Actually perform the copy; otherwise dry-run
-  --delete              Delete files in destination that are not in source (requires rsync)
-  --exclude PATTERN     Exclude files/dirs matching pattern (can be repeated)
-  -h, --help            Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage:\n  _backup_sync.sh --source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...\n\n'
+  uk_help_section "$w" "Options" --name-w 24 \
+    "--source, -s DIR" "Source directory" \
+    "--dest, -d DIR" "Destination directory" \
+    "--apply" "Actually perform the copy; otherwise dry-run" \
+    "--delete" "Delete files in destination not in source (rsync)" \
+    "--exclude PATTERN" "Exclude files/dirs matching pattern" \
+    "-h, --help" "Show this help"
 }
 bs_is_excluded() {
   local rel="${1:-}" pattern component

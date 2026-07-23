@@ -39,22 +39,22 @@ if ! declare -f uk_prompt >/dev/null 2>&1; then
   }
 fi
 em_usage() {
-  cat <<USAGE
-Usage:
-  _env_manager.sh [OPTIONS]
-
-Options:
-  --dir DIR           Project directory containing .env profiles.
-  --profile NAME      Profile name to inspect/swap (e.g. local, staging, production).
-  --apply             Copy .env.<profile> to .env.
-  --compare           Compare active .env against .env.example.
-  --validate [FILE]   Validate syntax of FILE (default: .env in --dir).
-  --encrypt FILE      Encrypt a file using gpg -c or openssl.
-  --decrypt FILE      Decrypt a .gpg/.enc file.
-  --active FILE       Active env file name (default: .env).
-  --example FILE      Example env file name (default: .env.example).
-  -h, --help          Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _env_manager.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--dir DIR" "Project directory containing .env profiles." \
+    "--profile NAME" "Profile name to inspect/swap (e.g. local, staging, production)." \
+    "--apply" "Copy .env.<profile> to .env." \
+    "--compare" "Compare active .env against .env.example." \
+    "--validate [FILE]" "Validate syntax of FILE (default: .env in --dir)." \
+    "--encrypt FILE" "Encrypt a file using gpg -c or openssl." \
+    "--decrypt FILE" "Decrypt a .gpg/.enc file." \
+    "--active FILE" "Active env file name (default: .env)." \
+    "--example FILE" "Example env file name (default: .env.example)." \
+    "-h, --help" "Show this help."
 }
 em_safe_project_file() {
   local name="${1:-}"

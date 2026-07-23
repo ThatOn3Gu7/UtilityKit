@@ -244,7 +244,17 @@ tms_wizard() {
 }
 # ROUTING LOGIC
 tms_usage() {
-  echo -e "Usage: $(basename "$0") [--list | --new NAME | --attach NAME | --kill NAME]"
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: %s [OPTIONS]\n\n' "$(basename "$0")"
+  uk_help_section "$w" "Options" \
+    "-l, --list" "List all active tmux sessions." \
+    "-n, --new NAME" "Create a new session." \
+    "-a, --attach NAME" "Attach to an existing session." \
+    "-k, --kill NAME" "Kill a session." \
+    "-h, --help" "Show this help."
 }
 
 tms_main() {

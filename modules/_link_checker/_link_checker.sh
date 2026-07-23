@@ -13,15 +13,15 @@ if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n"
 if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
 
 lc_usage() {
-  cat <<USAGE
-Usage:
-  _link_checker.sh FILE... [OPTIONS]
-
-Options:
-  --http           Check live HTTP(S) links (slow).
-  --timeout N      Network timeout in seconds (default: 8).
-  -h, --help       Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _link_checker.sh FILE... [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--http" "Check live HTTP(S) links (slow)." \
+    "--timeout N" "Network timeout in seconds (default: 8)." \
+    "-h, --help" "Show this help."
 }
 lc_main() {
   uk_banner "link-checker" "Markdown link validator with optional HTTP/HTTPS checks" "" "$@"

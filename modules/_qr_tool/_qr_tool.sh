@@ -51,37 +51,35 @@ fi
 # --------------------------
 
 qr_usage() {
-  cat <<'USAGE'
-Usage:
-  _qr_tool.sh <subcommand> [OPTIONS]
-
-Subcommands:
-  encode  --text TXT                   Encode arbitrary text/URL
-  encode  --wifi SSID [--psk PASS]     Encode Wi-Fi config (WPA/WPA2)
-          [--enc WPA|WEP|nopass] [--hidden]
-  encode  --vcard NAME [--phone P]     Encode a minimal vCard 3.0
-          [--email E] [--org O] [--title T]
-  decode  --image FILE                 Decode a QR image (PNG/JPG/GIF)
-
-Options:
-  --out FILE          Write PNG to FILE (encode). Default: print ASCII to terminal.
-  --size SMALL|LARGE  Terminal ASCII size (small=UTF-8 blocks, large=1 module/char).
-  --level L|M|Q|H     Error-correction level (default M).
-  --margin N          Quiet-zone modules (default 2).
-  --no-color          Disable ANSI (also respects NO_COLOR=1).
-  --json              Machine-readable output (decode subcommand).
-  -h, --help          Show this help.
-
-Encoders tried in order: qrencode → python3 qrcode.
-Decoders tried in order: zbarimg → python3 pyzbar.
-
-Examples:
-  _qr_tool.sh encode --text "https://example.com"
-  _qr_tool.sh encode --text "hello" --out qr.png
-  _qr_tool.sh encode --wifi HomeNet --psk hunter2 --enc WPA
-  _qr_tool.sh encode --vcard "Ada Lovelace" --email ada@ex.com --phone 555-0100
-  _qr_tool.sh decode --image qr.png --json
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _qr_tool.sh <subcommand> [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "encode --text TXT" "Encode arbitrary text/URL" \
+    "encode --wifi SSID" "Encode Wi-Fi config (WPA/WPA2)" \
+    "encode --vcard NAME" "Encode a minimal vCard 3.0" \
+    "decode --image FILE" "Decode a QR image (PNG/JPG/GIF)"
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--out FILE" "Write PNG to FILE (encode). Default: print ASCII to terminal" \
+    "--size" "Terminal ASCII size: SMALL or LARGE (default: SMALL)" \
+    "--level L|M|Q|H" "Error-correction level (default: M)" \
+    "--margin N" "Quiet-zone modules (default: 2)" \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)" \
+    "--json" "Machine-readable output (decode subcommand)" \
+    "-h, --help" "Show this help"
+  printf '\n'
+  printf 'Encoders tried in order: qrencode → python3 qrcode.\n'
+  printf 'Decoders tried in order: zbarimg → python3 pyzbar.\n'
+  printf '\n'
+  printf 'Examples:\n'
+  printf '  _qr_tool.sh encode --text "https://example.com"\n'
+  printf '  _qr_tool.sh encode --text "hello" --out qr.png\n'
+  printf '  _qr_tool.sh encode --wifi HomeNet --psk hunter2 --enc WPA\n'
+  printf '  _qr_tool.sh encode --vcard "Ada Lovelace" --email ada@ex.com --phone 555-0100\n'
+  printf '  _qr_tool.sh decode --image qr.png --json\n'
 }
 
 # ---- Helpers ----------------------------------------------------------------

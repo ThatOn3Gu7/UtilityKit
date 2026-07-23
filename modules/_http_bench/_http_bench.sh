@@ -46,32 +46,30 @@ fi
 # --------------------------
 
 hb_usage() {
-  cat <<'USAGE'
-Usage:
-  _http_bench.sh URL [OPTIONS]
-
-Options:
-  -n, --requests N     Total number of requests (default 50).
-  -c, --concurrency N  Concurrent workers (default 5).
-  -m, --method M       HTTP method: GET, POST, PUT, DELETE (default GET).
-  -H, --header H       Custom header (repeatable).
-  -d, --data DATA      Request body (for POST/PUT).
-  --timeout SEC        Per-request timeout (default 10).
-  --keep-alive         Use HTTP keep-alive (default: off).
-  --json               Machine-readable JSON output.
-  --no-color           Disable ANSI (also respects NO_COLOR=1).
-  -h, --help           Show this help.
-
-External backends: hey, wrk (used automatically if installed).
-  Install hey:  https://github.com/rakyll/hey
-  Install wrk:  https://github.com/wg/wrk
-
-Examples:
-  _http_bench.sh https://example.com
-  _http_bench.sh https://api.example.com -n 200 -c 10
-  _http_bench.sh https://httpbin.org/post -m POST -d '{"key":"value"}' -H 'Content-Type: application/json'
-  _http_bench.sh https://example.com -n 1000 -c 50 --json
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _http_bench.sh URL [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "-n, --requests N" "Total number of requests (default 50)." \
+    "-c, --concurrency N" "Concurrent workers (default 5)." \
+    "-m, --method M" "HTTP method: GET, POST, PUT, DELETE (default GET)." \
+    "-H, --header H" "Custom header (repeatable)." \
+    "-d, --data DATA" "Request body (for POST/PUT)." \
+    "--timeout SEC" "Per-request timeout (default 10)." \
+    "--keep-alive" "Use HTTP keep-alive (default: off)." \
+    "--json" "Machine-readable JSON output." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nExternal backends: hey, wrk (used automatically if installed).\n'
+  printf '  Install hey:  https://github.com/rakyll/hey\n'
+  printf '  Install wrk:  https://github.com/wg/wrk\n\n'
+  printf 'Examples:\n'
+  printf '  _http_bench.sh https://example.com\n'
+  printf '  _http_bench.sh https://api.example.com -n 200 -c 10\n'
+  printf "  _http_bench.sh https://httpbin.org/post -m POST -d '{\"key\":\"value\"}' -H 'Content-Type: application/json'\n"
+  printf '  _http_bench.sh https://example.com -n 1000 -c 50 --json\n'
 }
 
 # ---- Helpers ---------------------------------------------------------------

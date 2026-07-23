@@ -27,19 +27,18 @@ CC_SCAN_FAILED=0
 CC_ERRORS=()
 # Usage function
 cc_usage() {
-  cat <<EOF
-Usage: cacheclean [OPTIONS]
-
-Options:
-  -h, --help            Show help
-  -y, --yes             Auto-confirm deletion
-      --older-than DAYS
-  -q, --quiet
-      --no-color
-      --fancy           Force nice Unicode
-      --no-fancy        Force plain ASCII
-      --debug
-EOF
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: cacheclean [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "-h, --help" "Show help" \
+    "-y, --yes" "Auto-confirm deletion" \
+    "--older-than DAYS" "Only clean caches older than N days" \
+    "-q, --quiet" "Suppress output" \
+    "--no-color" "Disable ANSI colors" \
+    "--fancy" "Force nice Unicode" \
+    "--no-fancy" "Force plain ASCII" \
+    "--debug" "Enable debug output"
 }
 cc_parse_args() {
   while [ $# -gt 0 ]; do

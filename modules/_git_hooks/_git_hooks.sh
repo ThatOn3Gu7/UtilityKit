@@ -43,27 +43,26 @@ GH_BUNDLED_HOOKS=(
 )
 
 gh_usage() {
-  cat <<'USAGE'
-Usage: _git_hooks.sh <install|remove|list|show> [PATH]
-
-Commands:
-  install [PATH]    Install hooks in repo at PATH (default: .)
-  remove [PATH]     Remove UtilityKit hooks from repo at PATH
-  list [PATH]       List hooks installed in repo at PATH
-  show [NAME]       Display bundled hook template contents
-  --no-color        Disable ANSI
-  -h, --help        Show this help
-
-Bundled templates:
-  pre-commit   — lint staged shell/Python files
-  commit-msg   — validate commit message format
-  pre-push     — run tests before push
-
-Examples:
-  _git_hooks.sh install /path/to/repo
-  _git_hooks.sh list
-  _git_hooks.sh show pre-commit
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _git_hooks.sh <install|remove|list|show> [PATH]\n\n'
+  uk_help_section "$w" "Commands" \
+    "install [PATH]" "Install hooks in repo at PATH (default: .)" \
+    "remove [PATH]" "Remove UtilityKit hooks from repo at PATH" \
+    "list [PATH]" "List hooks installed in repo at PATH" \
+    "show [NAME]" "Display bundled hook template contents" \
+    "--no-color" "Disable ANSI" \
+    "-h, --help" "Show this help"
+  printf '\nBundled templates:\n'
+  printf '  pre-commit   \342\200\224 lint staged shell/Python files\n'
+  printf '  commit-msg   \342\200\224 validate commit message format\n'
+  printf '  pre-push     \342\200\224 run tests before push\n\n'
+  printf 'Examples:\n'
+  printf '  _git_hooks.sh install /path/to/repo\n'
+  printf '  _git_hooks.sh list\n'
+  printf '  _git_hooks.sh show pre-commit\n'
 }
 
 gh_git_dir() {

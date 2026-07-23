@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.11.0] - 2026-07-23
+
+### Changed
+- **`fancy_help.sh` merged into `main.sh`.** All fancy help functions (`uk_fh_*`, `uk_main_banner`, `uk_main_show_help`) are now inlined directly in `main.sh`, eliminating the extra source dependency and the stale commented-out help blocks. `fancy_help.sh` removed.
+- **Every tool's `--help` now uses boxed table formatting.** All 63 tool usage functions were rewritten to render flags and options inside `╭── Title ──╮` / `│ flag  desc │` / `╰──────────╯` boxes using the shared `uk_help_section()` helper. Each tool keeps its own header/banner; non-option content (examples, notes, exit codes) stays as plain text outside the boxes. The box-drawing helpers (`uk_fh_len`, `uk_fh_box_top`, `uk_fh_box_line`, `uk_fh_cmd_row`, etc.) were moved from `main.sh` to `lib/uk_common.sh` so all tools can call them.
+
+### Added
+- **`uk_main_show_help` now lists ALL tools dynamically.** Instead of a hardcoded subset of ~20 tools in artificial categories, the help output iterates `UK_REGISTRY` and displays every registered tool with its command and description, so the help is always in sync with the actual tool set.
+- **`uk_fh_ellide()` — ANSI-safe truncation with ellipsis.** When a description is too long to fit the box width, it is truncated with `...` instead of overflowing and breaking the table. Works across all boxed help output (main help + all 63 tools).
+- **`uk_help_section()` — high-level boxed section helper.** A convenience function in `uk_common.sh` that draws a complete labeled box with alternating command/description rows. Accepts optional `--name-w N` to control the command column width for tools with long flags.
+
+### Fixed
+- **Border misalignment in boxed help.** `uk_fh_box_top`'s right-fill calculation was off by 2 characters when a label was present, causing the top border to be wider than the body lines. Corrected `right_fill` formula from `width - llen - left_pad - 2` to `width - llen - left_pad - 4`.
+
 ## [5.10.6] - 2026-07-21
 
 ### Added

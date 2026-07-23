@@ -4,19 +4,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 # Usage
 bd_usage() {
-  cat <<'USAGE'
-Usage: _battery_doctor.sh [OPTIONS]
-
-Display battery status (if available) and top CPU/memory‑consuming processes.
-
-Options:
-  -h, --help    Show this help message and exit.
-
-Backends tried (in order):
-  - termux-battery-status (Termux/Android)
-  - pmset -g batt          (macOS)
-  - acpi -V                (Linux with ACPI)
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _battery_doctor.sh [OPTIONS]\n\nDisplay battery status (if available) and top CPU/memory-consuming processes.\n\n'
+  uk_help_section "$w" "Options" \
+    "-h, --help" "Show this help message and exit"
+  printf '\nBackends tried (in order):\n  - termux-battery-status (Termux/Android)\n  - pmset -g batt (macOS)\n  - acpi -V (Linux with ACPI)\n'
 }
 # Show battery information using the first available backend
 bd_show_battery() {

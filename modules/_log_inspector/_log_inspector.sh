@@ -12,14 +12,14 @@ fi
 if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n" "$*" >&2; }; fi
 
 li_usage() {
-  cat <<USAGE
-Usage:
-  _log_inspector.sh FILE [OPTIONS]
-
-Options:
-  --pattern REGEX  Grep pattern (default: error|warn|fail|exception)
-  -h, --help       Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _log_inspector.sh FILE [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--pattern REGEX" "Grep pattern (default: error|warn|fail|exception)" \
+    "-h, --help" "Show this help."
 }
 li_main() {
   uk_banner "log-inspector" "Grep error/warn/fail patterns and surface frequent lines" "" "$@"

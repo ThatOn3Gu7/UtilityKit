@@ -936,7 +936,10 @@ mib_ac_pick_dir() {
 
 #  7.  HELP & VERSION
 show_help() {
-
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
   printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "USAGE")"
   printf "\n"
   printf "    %s %s %s %s\n" \
@@ -948,15 +951,14 @@ show_help() {
     "$(colorize "$MIB_C_CYAN" "  bash _move_in_batch.sh")" \
     "$(colorize "$MIB_C_DIM" "-i  (launch interactive picker)")"
   printf "\n"
-  printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "FLAGS")"
-  printf "\n"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_GREEN" "-t, --target")" "Source directory (required)"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_YELLOW" "-o, --output")" "Destination directory (required)"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_RED" "-e, --exclude")" "Extensions / patterns to skip"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_MAGENTA" "-f, --flatten")" "Strip subdirectory structure"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_BLUE" "-m, --method")" "Transfer method: cp (default) or mv"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_CYAN" "-i, --interactive")" "Launch interactive directory picker"
-  printf "    %-22s %s\n" "$(colorize "$MIB_C_CYAN" "-h, --help")" "Show this help"
+  uk_help_section "$w" "Flags" \
+    "-t, --target DIR" "Source directory (required)" \
+    "-o, --output DIR" "Destination directory (required)" \
+    "-e, --exclude" "Extensions/patterns to skip" \
+    "-f, --flatten" "Strip subdirectory structure" \
+    "-m, --method" "Transfer method: cp (default) or mv" \
+    "-i, --interactive" "Launch interactive directory picker" \
+    "-h, --help" "Show this help"
   printf "\n"
   printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "EXAMPLES")"
   printf "\n"

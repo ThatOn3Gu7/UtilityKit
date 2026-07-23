@@ -9,10 +9,17 @@ SA_ADD_HOST=''
 SA_ADD_REQUESTED=0
 
 sa_usage() {
-  cat <<'USAGE'
-Usage:
-  _ssh_assistant.sh [--connect HOST] [--copy-id HOST] [--add [HOST]] [--config FILE]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _ssh_assistant.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--connect HOST" "SSH to a named host from the config." \
+    "--copy-id HOST" "Copy SSH public key to a remote host." \
+    "--add [HOST]" "Add a new host entry interactively." \
+    "--config FILE" "Path to SSH config (default: ~/.ssh/config)." \
+    "-h, --help" "Show this help."
 }
 
 sa_valid_alias() { [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; }

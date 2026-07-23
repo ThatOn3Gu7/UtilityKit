@@ -208,37 +208,34 @@ ic_register_managers() {
 ic_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
 
 ic_usage() {
-  cat <<EOF
-${SCRIPT_NAME} v${UK_VERSION:-Unknown}
-
-List installed packages (native + language package managers) and every
-executable command discoverable on your \$PATH. Versions are shown per package
-when the manager reports them, as: [ - name → v1.2.3 ].
-
-Usage:
-  ${SCRIPT_NAME} [options]
-
-Modes (default: list packages AND PATH commands):
-  --packages            Only list packages per detected package manager
-  --commands            Only list executable commands found in \$PATH
-  --all                 List both (default)
-
-Filtering:
-  --category c1,c2      Limit to: system, apps, language, tools
-  --manager id1,id2     Only these package-manager ids (e.g. apt,brew,npm)
-
-Output:
-  --count               Show a per-manager / total count instead of names
-  --json                Emit a machine-readable JSON summary
-  --export FILE         Write a plain-text report to FILE
-  --no-color            Disable ANSI colors
-  -h, --help            Show this help
-
-Examples:
-  ${SCRIPT_NAME} --packages --category language
-  ${SCRIPT_NAME} --commands --count
-  ${SCRIPT_NAME} --manager apt,brew --json
-EOF
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%s v%s\n\n' "${SCRIPT_NAME}" "${UK_VERSION:-Unknown}"
+  printf 'List installed packages (native + language package managers) and every\n'
+  printf "executable command discoverable on your \$PATH. Versions are shown per package\n"
+  printf 'when the manager reports them, as: [ - name \342\206\222 v1.2.3 ].\n\n'
+  printf 'Usage:\n  %s [options]\n\n' "${SCRIPT_NAME}"
+  uk_help_section "$w" "Modes" \
+    "--packages" "Only list packages per detected package manager" \
+    "--commands" "Only list executable commands found in \$PATH" \
+    "--all" "List both (default)"
+  printf '\n'
+  uk_help_section "$w" "Filtering" \
+    "--category c1,c2" "Limit to: system, apps, language, tools" \
+    "--manager id1,id2" "Only these package-manager ids (e.g. apt,brew,npm)"
+  printf '\n'
+  uk_help_section "$w" "Output" \
+    "--count" "Show a per-manager / total count instead of names" \
+    "--json" "Emit a machine-readable JSON summary" \
+    "--export FILE" "Write a plain-text report to FILE" \
+    "--no-color" "Disable ANSI colors" \
+    "-h, --help" "Show this help"
+  printf '\nExamples:\n'
+  printf '  %s --packages --category language\n' "${SCRIPT_NAME}"
+  printf '  %s --commands --count\n' "${SCRIPT_NAME}"
+  printf '  %s --manager apt,brew --json\n' "${SCRIPT_NAME}"
 }
 
 # Spinner

@@ -55,30 +55,22 @@ DP_DEFAULT_RESOLVERS=(
 )
 
 dp_usage() {
-  cat <<'USAGE'
-Usage:
-  _dns_probe.sh DOMAIN [OPTIONS]
-
-Options:
-  --type T[,T,...]     Record types to query. Default: A,AAAA,MX,TXT,NS,CAA,SOA.
-                       ANY expands to the default set (real ANY is often blocked).
-  --resolver HOST      Query only HOST (IP or hostname). Repeatable.
-  --system             Also include the system resolver.
-  --propagation        Propagation mode: ask every default resolver + system,
-                       diff answers, and flag any resolver that disagrees.
-  --timeout SEC        Per-query timeout (default 3).
-  --tries N            Retry count per query (default 2).
-  --json               Emit results as a single JSON document.
-  --no-color           Disable ANSI (also respects NO_COLOR=1).
-  -h, --help           Show this help.
-
-Backends tried in order: dig > drill > host.
-Examples:
-  _dns_probe.sh example.com
-  _dns_probe.sh example.com --type A,AAAA,MX
-  _dns_probe.sh example.com --propagation
-  _dns_probe.sh example.com --resolver 1.1.1.1 --resolver 8.8.4.4
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage: _dns_probe.sh DOMAIN [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" --name-w 24 \
+    "--type T[,T,...]" "Record types (default: A,AAAA,MX,TXT,NS,CAA,SOA)" \
+    "--resolver HOST" "Query only HOST (repeatable)" \
+    "--system" "Also include the system resolver" \
+    "--propagation" "Diff answers across resolvers" \
+    "--timeout SEC" "Per-query timeout (default 3)" \
+    "--tries N" "Retry count per query (default 2)" \
+    "--json" "Emit results as JSON" \
+    "--no-color" "Disable ANSI" \
+    "-h, --help" "Show this help"
+  printf '\nBackends tried in order: dig > drill > host.\n'
+  printf 'Examples:\n  _dns_probe.sh example.com\n  _dns_probe.sh example.com --type A,AAAA,MX\n'
+  printf '  _dns_probe.sh example.com --propagation\n  _dns_probe.sh example.com --resolver 1.1.1.1 --resolver 8.8.4.4\n'
 }
 
 # ---- Backend selection ------------------------------------------------------

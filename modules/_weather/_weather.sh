@@ -157,21 +157,21 @@ wt_wizard() {
 }
 # ROUTING & CLI LOGIC
 wt_usage() {
-  cat <<EOF
-${C_BOLD}${C_CYAN}Weather Station CLI${C_RESET}
-Usage: $(basename "$0") [LOCATION] [OPTIONS]
-
-Options:
-  --units metric|imperial  Set temperature format (default: metric)
-  --full                   Show full 3-day ASCII forecast
-  --concise                Show compact 1-line weather (default)
-  -h, --help               Show this help screen
-
-Examples:
-  $(basename "$0")                  # Launches the interactive wizard!
-  $(basename "$0") London           # Quick concise check for London
-  $(basename "$0") Tokyo --full     # Full 3-day forecast for Tokyo
-EOF
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%s%sWeather Station CLI%s\n' "${C_BOLD:-}" "${C_CYAN:-}" "${C_RESET:-}"
+  printf 'Usage: %s [LOCATION] [OPTIONS]\n\n' "$(basename "$0")"
+  uk_help_section "$w" "Options" \
+    "--units metric|imperial" "Set temperature format (default: metric)." \
+    "--full" "Show full 3-day ASCII forecast." \
+    "--concise" "Show compact 1-line weather (default)." \
+    "-h, --help" "Show this help screen."
+  printf '\nExamples:\n'
+  printf '  %s                  # Launches the interactive wizard!\n' "$(basename "$0")"
+  printf '  %s London           # Quick concise check for London\n' "$(basename "$0")"
+  printf '  %s Tokyo --full     # Full 3-day forecast for Tokyo\n' "$(basename "$0")"
 }
 wt_main() {
   uk_banner "weather" "Current weather from wttr.in with offline cache fallback" "" "$@"

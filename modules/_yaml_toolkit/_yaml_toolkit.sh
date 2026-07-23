@@ -46,35 +46,33 @@ fi
 # --------------------------
 
 yt_usage() {
-  cat <<'USAGE'
-Usage:
-  _yaml_toolkit.sh <subcommand> FILE [OPTIONS]
-
-Subcommands:
-  lint FILE         Validate YAML syntax.
-  tojson FILE       Convert YAML to JSON.
-  toyml FILE        Convert JSON to YAML.
-  get FILE KEY      Extract a value by dot-notation key (e.g. a.b.c).
-  merge BASE OVERLAY  Merge OVERLAY YAML into BASE YAML.
-  keys FILE         List top-level keys.
-  pretty FILE       Pretty-print with syntax highlighting.
-
-Options:
-  --indent N        Indentation spaces for output (default 2).
-  --no-doc          Strip document separators (---, ...).
-  --json            Machine-readable JSON output (for lint, keys).
-  --no-color        Disable ANSI (also respects NO_COLOR=1).
-  -h, --help        Show this help.
-
-Backends: yq (preferred, Go) → python3 + PyYAML (fallback).
-
-Examples:
-  _yaml_toolkit.sh lint config.yaml
-  _yaml_toolkit.sh tojson config.yaml
-  _yaml_toolkit.sh get config.yaml database.host
-  _yaml_toolkit.sh keys config.yaml
-  _yaml_toolkit.sh merge base.yaml overlay.yaml
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _yaml_toolkit.sh <subcommand> FILE [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "lint FILE" "Validate YAML syntax." \
+    "tojson FILE" "Convert YAML to JSON." \
+    "toyml FILE" "Convert JSON to YAML." \
+    "get FILE KEY" "Extract a value by dot-notation key (e.g. a.b.c)." \
+    "merge BASE OVERLAY" "Merge OVERLAY YAML into BASE YAML." \
+    "keys FILE" "List top-level keys." \
+    "pretty FILE" "Pretty-print with syntax highlighting."
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--indent N" "Indentation spaces for output (default 2)." \
+    "--no-doc" "Strip document separators (---, ...)." \
+    "--json" "Machine-readable JSON output (for lint, keys)." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nBackends: yq (preferred, Go) -> python3 + PyYAML (fallback).\n'
+  printf '\nExamples:\n'
+  printf '  _yaml_toolkit.sh lint config.yaml\n'
+  printf '  _yaml_toolkit.sh tojson config.yaml\n'
+  printf '  _yaml_toolkit.sh get config.yaml database.host\n'
+  printf '  _yaml_toolkit.sh keys config.yaml\n'
+  printf '  _yaml_toolkit.sh merge base.yaml overlay.yaml\n'
 }
 
 # ---- Helpers ---------------------------------------------------------------

@@ -13,17 +13,17 @@ if ! declare -f uk_error >/dev/null 2>&1; then uk_error() { printf "Error: %s\n"
 if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }; fi
 
 ghh_usage() {
-  cat <<USAGE
-Usage:
-  _github_helper.sh [ACTION]
-
-Actions:
-  --status    Check GitHub auth status.
-  --prs       List pull requests.
-  --issues    List issues.
-  --runs      List workflow runs.
-  -h, --help  Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _github_helper.sh [ACTION]\n\n'
+  uk_help_section "$w" "Actions" \
+    "--status" "Check GitHub auth status." \
+    "--prs" "List pull requests." \
+    "--issues" "List issues." \
+    "--runs" "List workflow runs." \
+    "-h, --help" "Show this help."
 }
 ghh_main() {
   uk_banner "github-helper" "Thin wrapper around gh for auth, PRs, issues, runs" "" "$@"

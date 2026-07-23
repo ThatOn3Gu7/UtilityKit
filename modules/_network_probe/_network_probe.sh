@@ -3,17 +3,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 np_usage() {
-  cat <<'USAGE'
-Usage: _network_probe.sh [HOST] [--count N] [--dns DOMAIN] [--no-public-ip] [--no-trace]
-
-Options:
-  HOST              Target host for ping and traceroute (default: example.com)
-  --count N         Number of ping packets (default: 4)
-  --dns DOMAIN      Domain to resolve (default: same as HOST)
-  --no-public-ip    Skip public IP lookup
-  --no-trace        Skip route tracing
-  -h, --help        Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _network_probe.sh [HOST] [--count N] [--dns DOMAIN] [--no-public-ip] [--no-trace]\n\n'
+  uk_help_section "$w" "Options" \
+    "HOST" "Target host for ping and traceroute (default: example.com)" \
+    "--count N" "Number of ping packets (default: 4)" \
+    "--dns DOMAIN" "Domain to resolve (default: same as HOST)" \
+    "--no-public-ip" "Skip public IP lookup" \
+    "--no-trace" "Skip route tracing" \
+    "-h, --help" "Show this help"
 }
 np_section() {
   local title="${1:-}" icon="${2:-$UK_I_INFO}"

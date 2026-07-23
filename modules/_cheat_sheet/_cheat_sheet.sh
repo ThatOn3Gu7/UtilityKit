@@ -21,22 +21,19 @@ cs_dir() {
 }
 # Usage
 cs_usage() {
-  cat <<'USAGE'
-Usage:
-  _cheat_sheet.sh --add NAME [--text TEXT|--file FILE] [--tags a,b]
-  _cheat_sheet.sh --list | --show NAME | --search TERM
-
-Options:
-  --add NAME     Create a new snippet with the given name (slugified).
-  --text TEXT    Provide the snippet content as a string (mutually exclusive with --file).
-  --file FILE    Read the snippet content from a file (mutually exclusive with --text).
-  --tags a,b,c   Comma-separated tags (stored as a comment in the snippet).
-  --list         List all saved snippet names.
-  --show NAME    Display the full content of a snippet.
-  --search TERM  Search for a term across all snippets.
-  --delete NAME  Permanently remove a saved snippet.
-  -h, --help     Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage:\n  _cheat_sheet.sh --add NAME [--text TEXT|--file FILE] [--tags a,b]\n  _cheat_sheet.sh --list | --show NAME | --search TERM\n\n'
+  uk_help_section "$w" "Options" --name-w 22 \
+    "--add NAME" "Create a new snippet with the given name" \
+    "--text TEXT" "Provide snippet content as a string" \
+    "--file FILE" "Read snippet content from a file" \
+    "--tags a,b,c" "Comma-separated tags" \
+    "--list" "List all saved snippet names" \
+    "--show NAME" "Display the full content of a snippet" \
+    "--search TERM" "Search for a term across all snippets" \
+    "--delete NAME" "Permanently remove a saved snippet" \
+    "-h, --help" "Show this help"
 }
 # Utility functions
 cs_path() {

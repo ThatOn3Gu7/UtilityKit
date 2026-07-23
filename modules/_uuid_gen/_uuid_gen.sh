@@ -43,38 +43,37 @@ fi
 # --------------------------
 
 ug_usage() {
-  cat <<'USAGE'
-Usage:
-  _uuid_gen.sh [TYPE] [OPTIONS]
-
-Types:
-  uuid4       UUID v4 (random) — default
-  uuid7       UUID v7 (time-ordered, RFC 9562)
-  ulid        ULID (time-sortable, Crockford Base32)
-  nanoid      NanoID (URL-safe, 21 chars default)
-  short       Short ID (alphanumeric, 8 chars default)
-  hex         Hex string (32 chars default)
-  snowflake   Twitter-style snowflake ID (64-bit)
-
-Options:
-  --count N       Generate N IDs at once (default 1).
-  --len N         Custom length (nanoid, short, hex).
-  --alphabet ABC  Custom alphabet for nanoid/short.
-  --upper         Uppercase output (default: lowercase).
-  --sep SEP       Separator between bulk IDs (default: newline).
-  --json          Machine-readable JSON array output.
-  --clip          Copy result to clipboard.
-  --quiet         Suppress info output.
-  --no-color      Disable ANSI (also respects NO_COLOR=1).
-  -h, --help      Show this help.
-
-Examples:
-  _uuid_gen.sh
-  _uuid_gen.sh uuid7 --count 5
-  _uuid_gen.sh nanoid --len 16
-  _uuid_gen.sh ulid --count 3 --json
-  _uuid_gen.sh short --upper --count 10 --sep ','
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _uuid_gen.sh [TYPE] [OPTIONS]\n\n'
+  uk_help_section "$w" "Types" \
+    "uuid4" "UUID v4 (random) -- default." \
+    "uuid7" "UUID v7 (time-ordered, RFC 9562)." \
+    "ulid" "ULID (time-sortable, Crockford Base32)." \
+    "nanoid" "NanoID (URL-safe, 21 chars default)." \
+    "short" "Short ID (alphanumeric, 8 chars default)." \
+    "hex" "Hex string (32 chars default)." \
+    "snowflake" "Twitter-style snowflake ID (64-bit)."
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--count N" "Generate N IDs at once (default 1)." \
+    "--len N" "Custom length (nanoid, short, hex)." \
+    "--alphabet ABC" "Custom alphabet for nanoid/short." \
+    "--upper" "Uppercase output (default: lowercase)." \
+    "--sep SEP" "Separator between bulk IDs (default: newline)." \
+    "--json" "Machine-readable JSON array output." \
+    "--clip" "Copy result to clipboard." \
+    "--quiet" "Suppress info output." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nExamples:\n'
+  printf '  _uuid_gen.sh\n'
+  printf '  _uuid_gen.sh uuid7 --count 5\n'
+  printf '  _uuid_gen.sh nanoid --len 16\n'
+  printf '  _uuid_gen.sh ulid --count 3 --json\n'
+  printf '  _uuid_gen.sh short --upper --count 10 --sep '\'',\n'
 }
 
 # ---- Generators -----------------------------------------------------------

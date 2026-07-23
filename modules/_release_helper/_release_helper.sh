@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
-rel_usage() { echo 'Usage: _release_helper.sh [--repo DIR] [--tag vX.Y.Z] [--apply]'; }
+rel_usage() {
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _release_helper.sh [--repo DIR] [--tag vX.Y.Z] [--apply]\n\n'
+  uk_help_section "$w" "Options" \
+    "--repo DIR" "Git repository directory (default: .)" \
+    "--tag vX.Y.Z" "Tag name to create" \
+    "--apply" "Actually create the tag (dry-run without this)" \
+    "-h, --help" "Show this help"
+}
 rel_main() {
   uk_banner "release-helper" "Git status, recent log, optional tag creation" "" "$@"
   local repo='.' tag='' apply=0

@@ -5,7 +5,7 @@ if [[ -n "${UK_COMMON_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 readonly UK_COMMON_SH_LOADED=1
-readonly UK_VERSION='5.10.6'
+readonly UK_VERSION='5.11.0'
 
 # uk_load_config — apply ${XDG_CONFIG_HOME:-~/.config}/utilitykit/config
 # (path overridable via UK_CONFIG_FILE) so suite-wide defaults like
@@ -1307,4 +1307,129 @@ uk_menu() {
         ;;
     esac
   done
+}
+
+# ======================================================================
+# Box-drawing helpers for --help output (used by main.sh and all tools)
+# ======================================================================
+uk_fh_len() {
+  local s
+  s="$(printf '%s' "${1:-}" | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')"
+  printf '%s' "${#s}"
+}
+uk_fh_cols() {
+  local c
+  if uk_has_cmd tput; then c="$(tput cols 2>/dev/null)"; fi
+  [[ -z "$c" ]] && uk_has_cmd stty && c="$(stty size 2>/dev/null | cut -d' ' -f2)"
+  [[ "$c" =~ ^[0-9]+$ ]] || c="${COLUMNS:-80}"
+  [[ "$c" =~ ^[0-9]+$ ]] || c=80
+  printf '%s' "$c"
+}
+uk_fh_repeat() {
+  local ch="$1" n="$2" out='' i
+  ((n < 0)) && n=0
+  for ((i = 0; i < n; i++)); do out+="$ch"; done
+  printf '%s' "$out"
+}
+uk_fh_box_chars() {
+  if [[ -n "${NO_UNICODE:-}" ]]; then
+    UK_FH_TL='+' UK_FH_TR='+' UK_FH_BL='+' UK_FH_BR='+' UK_FH_H='-' UK_FH_V='|'
+  else
+    UK_FH_TL='╭' UK_FH_TR='╮' UK_FH_BL='╰' UK_FH_BR='╯' UK_FH_H='─' UK_FH_V='│'
+  fi
+}
+uk_fh_box_top() {
+  local width="$1" label="${2:-}"
+  uk_fh_box_chars
+  local tl="$UK_FH_TL" tr="$UK_FH_TR" h="$UK_FH_H"
+  local dim="${UK_C_DIM:-}" reset="${UK_C_RESET:-}"
+  if [[ -n "$label" ]]; then
+    local llen left_pad=2 right_fill
+    llen=$(uk_fh_len "$label")
+    right_fill=$(( width - llen - left_pad - 4 ))
+    ((right_fill < 0)) && right_fill=0
+    printf '%s%s%s%s %s %s%s%s%s\n' \
+      "$dim" "$tl" "$(uk_fh_repeat "$h" "$left_pad")" "$reset" \
+      "$label" \
+      "$dim" "$(uk_fh_repeat "$h" "$right_fill")" "$tr" "$reset"
+  else
+    printf '%s%s%s%s\n' "$dim" "$tl" "$(uk_fh_repeat "$h" "$((width - 2))")" "$tr$reset"
+  fi
+}
+uk_fh_box_bot() {
+  local width="$1"
+  uk_fh_box_chars
+  local bl="$UK_FH_BL" br="$UK_FH_BR" h="$UK_FH_H"
+  local dim="${UK_C_DIM:-}" reset="${UK_C_RESET:-}"
+  printf '%s%s%s%s%s\n' "$dim" "$bl" "$(uk_fh_repeat "$h" "$((width - 2))")" "$br" "$reset"
+}
+uk_fh_ellide() {
+  local text="$1" maxlen="$2"
+  ((maxlen < 3)) && maxlen=3
+  local vislen
+  vislen=$(uk_fh_len "$text")
+  ((vislen <= maxlen)) && { printf '%s' "$text"; return; }
+  local out='' char visible=0 in_esc=0 i
+  for ((i = 0; i < ${#text}; i++)); do
+    char="${text:$i:1}"
+    if ((in_esc)); then
+      out+="$char"
+      [[ "$char" == 'm' ]] && in_esc=0
+      continue
+    fi
+    if [[ "$char" == $'\033' ]]; then
+      in_esc=1
+      out+="$char"
+      continue
+    fi
+    if ((visible >= maxlen - 3)); then
+      printf '%s' "${out}${UK_C_RESET:-}..."
+      return
+    fi
+    out+="$char"
+    ((visible++))
+  done
+  printf '%s' "${out}${UK_C_RESET:-}..."
+}
+uk_fh_box_line() {
+  local width="$1" text="$2"
+  uk_fh_box_chars
+  local v="$UK_FH_V"
+  local dim="${UK_C_DIM:-}" reset="${UK_C_RESET:-}"
+  local vislen inner pad
+  vislen=$(uk_fh_len "$text")
+  inner=$((width - 4))
+  if ((vislen > inner)); then
+    text="$(uk_fh_ellide "$text" "$inner")"
+    vislen=$((inner))
+  fi
+  pad=$((inner - vislen))
+  ((pad < 0)) && pad=0
+  printf '%s%s%s %b%*s %s%s%s\n' "$dim" "$v" "$reset" "$text" "$pad" '' "$dim" "$v" "$reset"
+}
+uk_fh_cmd_row() {
+  local width="$1" name="$2" desc="$3" name_w="${4:-14}"
+  local cyan="${UK_C_CYAN:-}" bold="${UK_C_BOLD:-}" reset="${UK_C_RESET:-}"
+  local padded_name
+  printf -v padded_name '%-*s' "$name_w" "$name"
+  uk_fh_box_line "$width" "${bold}${cyan}${padded_name}${reset}  ${desc}"
+}
+# ---- High-level section helper: draws a labeled box of cmd/desc rows ----
+#   uk_help_section <width> <title> [--name-w N] <cmd1> <desc1> [<cmd2> <desc2> ...]
+uk_help_section() {
+  local width="$1" title="$2" name_w=20
+  shift 2
+  if [[ "${1:-}" == "--name-w" ]]; then
+    name_w="$2"
+    shift 2
+  fi
+  uk_fh_box_top "$width" " $title "
+  local cmd desc
+  while [[ $# -gt 0 ]]; do
+    cmd="${1:-}"
+    desc="${2:-}"
+    shift 2
+    uk_fh_cmd_row "$width" "$cmd" "$desc" "$name_w"
+  done
+  uk_fh_box_bot "$width"
 }

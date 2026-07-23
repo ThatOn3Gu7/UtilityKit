@@ -50,38 +50,35 @@ fi
 # --------------------------
 
 sec_usage() {
-  cat <<'USAGE'
-Usage:
-  _secret_scan.sh [PATH]... [OPTIONS]
-
-Options:
-  --path PATH         Add a scan path (repeatable). Defaults to current dir.
-  --json              Emit findings as one JSON object per line (jsonl).
-  --no-entropy        Skip generic high-entropy detection (regex rules only).
-  --entropy-min N     Minimum Shannon entropy to flag a blob (default 4.5).
-  --entropy-len N     Minimum blob length to consider (default 20).
-  --max-bytes N       Skip files larger than N bytes (default 1048576 = 1 MB).
-  --no-gitignore      Do not filter by `git ls-files` even inside a repo.
-  --include GLOB      Only scan paths matching GLOB (repeatable).
-  --exclude GLOB      Skip paths matching GLOB (repeatable). Defaults include
-                      .git, node_modules, __pycache__, dist, build, .venv, target.
-  --context N         Show N chars of surrounding context (default 40).
-  --quiet             Only print summary.
-  --reveal            Do not redact matches in JSON/terminal output (dangerous for CI logs).
-  --no-color          Disable ANSI (also respects NO_COLOR=1).
-  -h, --help          Show this help.
-
-Exit status:
-  0   clean
-  1   findings present
-  2   argument/dependency error
-
-Detected patterns:
-  aws-access-key, aws-secret-key, github-token, github-pat, github-oauth,
-  slack-token, slack-webhook, discord-webhook, google-api-key, stripe-key,
-  jwt, private-key-block, generic-hex-secret, generic-b64-secret,
-  dotenv-live-value, high-entropy-blob.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _secret_scan.sh [PATH]... [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--path PATH" "Add a scan path (repeatable). Defaults to current dir." \
+    "--json" "Emit findings as one JSON object per line (jsonl)." \
+    "--no-entropy" "Skip generic high-entropy detection (regex rules only)." \
+    "--entropy-min N" "Minimum Shannon entropy to flag a blob (default 4.5)." \
+    "--entropy-len N" "Minimum blob length to consider (default 20)." \
+    "--max-bytes N" "Skip files larger than N bytes (default 1048576 = 1 MB)." \
+    "--no-gitignore" "Do not filter by \`git ls-files\` even inside a repo." \
+    "--include GLOB" "Only scan paths matching GLOB (repeatable)." \
+    "--exclude GLOB" "Skip paths matching GLOB (repeatable)." \
+    "--context N" "Show N chars of surrounding context (default 40)." \
+    "--quiet" "Only print summary." \
+    "--reveal" "Do not redact matches in JSON/terminal output." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nExit status:\n'
+  printf '  0   clean\n'
+  printf '  1   findings present\n'
+  printf '  2   argument/dependency error\n'
+  printf '\nDetected patterns:\n'
+  printf '  aws-access-key, aws-secret-key, github-token, github-pat, github-oauth,\n'
+  printf '  slack-token, slack-webhook, discord-webhook, google-api-key, stripe-key,\n'
+  printf '  jwt, private-key-block, generic-hex-secret, generic-b64-secret,\n'
+  printf '  dotenv-live-value, high-entropy-blob.\n'
 }
 
 # ---- Detector definitions --------------------------------------------------

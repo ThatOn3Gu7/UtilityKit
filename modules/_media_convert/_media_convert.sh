@@ -11,10 +11,19 @@ MC_OUTPUT=''
 declare -a MC_PATHS=()
 
 mc_usage() {
-  cat <<'USAGE'
-Usage:
-  _media_convert.sh --kind image|video --to webp|jpg|png|mp4 [--quality 82] [--strip-exif] [--output DIR] [--apply] PATH...
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _media_convert.sh --kind image|video --to webp|jpg|png|mp4 [--quality 82] [--strip-exif] [--output DIR] [--apply] PATH...\n\n'
+  uk_help_section "$w" "Options" \
+    "--kind" "Conversion type: image or video" \
+    "--to" "Target format (webp, jpg, png, mp4, etc.)" \
+    "--quality" "Output quality 1-100 (default: 82)" \
+    "--strip-exif" "Remove EXIF metadata from images" \
+    "--output DIR" "Output directory for converted files" \
+    "--apply" "Actually write output (dry-run without this)" \
+    "-h, --help" "Show this help"
 }
 
 mc_collect() {

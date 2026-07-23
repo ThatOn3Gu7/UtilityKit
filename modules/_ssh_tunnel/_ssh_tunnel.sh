@@ -34,18 +34,26 @@ fi
 ST_CONFIG=""
 
 st_usage() {
-  cat <<'USAGE'
-Usage: _ssh_tunnel.sh <create|list|kill|restart> [OPTIONS]
-
-create HOST:PORT  Create tunnel (local forward). Options: --local LPORT, --user U, --key F, --autossh, --name N
-list              List saved tunnels with status.
-kill ID|NAME      Kill tunnel by index or name.
-restart ID|NAME   Restart tunnel.
-
---json     Machine-readable list output.
---no-color Disable ANSI.
--h, --help Show this help.
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _ssh_tunnel.sh <create|list|kill|restart> [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "create HOST:PORT" "Create tunnel (local forward)." \
+    "list" "List saved tunnels with status." \
+    "kill ID|NAME" "Kill tunnel by index or name." \
+    "restart ID|NAME" "Restart tunnel."
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--local LPORT" "Local port to forward from." \
+    "--user U" "SSH user for the remote host." \
+    "--key F" "Path to an SSH identity file." \
+    "--autossh" "Use autossh for persistent connection." \
+    "--name N" "Assign a name to the tunnel." \
+    "--json" "Machine-readable list output." \
+    "--no-color" "Disable ANSI." \
+    "-h, --help" "Show this help."
 }
 
 st_cfg() {

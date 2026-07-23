@@ -14,16 +14,16 @@ if ! declare -f uk_has_cmd >/dev/null 2>&1; then uk_has_cmd() { command -v "${1:
 # --------------------------
 
 jx_usage() {
-  cat <<USAGE
-Usage:
-  _json_explorer.sh [FILE|-] [OPTIONS]
-
-Options:
-  --path a.b.0  Traverse JSON path (e.g., users.0.name)
-  --keys        List keys at the current path
-  --summary     Print summary of structure
-  -h, --help    Show this help
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _json_explorer.sh [FILE|-] [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--path a.b.0" "Traverse JSON path (e.g., users.0.name)" \
+    "--keys" "List keys at the current path" \
+    "--summary" "Print summary of structure" \
+    "-h, --help" "Show this help"
 }
 jx_main() {
   uk_banner "json-explorer" "JSON pretty-print, dot-path extraction, key listing" "" "$@"

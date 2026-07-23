@@ -1054,7 +1054,10 @@ rb_ac_pick_dir() {
 
 #  7.  HELP & VERSION
 show_help() {
-
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
   printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "USAGE")"
   printf "\n"
   printf "    %s %s %s %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_GREEN" "<source_dir>")" "$(colorize "$RB_C_YELLOW" "<new_extension>")" "$(colorize "$RB_C_GRAY" "[output_dir]")" "$(colorize "$RB_C_CYAN" "[flags]")"
@@ -1069,17 +1072,15 @@ show_help() {
   printf "    In-place mode (2 args):  Files are renamed where they sit.\n"
   printf "    Copy mode    (3 args):  Files are COPIED to output_dir with new names.\n"
   printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "ARGUMENTS")"
+  uk_help_section "$w" "Arguments" \
+    "source_dir" "Directory to scan" \
+    "new_extension" "Target extension (e.g. txt, md, py)" \
+    "output_dir" "(Optional) destination directory"
   printf "\n"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_GREEN" "source_dir")" "Directory to scan"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_YELLOW" "new_extension")" "Target extension (e.g. txt, md, py)"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_GRAY" "output_dir")" "(Optional) destination directory"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "OPTIONS / FLAGS")"
-  printf "\n"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-f, --force, --all")" "Force process protected files (README, LICENSE, etc.)"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-h, --help")" "Show this message"
-  printf "    %-18s %s\n" "$(colorize "$RB_C_CYAN" "-v, --version")" "Show version info"
+  uk_help_section "$w" "Options" \
+    "-f, --force, --all" "Force process protected files (README, LICENSE, etc.)" \
+    "-h, --help" "Show this message" \
+    "-v, --version" "Show version info"
   printf "\n"
   printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "EXAMPLES")"
   printf "\n"

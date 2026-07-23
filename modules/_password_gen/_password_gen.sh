@@ -10,10 +10,18 @@ PG_SEPARATOR='-'
 PG_WORDLIST=(amber anchor aurora bamboo beacon cedar comet copper cosmos delta ember falcon fern glacier harbor ivy lantern marble meadow meteor neon orchard pebble phoenix pine prism quartz river shadow signal solar sparrow summit thunder velvet willow zenith)
 
 pg_usage() {
-  cat <<'USAGE'
-Usage:
-  _password_gen.sh [--mode passphrase|string] [--words N] [--length N] [--copy]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _password_gen.sh [--mode passphrase|string] [--words N] [--length N] [--copy]\n\n'
+  uk_help_section "$w" "Options" \
+    "--mode" "Generator mode: passphrase or string" \
+    "--words N" "Number of words for passphrase (default: 4)" \
+    "--length N" "Character length for string (default: 20)" \
+    "--separator" "Word separator for passphrase (default: -)" \
+    "--copy" "Copy result to clipboard" \
+    "-h, --help" "Show this help"
 }
 pg_entropy_words() {
   awk -v n="${1:-}" -v k="${2:-}" 'BEGIN { printf "%.2f", n*(log(k)/log(2)) }'

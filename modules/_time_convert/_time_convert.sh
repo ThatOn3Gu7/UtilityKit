@@ -45,35 +45,33 @@ fi
 # --------------------------
 
 tc_usage() {
-  cat <<'USAGE'
-Usage:
-  _time_convert.sh <subcommand> [VALUE] [OPTIONS]
-
-Subcommands:
-  epoch [TS]         Convert epoch (seconds) to ISO 8601 / RFC 3339 / human.
-                     Default: current time.
-  parse TIMESTAMP    Parse a timestamp string → all formats.
-  now                Show current time in all formats.
-  cron EXPR          Show next N fire times for a cron expression.
-  tz [ZONE]          Show timezone info (list zones or diff against another).
-  diff TS1 TS2       Show duration between two timestamps.
-
-Options:
-  --format FORMAT    Output format: iso, rfc3339, rfc2822, unix, human (default all).
-  --tz TIMEZONE      Interpret/display in given timezone (e.g. UTC, America/New_York).
-  --count N          Number of future cron fires (default 5).
-  --json             Machine-readable JSON output.
-  --no-color         Disable ANSI (also respects NO_COLOR=1).
-  -h, --help         Show this help.
-
-Examples:
-  _time_convert.sh now
-  _time_convert.sh epoch 1700000000
-  _time_convert.sh parse '2024-01-15T10:30:00Z'
-  _time_convert.sh cron '*/15 * * * *' --count 3
-  _time_convert.sh tz Asia/Tokyo
-  _time_convert.sh diff '2024-01-01' '2024-12-31'
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _time_convert.sh <subcommand> [VALUE] [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "epoch [TS]" "Convert epoch (seconds) to ISO 8601 / RFC 3339 / human." \
+    "parse TIMESTAMP" "Parse a timestamp string to all formats." \
+    "now" "Show current time in all formats." \
+    "cron EXPR" "Show next N fire times for a cron expression." \
+    "tz [ZONE]" "Show timezone info (list zones or diff against another)." \
+    "diff TS1 TS2" "Show duration between two timestamps."
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--format FORMAT" "Output format: iso, rfc3339, rfc2822, unix, human (default all)." \
+    "--tz TIMEZONE" "Interpret/display in given timezone." \
+    "--count N" "Number of future cron fires (default 5)." \
+    "--json" "Machine-readable JSON output." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nExamples:\n'
+  printf '  _time_convert.sh now\n'
+  printf '  _time_convert.sh epoch 1700000000\n'
+  printf '  _time_convert.sh parse '\''2024-01-15T10:30:00Z'\''\n'
+  printf '  _time_convert.sh cron '\''*/15 * * * *'\'' --count 3\n'
+  printf '  _time_convert.sh tz Asia/Tokyo\n'
+  printf '  _time_convert.sh diff '\''2024-01-01'\'' '\''2024-12-31'\''\n'
 }
 
 # ---- Helpers ---------------------------------------------------------------

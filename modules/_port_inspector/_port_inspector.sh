@@ -6,10 +6,15 @@ PI_PORT=''
 PI_KILL=0
 
 pi_usage() {
-  cat <<'USAGE'
-Usage:
-  _port_inspector.sh PORT [--kill]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _port_inspector.sh PORT [--kill]\n\n'
+  uk_help_section "$w" "Options" \
+    "PORT" "Local TCP port number to inspect" \
+    "--kill" "Terminate the process holding the port" \
+    "-h, --help" "Show this help"
 }
 pi_network_summary() {
   uk_section_title 'Network interfaces'

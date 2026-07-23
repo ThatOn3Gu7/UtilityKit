@@ -17,7 +17,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-5.3.0-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-5.11.0-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -474,7 +474,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
-**v5.10.0** - current — Package-manager install paths, removing the `git clone` step entirely: `Formula/utilitykit.rb` turns the repo into a Homebrew tap (`brew tap thaton3gu7/utilitykit <repo-url> && brew install utilitykit`, with `--HEAD` support and bash ≥ 4 guaranteed via the `bash` dependency), and `packaging/build-termux-deb.sh` builds a Termux `.deb` (`pkg install ./utilitykit_all.deb`) with launcher, completions, and `Depends: bash` wired in. A new `Release` workflow publishes the `.deb` (plus a stable-named `utilitykit_all.deb` alias) on every `vX.Y.Z` tag and verifies the tag matches `UK_VERSION`; `packaging/update-formula.sh` pins the formula's `url`/`sha256` to a released tag.
+**v5.11.0** — All 63 tools now render their `--help` inside boxed tables with ANSI-safe truncation (`...` for long descriptions). `fancy_help.sh` merged into main.sh; border alignment fixed; box helpers moved to `uk_common.sh` so every tool shares the same `uk_help_section()` system. `fancy_help.sh` removed.
+
+**v5.10.0** — Package-manager install paths, removing the `git clone` step entirely: `Formula/utilitykit.rb` turns the repo into a Homebrew tap (`brew tap thaton3gu7/utilitykit <repo-url> && brew install utilitykit`, with `--HEAD` support and bash ≥ 4 guaranteed via the `bash` dependency), and `packaging/build-termux-deb.sh` builds a Termux `.deb` (`pkg install ./utilitykit_all.deb`) with launcher, completions, and `Depends: bash` wired in. A new `Release` workflow publishes the `.deb` (plus a stable-named `utilitykit_all.deb` alias) on every `vX.Y.Z` tag and verifies the tag matches `UK_VERSION`; `packaging/update-formula.sh` pins the formula's `url`/`sha256` to a released tag.
 
 **v5.9.0** — Shell tab-completions generated from `UK_REGISTRY`: new `scripts/gen_completions.sh` emits `completions/utility.bash` and `completions/utility.zsh` from the registry plus each tool's flag-parsing `case` labels, so `utility <TAB>` completes all commands and `utility <cmd> <TAB>` offers that tool's flags (zsh also shows per-command descriptions and files alongside). `setup.sh` gained step 7: copies `scripts/` + `completions/` into the install dir and idempotently wires a `UK_COMPLETE_CMD='<launcher>' source ...` line into `~/.bashrc` / `~/.zshrc` / `$ZDOTDIR/.zshrc`, so custom launcher names complete too.
 

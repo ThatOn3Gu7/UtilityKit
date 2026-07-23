@@ -9,10 +9,18 @@ PO_UNIT='minutes'
 PO_NO_BELL=0
 
 po_usage() {
-  cat <<'USAGE'
-Usage:
-  _pomodoro.sh [--work N] [--break N] [--cycles N] [--unit minutes|seconds] [--no-bell]
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _pomodoro.sh [--work N] [--break N] [--cycles N] [--unit minutes|seconds] [--no-bell]\n\n'
+  uk_help_section "$w" "Options" \
+    "--work N" "Work duration per cycle (default: 25)" \
+    "--break N" "Break duration per cycle (default: 5)" \
+    "--cycles N" "Number of cycles to run (default: 4)" \
+    "--unit" "Time unit: minutes or seconds" \
+    "--no-bell" "Disable bell and vibration" \
+    "-h, --help" "Show this help"
 }
 po_seconds() {
   if [[ "$PO_UNIT" == 'seconds' ]]; then

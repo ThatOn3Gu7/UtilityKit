@@ -43,30 +43,28 @@ fi
 # --------------------------
 
 fw_usage() {
-  cat <<'USAGE'
-Usage:
-  _file_watcher.sh [OPTIONS] [-- CMD]
-
-Options:
-  -p, --pattern GLOB   Watch files matching GLOB (repeatable, default **/*).
-  -d, --dir DIR        Watch directory (default .).
-  -c, --cmd CMD        Command to run when files change.
-  -s, --debounce SEC   Debounce interval (default 1).
-  -i, --ignore GLOB    Ignore files matching GLOB (repeatable).
-  -r, --initial        Run command once on start.
-  --polling INTERVAL   Use polling instead of inotify (INTERVAL = seconds).
-  --json               Machine-readable JSON output.
-  --no-color           Disable ANSI (also respects NO_COLOR=1).
-  -h, --help           Show this help.
-
-Backends: inotifywait (Linux), fswatch (macOS/Termux), fallback: polling.
-Install: apt install inotify-tools  |  brew install fswatch
-
-Examples:
-  _file_watcher.sh -p '*.sh' -c 'make test'
-  _file_watcher.sh -p '*.py' -p '*.js' -c 'npm test' --debounce 2
-  _file_watcher.sh -p '*' --polling 5 -c 'rsync ...'
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _file_watcher.sh [OPTIONS] [-- CMD]\n\n'
+  uk_help_section "$w" "Options" \
+    "-p, --pattern GLOB" "Watch files matching GLOB (repeatable, default **/*)." \
+    "-d, --dir DIR" "Watch directory (default .)." \
+    "-c, --cmd CMD" "Command to run when files change." \
+    "-s, --debounce SEC" "Debounce interval (default 1)." \
+    "-i, --ignore GLOB" "Ignore files matching GLOB (repeatable)." \
+    "-r, --initial" "Run command once on start." \
+    "--polling INTERVAL" "Use polling instead of inotify (INTERVAL = seconds)." \
+    "--json" "Machine-readable JSON output." \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
+    "-h, --help" "Show this help."
+  printf '\nBackends: inotifywait (Linux), fswatch (macOS/Termux), fallback: polling.\n'
+  printf 'Install: apt install inotify-tools  |  brew install fswatch\n\n'
+  printf 'Examples:\n'
+  printf "  _file_watcher.sh -p '*.sh' -c 'make test'\n"
+  printf "  _file_watcher.sh -p '*.py' -p '*.js' -c 'npm test' --debounce 2\n"
+  printf "  _file_watcher.sh -p '*' --polling 5 -c 'rsync ...'\n"
 }
 
 # ---- Backend detection ----------------------------------------------------

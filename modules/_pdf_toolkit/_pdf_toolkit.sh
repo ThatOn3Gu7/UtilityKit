@@ -47,42 +47,42 @@ fi
 PT_APPLY=0
 
 pt_usage() {
-  cat <<'USAGE'
-Usage:
-  _pdf_toolkit.sh <subcommand> FILE [OPTIONS]
-
-Subcommands:
-  info FILE         Show page count, PDF version, encryption, metadata.
-  count FILE        Print page count only.
-  merge FILE1 FILE2...  Merge PDFs into one.
-  split FILE        Split each page into separate PDFs.
-  text FILE         Extract text content.
-  compress FILE     Compress / optimize PDF (requires ghostscript).
-  rotate FILE DEG   Rotate pages (90, 180, 270).
-
-Options:
-  --output FILE     Output path (merge, split, compress, rotate).
-  --pages RANGE     Page range for split (e.g. 1-3,5).
-  --apply           Actually write output files (default is dry-run).
-  --json            Machine-readable output (info, count, text).
-  --no-color        Disable ANSI (also respects NO_COLOR=1).
-  -h, --help        Show this help.
-
-Safety:
-  merge, split, compress, and rotate preview only by default and do not write
-  any file. Re-run with --apply to create the output file(s).
-
-Dependencies: qpdf (recommended), pdftotext, gs, pdfimages.
-Install: apt install qpdf poppler-utils ghostscript
-
-Examples:
-  _pdf_toolkit.sh info document.pdf
-  _pdf_toolkit.sh count document.pdf
-  _pdf_toolkit.sh merge a.pdf b.pdf --output merged.pdf
-  _pdf_toolkit.sh split document.pdf --output ./pages/
-  _pdf_toolkit.sh text document.pdf
-  _pdf_toolkit.sh compress document.pdf --output compressed.pdf
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _pdf_toolkit.sh <subcommand> FILE [OPTIONS]\n\n'
+  uk_help_section "$w" "Subcommands" \
+    "info FILE" "Show page count, PDF version, encryption, metadata" \
+    "count FILE" "Print page count only" \
+    "merge FILE1 FILE2..." "Merge PDFs into one" \
+    "split FILE" "Split each page into separate PDFs" \
+    "text FILE" "Extract text content" \
+    "compress FILE" "Compress/optimize PDF (requires ghostscript)" \
+    "rotate FILE DEG" "Rotate pages (90, 180, 270)"
+  printf '\n'
+  uk_help_section "$w" "Options" \
+    "--output FILE" "Output path (merge, split, compress, rotate)" \
+    "--pages RANGE" "Page range for split (e.g. 1-3,5)" \
+    "--apply" "Actually write output files (default is dry-run)" \
+    "--json" "Machine-readable output (info, count, text)" \
+    "--no-color" "Disable ANSI (also respects NO_COLOR=1)" \
+    "-h, --help" "Show this help"
+  printf '\n'
+  printf 'Safety:\n'
+  printf '  merge, split, compress, and rotate preview only by default and do not write\n'
+  printf '  any file. Re-run with --apply to create the output file(s).\n'
+  printf '\n'
+  printf 'Dependencies: qpdf (recommended), pdftotext, gs, pdfimages.\n'
+  printf 'Install: apt install qpdf poppler-utils ghostscript\n'
+  printf '\n'
+  printf 'Examples:\n'
+  printf '  _pdf_toolkit.sh info document.pdf\n'
+  printf '  _pdf_toolkit.sh count document.pdf\n'
+  printf '  _pdf_toolkit.sh merge a.pdf b.pdf --output merged.pdf\n'
+  printf '  _pdf_toolkit.sh split document.pdf --output ./pages/\n'
+  printf '  _pdf_toolkit.sh text document.pdf\n'
+  printf '  _pdf_toolkit.sh compress document.pdf --output compressed.pdf\n'
 }
 
 pt_hr() {

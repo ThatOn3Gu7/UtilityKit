@@ -138,8 +138,9 @@ cleanup_and_trap() {
 }
 # (Traps are registered inside ac_main to prevent overriding parent shell traps when sourced)
 usage() {
-  local script_name
+  local script_name w
   script_name="$(basename "$0")"
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
   cat <<EOF
 ${AC_BOLD}Usage:${AC_R}
   $script_name [options] <updated_source_dir> <local_target_dir>
@@ -155,26 +156,22 @@ ${AC_BOLD}Enterprise Robustness Behavior:${AC_R}
   - Automated emergency rollback restores backup instantly if copying fails mid-execution.
   - Always preserves target ${AC_FG_CYAN}.git/${AC_R}.
 
-${AC_BOLD}Options:${AC_R}
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--apply${AC_R}              Actually copy changes after showing the plan.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--interactive${AC_R}        Launch the interactive home-directory browser to
-                        pick SOURCE and TARGET with arrow keys, then apply.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--dry-run${AC_R}            Preview only. This is the default.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--mirror${AC_R}             Also delete target files that do not exist in source
-                       (excluding .git/, runtime logs, and custom exclusions). Use carefully.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--force${AC_R}              Allow applying even when target git tree has local changes.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--yes${AC_R}                Do not ask for interactive confirmation in --apply mode.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--backup-dir <dir>${AC_R}   Write backup archives to this directory instead of the
-                       target's parent directory.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--include-runtime${AC_R}    Also sync runtime logs/tmp files under log/ (aliases:
-                       ${AC_BOLD}--include-logs${AC_R}, ${AC_BOLD}--no-default-excludes${AC_R}).
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--exclude <pattern>${AC_R}  Exclude files or directories matching bash wildcard pattern
-                       (can be specified multiple times).
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--log-file <file>${AC_R}    Record a timestamped runtime audit log to this file.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--no-lock${AC_R}            Disable concurrency locking completely.
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}--max-preview <n>${AC_R}    Number of change lines to print before truncating
-                       (default: 200).
-  ${AC_BOLD}${AC_FG_BRIGHT_CYAN}-h, --help${AC_R}           Show this help.
+EOF
+  uk_help_section "$w" "Options" --name-w 26 \
+    "--apply" "Actually copy changes after showing the plan" \
+    "--interactive" "Launch arrow-key directory browser to pick SOURCE and TARGET" \
+    "--dry-run" "Preview only (default)" \
+    "--mirror" "Delete target files not in source (use carefully)" \
+    "--force" "Allow apply even when target git tree has changes" \
+    "--yes" "Skip interactive confirmation in --apply mode" \
+    "--backup-dir <dir>" "Custom backup directory" \
+    "--include-runtime" "Also sync runtime logs/tmp files" \
+    "--exclude <pattern>" "Exclude files matching wildcard (repeatable)" \
+    "--log-file <file>" "Record timestamped audit log" \
+    "--no-lock" "Disable concurrency locking" \
+    "--max-preview <n>" "Max change lines to preview (default: 200)" \
+    "-h, --help" "Show this help"
+  cat <<EOF
 
 ${AC_BOLD}Examples:${AC_R}
   ${AC_DIM}# Preview changes from source into target:${AC_R}

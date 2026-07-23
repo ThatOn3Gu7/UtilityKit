@@ -4,14 +4,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 dv_usage() {
-  cat <<'USAGE'
-Usage:
-  _dotenv_vault.sh --file .env --encrypt KEY [--apply]
-  _dotenv_vault.sh --file .env --decrypt [--output FILE]
-
-Encrypts a single KEY=value in a dotenv file using gpg symmetric encryption.
-Dry-run by default for --encrypt; use --apply to write the changed file.
-USAGE
+  local w
+  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  printf 'Usage:\n  _dotenv_vault.sh --file .env --encrypt KEY [--apply]\n  _dotenv_vault.sh --file .env --decrypt [--output FILE]\n\n'
+  printf 'Encrypts a single KEY=value in a dotenv file using gpg symmetric encryption.\nDry-run by default for --encrypt; use --apply to write the changed file.\n\n'
+  uk_help_section "$w" "Options" --name-w 24 \
+    "--file .env" "Dotenv file path" \
+    "--encrypt KEY" "Encrypt the given key" \
+    "--apply" "Write changes to the file" \
+    "--decrypt" "Decrypt the file" \
+    "--output FILE" "Output file for decryption" \
+    "-h, --help" "Show this help"
 }
 dv_need_crypto() {
   uk_has_cmd gpg || {

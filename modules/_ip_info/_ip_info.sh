@@ -47,31 +47,29 @@ fi
 # --------------------------
 
 ii_usage() {
-  cat <<'USAGE'
-Usage:
-  _ip_info.sh [TARGET] [OPTIONS]
-
-  TARGET may be an IPv4/IPv6 address or hostname. Without a TARGET, the tool
-  reports on the local machine's public IP.
-
-Options:
-  --local            Show local interfaces (IPv4/IPv6, MAC, gateway).
-  --public           Look up public IPv4 (and IPv6 if available).
-  --whois            Include WHOIS registrar/org summary.
-  --geo              Include GeoIP/ASN lookup (default when public/target).
-  --no-network       Skip every network call (local-only report).
-  --timeout SEC      HTTP timeout per request (default 5).
-  --json             Emit results as a single JSON document.
-  --no-color         Disable ANSI.
-  -h, --help         Show this help.
-
-Examples:
-  _ip_info.sh                    # local + public IP report
-  _ip_info.sh 1.1.1.1            # inspect a remote IP
-  _ip_info.sh github.com --whois
-  _ip_info.sh --local --no-network
-  _ip_info.sh --json
-USAGE
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage:\n  _ip_info.sh [TARGET] [OPTIONS]\n\n'
+  printf "  TARGET may be an IPv4/IPv6 address or hostname. Without a TARGET, the tool\n"
+  printf "  reports on the local machine's public IP.\n\n"
+  uk_help_section "$w" "Options" \
+    "--local" "Show local interfaces (IPv4/IPv6, MAC, gateway)." \
+    "--public" "Look up public IPv4 (and IPv6 if available)." \
+    "--whois" "Include WHOIS registrar/org summary." \
+    "--geo" "Include GeoIP/ASN lookup (default when public/target)." \
+    "--no-network" "Skip every network call (local-only report)." \
+    "--timeout SEC" "HTTP timeout per request (default 5)." \
+    "--json" "Emit results as a single JSON document." \
+    "--no-color" "Disable ANSI." \
+    "-h, --help" "Show this help."
+  printf '\nExamples:\n'
+  printf '  _ip_info.sh                    # local + public IP report\n'
+  printf '  _ip_info.sh 1.1.1.1            # inspect a remote IP\n'
+  printf '  _ip_info.sh github.com --whois\n'
+  printf '  _ip_info.sh --local --no-network\n'
+  printf '  _ip_info.sh --json\n'
 }
 
 # ---- Helpers ---------------------------------------------------------------

@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
-ssn_usage() { echo 'Usage: _system_snapshot.sh [--output FILE]'; }
+ssn_usage() {
+  local w
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf 'Usage: _system_snapshot.sh [OPTIONS]\n\n'
+  uk_help_section "$w" "Options" \
+    "--output FILE" "Write snapshot to FILE instead of stdout." \
+    "-h, --help" "Show this help."
+}
 ssn_main() {
   uk_banner "system-snapshot" "Compact diagnostic summary of OS, platform, disk" "" "$@"
   local out=''
