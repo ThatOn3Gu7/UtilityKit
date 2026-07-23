@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.12.0] - 2026-07-23
+
+### Added
+- **Responsive interactive dashboard.** The menu loop now detects terminal width changes at every redraw cycle and self-adjusts — resize the window and the menu re-centers on the next keypress with no visible flicker. If the terminal becomes too narrow during use, the blocking gate re-engages automatically.
+- **Horizontal centering on wide terminals.** When the terminal is wider than 72 columns, the entire menu viewport (header, item list, footer, navigation legend, and the separator line) is automatically centered with calculated left-padding instead of being flush-left.
+- **`uk_require_min_width()` — minimum-width blocking gate.** Replaced the old `uk_require_width()` that blocked until the terminal was exactly 78 columns. The new gate blocks until the terminal is at least 71 columns wide (configurable via `UK_MIN_COLS` env var). There is no upper-bound check — wide terminals are handled by the new centering logic. The same centred notice box with spinner animation is preserved.
+- **`uk_render_min_width_notice_full()` / `_uk_render_min_width_notice_tick()` / `_uk_center_line()`** — restored helpers for the centred resize-notice box with live spinner.
+
+### Removed
+- **Exact-78-column width gate.** The old `uk_require_width()` that required the terminal to be *exactly* 78 columns has been removed. The new `uk_require_min_width()` only enforces a minimum threshold — being too wide is no longer a problem.
+
 ## [5.11.0] - 2026-07-23
 
 ### Changed

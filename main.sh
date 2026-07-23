@@ -118,17 +118,17 @@ UK_REGISTRY=(
   "symlink_manager|symlink|►|UK_C_YELLOW|Symlink Manager|Dotfiles & System Config Management|1"
   "disk_analyzer|disk|◆|UK_C_BRIGHT_CYAN|Disk Analyzer|Storage Inspection & Quick Archiving|1"
   "env_manager|env|◎|UK_C_CYAN|Env Manager|compare, validate, and switch .env profiles|1"
-  "git_sweep|git|⑂|UK_C_GREEN|Git Sweep|clean merged branches, stashes, and artifacts|1"
-  "project_scaffold|scaffold|▣|UK_C_BRIGHT_BLUE|Project Scaffold|generate starter projects from guided templates|1"
-  "duplicate_finder|dup|◆|UK_C_MAGENTA|Duplicate Finder|find exact duplicate files and reclaim space|1"
-  "process_killer|proc|✖|UK_C_RED|Process Killer|inspect memory pressure and terminate processes|1"
+  "git_sweep|git|⑂|UK_C_GREEN|Git Sweep|clean merged branches & artifacts|1"
+  "project_scaffold|scaffold|▣|UK_C_BRIGHT_BLUE|Project Scaffold|scaffold projects from templates|1"
+  "duplicate_finder|dup|◆|UK_C_MAGENTA|Duplicate Finder|find and remove duplicate files|1"
+  "process_killer|proc|✖|UK_C_RED|Process Killer|inspect memory and kill processes|1"
   "port_inspector|port|◉|UK_C_BRIGHT_CYAN|Port Inspector|find which process owns a local port|1"
-  "ssl_checker|ssl|🔒|UK_C_CYAN|SSL Checker|inspect certificate expiry, DNS, and TLS support|1"
-  "api_tester|api|⇄|UK_C_GREEN|API Tester|send HTTP requests and save reusable profiles|1"
+  "ssl_checker|ssl|🔒|UK_C_CYAN|SSL Checker|inspect SSL cert expiry & TLS|1"
+  "api_tester|api|⇄|UK_C_GREEN|API Tester|send HTTP requests from profiles|1"
   "password_gen|pass|✦|UK_C_YELLOW|Password Gen|generate passphrases or random strings|1"
   "ssh_assistant|ssh|⇢|UK_C_BRIGHT_BLUE|SSH Assistant|list SSH hosts and run connection helpers|1"
-  "shredder|shred|⌫|UK_C_RED|Shredder|securely erase sensitive files with fallbacks|1"
-  "media_convert|media|▧|UK_C_MAGENTA|Media Convert|batch convert images/videos when tools exist|1"
+  "shredder|shred|⌫|UK_C_RED|Shredder|securely erase sensitive files|1"
+  "media_convert|media|▧|UK_C_MAGENTA|Media Convert|batch convert images & videos|1"
   "markdown_toc|toc|☷|UK_C_CYAN|Markdown TOC|generate TOCs, check links, align tables|1"
   "pomodoro|pomodoro|◷|UK_C_GREEN|Pomodoro|run focused work/break cycles|1"
   "cheat_sheet|cheat|☰|UK_C_YELLOW|Cheat Sheet|store, search, and show command snippets|1"
@@ -136,17 +136,17 @@ UK_REGISTRY=(
   "docker_janitor|docker|⬢|UK_C_BRIGHT_BLUE|Docker Janitor|clean containers, images, and volumes|1"
   "network_probe|network|⌁|UK_C_BRIGHT_CYAN|Network Probe|ping, DNS, public IP, and route diagnostics|1"
   "service_watcher|service|◍|UK_C_GREEN|Service Watcher|check HTTP services and response times|1"
-  "git_stats|git-stats|⑂|UK_C_YELLOW|Git Stats|summarize authors, branches, and changed files|1"
-  "json_explorer|json|{}|UK_C_MAGENTA|JSON Explorer|pretty-print, inspect, and extract JSON paths|1"
+  "git_stats|git-stats|⑂|UK_C_YELLOW|Git Stats|summarize repo authors & changes|1"
+  "json_explorer|json|{}|UK_C_MAGENTA|JSON Explorer|pretty-print and query JSON|1"
   "link_checker|links|🔗|UK_C_CYAN|Link Checker|validate Markdown local and HTTP links|1"
   "backup_sync|backup|⇄|UK_C_GREEN|Backup Sync|dry-run-first backup wrapper with fallbacks|1"
-  "project_search|search|⌕|UK_C_BRIGHT_BLUE|Project Search|search files/text with rg/grep/find fallbacks|1"
+  "project_search|search|⌕|UK_C_BRIGHT_BLUE|Project Search|search files with rg/grep|1"
   "log_inspector|log-inspect|≡|UK_C_YELLOW|Log Inspector|summarize warnings, errors, repeated lines|1"
   "csv_toolkit|csv|▤|UK_C_MAGENTA|CSV Toolkit|inspect CSV headers and preview rows|1"
   "cron_manager|cron|◷|UK_C_CYAN|Cron Manager|list/add/remove crontab entries safely|1"
   "dotenv_vault|dotenv|🔐|UK_C_GREEN|Dotenv Vault|encrypt selected .env values with gpg|1"
   "disk_health|disk-health|◆|UK_C_YELLOW|Disk Health|SMART health check when smartctl exists|1"
-  "weather|weather|☁|UK_C_BRIGHT_CYAN|Weather|terminal forecast lookup with cache fallback|1"
+  "weather|weather|☁|UK_C_BRIGHT_CYAN|Weather|forecast lookup with cache|1"
   "tmux_session|tmux|▥|UK_C_GREEN|Tmux Session|list, create, attach, or kill tmux sessions|1"
   "font_inspector|font|A|UK_C_BRIGHT_BLUE|Font Inspector|check glyph support and list fonts|1"
   "toolbox_bootstrap|toolbox|⚙|UK_C_YELLOW|Toolbox Audit|detect recommended CLI tools|1"
@@ -159,23 +159,23 @@ UK_REGISTRY=(
   "release_helper|release|§|UK_C_YELLOW|Release Helper|run git release checks and optional tags|1"
   "license_helper|license|◆|UK_C_MAGENTA|License Helper|detect or generate simple license text|1"
   "todo_manager|todo|☑|UK_C_BRIGHT_CYAN|Todo Manager|plain-text tasks with tags and search|1"
-  "update_managers|update|↥|UK_C_BRIGHT_GREEN|Update Managers|detect and update every package manager found|1"
+  "update_managers|update|↥|UK_C_BRIGHT_GREEN|Update Managers|update all package managers|1"
   "qr_tool|qr|▦|UK_C_BRIGHT_MAGENTA|QR Tool|encode text/URL/Wi-Fi/vCard, decode images|1"
   "clipboard_history|clipboard|✂|UK_C_BRIGHT_CYAN|Clipboard History|persistent clipboard log with pins & search|1"
   "secret_scan|secret|⚑|UK_C_RED|Secret Scan|find leaked credentials via regex + entropy|1"
-  "dns_probe|dns|◈|UK_C_BRIGHT_BLUE|DNS Probe|multi-resolver DNS queries & propagation checks|1"
+  "dns_probe|dns|◈|UK_C_BRIGHT_BLUE|DNS Probe|multi-resolver DNS query tool|1"
   "ip_info|ipinfo|◉|UK_C_YELLOW|IP Info|public/local IP, ASN, GeoIP, WHOIS lookup|1"
-  "regex_lab|regex|⚑|UK_C_BRIGHT_MAGENTA|Regex Lab|live regex tester with match & substitution preview|1"
-  "uuid_gen|uuid|◈|UK_C_BRIGHT_BLUE|UUID Gen|generate UUID v4/v7, ULID, NanoID, short IDs|1"
+  "regex_lab|regex|⚑|UK_C_BRIGHT_MAGENTA|Regex Lab|test regex with live matching|1"
+  "uuid_gen|uuid|◈|UK_C_BRIGHT_BLUE|UUID Gen|generate UUIDs and short IDs|1"
   "time_convert|time|◷|UK_C_GREEN|Time Convert|epoch ↔ ISO 8601 ↔ human, cron analyzer|1"
   "http_bench|bench|▤|UK_C_YELLOW|HTTP Bench|HTTP benchmark with p50/p95/p99 & RPS stats|1"
   "yaml_toolkit|yaml|▦|UK_C_CYAN|YAML Toolkit|lint, convert, query, and merge YAML files|1"
-  "yt_download|ytdl|▶|UK_C_RED|YT Download|download YouTube videos via yt-dlp (format selection, subs, audio)|1"
-  "pdf_toolkit|pdf|▣|UK_C_MAGENTA|PDF Toolkit|count pages, info, merge, split, extract text from PDFs|1"
-  "image_tool|image|▣|UK_C_BRIGHT_MAGENTA|Image Tool|resize, convert, strip EXIF, optimize images|1"
-  "file_watcher|fwatch|◉|UK_C_CYAN|File Watcher|run command on file change with glob patterns|1"
-  "ssh_tunnel|tunnel|⇄|UK_C_CYAN|SSH Tunnel|create, list, kill, restart persistent SSH port-forwards|1"
-  "git_hooks|hooks|⚙|UK_C_GREEN|Git Hooks|install, remove, list, show git hook templates|1"
+  "yt_download|ytdl|▶|UK_C_RED|YT Download|download YouTube via yt-dlp|1"
+  "pdf_toolkit|pdf|▣|UK_C_MAGENTA|PDF Toolkit|merge, split, and extract PDFs|1"
+  "image_tool|image|▣|UK_C_BRIGHT_MAGENTA|Image Tool|resize and optimize images|1"
+  "file_watcher|fwatch|◉|UK_C_CYAN|File Watcher|run command on file changes|1"
+  "ssh_tunnel|tunnel|⇄|UK_C_CYAN|SSH Tunnel|manage persistent SSH tunnels|1"
+  "git_hooks|hooks|⚙|UK_C_GREEN|Git Hooks|manage git hook templates|1"
   "installed|installed|📦|UK_C_BRIGHT_GREEN|Installed Commands|list packages & PATH executables by manager|1"
 )
 
@@ -1642,14 +1642,11 @@ load_all_tools() {
 }
 
 interactive_menu_loop() {
-  # Gate the dashboard on a 78-column terminal — the master banner ASCII art
-  # and the item viewport are both hand-tuned for that width. The check is a
-  # no-op on non-TTYs and when UK_NO_WIDTH_GATE=1, so smoke tests, pipes, and
-  # `main.sh <cmd>` CLI invocations are unaffected.
-  uk_require_width || {
-    printf '\n'
-    return 0
-  }
+  # Blocking min-width gate — if the terminal is too narrow (< 71 cols by
+  # default), shows a centred resize-notice box with a live spinner until
+  # the user widens the window (or presses q to skip).
+  # No-op on non-TTYs and when UK_NO_WIDTH_GATE=1.
+  uk_require_min_width
 
   load_all_tools
 
@@ -1657,6 +1654,15 @@ interactive_menu_loop() {
   local SELECTED_INDEX=0
   local WINDOW_START=0
   local VISIBLE_COUNT=8 # Strictly sets the visible viewport item count
+  local PREV_COLS=0     # Tracks terminal width for responsive resize detection
+  local LEFT_PAD=0      # Horizontal centering offset when cols > natural content width
+
+  # Initialize terminal tracking so the first loop iteration doesn't
+  # redundantly re-draw the banner.
+  PREV_COLS=$(tput cols 2>/dev/null || echo 80)
+  if ((PREV_COLS > 72)); then
+    LEFT_PAD=$(((PREV_COLS - 72) / 2))
+  fi
 
   # Hide the cursor while the interactive menu is active, and make sure
   # it gets restored no matter how the script exits (clean exit, Ctrl+C,
@@ -1686,18 +1692,48 @@ interactive_menu_loop() {
       WINDOW_START=$((SELECTED_INDEX - VISIBLE_COUNT + 1))
     fi
 
+    # Responsive terminal width check — detect resize, re-enter the
+    # blocking gate if the terminal became too narrow, and recalculate
+    # centering padding.
+    local COLS
+    COLS=$(tput cols 2>/dev/null || echo 80)
+    if ((COLS != PREV_COLS)); then
+      PREV_COLS=$COLS
+      # If the terminal was narrowed below the minimum, re-enter the
+      # blocking gate until the user widens it again or skips.
+      if ((COLS < 71)); then
+        uk_require_min_width || true
+        # Re-sample dimensions after the gate clears
+        COLS=$(tput cols 2>/dev/null || echo 80)
+        PREV_COLS=$COLS
+        uk_cursor_hide
+      fi
+      if ((COLS > 72)); then
+        LEFT_PAD=$(((COLS - 72) / 2))
+      else
+        LEFT_PAD=0
+      fi
+      uk_main_banner
+      printf '\033[s'
+    fi
+
+    # Build left-padding string for horizontal centering
+    local p=''
+    ((LEFT_PAD > 0)) && printf -v p '%*s' "$LEFT_PAD" ''
+
     # Restore cursor to below banner and clear everything downwards
     printf '\033[u\033[0J'
 
-    printf '  %s❯ %sUtilityKit Master Suite%s — %sTool %d of %d%s\n\n' \
+    printf '%s  %s❯ %sUtilityKit Master Suite%s — %sTool %d of %d%s\n\n' \
+      "$p" \
       "$UK_C_BOLD" "$UK_C_BOLD$UK_C_GREEN" "$UK_C_RESET" \
       "$UK_C_DIM" "$((SELECTED_INDEX + 1))" "$TOTAL_ITEMS" "$UK_C_RESET"
 
     # Upwards scrolling indicator
     if ((WINDOW_START > 0)); then
-      printf '     %s▲  (scroll up for more tools)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '%s     %s▲  (scroll up for more tools)%s\n' "$p" "$UK_C_DIM" "$UK_C_RESET"
     else
-      printf '\n' # Maintain spacing consistency
+      printf '%s\n' "$p"
     fi
 
     # Print the visible chunk of tools (The Viewport)
@@ -1711,12 +1747,14 @@ interactive_menu_loop() {
       local desc="${M_DESCS[$i]}"
 
       if ((i == SELECTED_INDEX)); then
-        printf '  %s➔%s  %s%s %-18s%s %s(%s)%s\n' \
+        printf '%s  %s➔%s  %s%s %-18s%s %s(%s)%s\n' \
+          "$p" \
           "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
           "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" \
           "$UK_C_BOLD" "$desc" "$UK_C_RESET"
       else
-        printf '     %s%s %-18s%s %s(%s)%s\n' \
+        printf '%s     %s%s %-18s%s %s(%s)%s\n' \
+          "$p" \
           "$UK_C_BOLD$color" "$icon" "$name" "$UK_C_RESET" \
           "$UK_C_DIM" "$desc" "$UK_C_RESET"
       fi
@@ -1724,20 +1762,22 @@ interactive_menu_loop() {
 
     # Downwards scrolling indicator
     if ((WINDOW_START + VISIBLE_COUNT < TOTAL_ITEMS)); then
-      printf '     %s▼  (scroll down for more tools)%s\n' "$UK_C_DIM" "$UK_C_RESET"
+      printf '%s     %s▼  (scroll down for more tools)%s\n' "$p" "$UK_C_DIM" "$UK_C_RESET"
     else
-      printf '\n'
+      printf '%s\n' "$p"
     fi
 
     # Static Footer Legend
-    printf '\n  %s──────────────────────────────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
-    printf '  %sNavigation Info:%s\n\n' "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
-    printf '   Use %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
+    printf '%s\n%s  %s──────────────────────────────────────────────────────────────────────%s\n' \
+      "$p" "$p" "$UK_C_DIM" "$UK_C_RESET"
+    printf '%s  %sNavigation Info:%s\n\n' "$p" "$UK_C_BOLD$UK_C_WHITE" "$UK_C_RESET"
+    printf '%s   Use %s▲/▼%s or %sj/k%s : Scroll Tools         %s[Enter]%s : Execute selected\n' \
+      "$p" \
       "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" "$UK_C_BRIGHT_CYAN" "$UK_C_RESET" \
       "$UK_C_BRIGHT_GREEN" "$UK_C_RESET"
-    printf '                                         %s[q]%s     : Exit UtilityKit\n' \
-      "$UK_C_RED" "$UK_C_RESET"
-    printf '\n'
+    printf '%s                                         %s[q]%s     : Exit UtilityKit\n' \
+      "$p" "$UK_C_RED" "$UK_C_RESET"
+    printf '%s\n' "$p"
 
     local key_press
     key_press=$(uk_read_key)
