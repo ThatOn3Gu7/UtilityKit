@@ -41,7 +41,10 @@ sc_dns() {
   if uk_has_cmd dig; then
     local result output
     for t in A AAAA MX TXT; do
-      output="$(dig +short "$SC_HOST" "$t" 2>&1)" || { uk_error "DNS query failed for $t: $output"; return 1; }
+      output="$(dig +short "$SC_HOST" "$t" 2>&1)" || {
+        uk_error "DNS query failed for $t: $output"
+        return 1
+      }
       result="$(printf '%s\n' "$output" | paste -sd '; ' -)" || return 1
       if [[ -n "$result" ]]; then
         printf '  %s%-6s%s %s\n' "$UK_C_BOLD" "$t" "$UK_C_RESET" "$result"
@@ -51,7 +54,10 @@ sc_dns() {
     done
   elif uk_has_cmd nslookup; then
     local output
-    output="$(nslookup "$SC_HOST" 2>&1)" || { uk_error "DNS lookup failed: $output"; return 1; }
+    output="$(nslookup "$SC_HOST" 2>&1)" || {
+      uk_error "DNS lookup failed: $output"
+      return 1
+    }
     printf '%s\n' "$output" | sed 's/^/  /'
   else
     printf '  %s(dig and nslookup unavailable — skipping DNS checks)%s\n' "$UK_C_DIM" "$UK_C_RESET"
@@ -119,8 +125,14 @@ sc_main() {
       return 1
     fi
   fi
-  [[ "$SC_PORT" =~ ^[0-9]+$ ]] && ((SC_PORT >= 1 && SC_PORT <= 65535)) || { uk_error "Port must be in 1..65535: $SC_PORT"; return 1; }
-  [[ "$SC_HOST" != -* && "$SC_HOST" != *$'\n'* && "$SC_HOST" != *$'\r'* && "$SC_HOST" != *[[:space:]]* ]] || { uk_error "Invalid host: $SC_HOST"; return 1; }
+  [[ "$SC_PORT" =~ ^[0-9]+$ ]] && ((SC_PORT >= 1 && SC_PORT <= 65535)) || {
+    uk_error "Port must be in 1..65535: $SC_PORT"
+    return 1
+  }
+  [[ "$SC_HOST" != -* && "$SC_HOST" != *$'\n'* && "$SC_HOST" != *$'\r'* && "$SC_HOST" != *[[:space:]]* ]] || {
+    uk_error "Invalid host: $SC_HOST"
+    return 1
+  }
   uk_has_cmd openssl || {
     uk_error 'openssl is required.'
     return 1
@@ -141,8 +153,14 @@ sc_main() {
   expiry=$(printf '%s\n' "$cert_info" | awk -F= '/notAfter/ {print $2}') || return 1
   subject=$(printf '%s\n' "$cert_info" | awk -F= '/subject=/ {$1=""; sub(/^ /,""); print}') || return 1
   issuer=$(printf '%s\n' "$cert_info" | awk -F= '/issuer=/ {$1=""; sub(/^ /,""); print}') || return 1
-  days=$(sc_days_left "$expiry") || { uk_error "Unable to parse certificate expiry."; return 1; }
-  [[ "$days" =~ ^-?[0-9]+$ ]] || { uk_error "Invalid certificate lifetime: $days"; return 1; }
+  days=$(sc_days_left "$expiry") || {
+    uk_error "Unable to parse certificate expiry."
+    return 1
+  }
+  [[ "$days" =~ ^-?[0-9]+$ ]] || {
+    uk_error "Invalid certificate lifetime: $days"
+    return 1
+  }
   printf '\nSubject: %s\nIssuer : %s\nDays left: %s\n' "$subject" "$issuer" "$days"
   if ((days < 0)); then
     uk_error 'Certificate is expired.'

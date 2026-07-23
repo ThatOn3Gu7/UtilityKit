@@ -162,7 +162,9 @@ po_main() {
       po_timer 'break' "$break_s"
     fi
   done
-  uk_success "Pomodoro complete. Log: $logf"
+  uk_gradient_box "◷ Pomodoro Complete" \
+    "${UK_C_GREEN}${PO_CYCLES} cycle(s) finished${UK_C_RESET}" \
+    "Log: ${UK_C_DIM}${logf}${UK_C_RESET}"
 }
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail

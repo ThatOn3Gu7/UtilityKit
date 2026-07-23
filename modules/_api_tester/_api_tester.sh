@@ -15,12 +15,17 @@ at_profiles_dir() {
   local dir
   dir="$(uk_data_dir)" || return 1
   dir="$dir/api_profiles"
-  mkdir -p "$dir" || { uk_error "Unable to create API profile directory: $dir"; return 1; }
+  mkdir -p "$dir" || {
+    uk_error "Unable to create API profile directory: $dir"
+    return 1
+  }
   printf '%s\n' "$dir"
 }
 at_usage() {
   local w
-  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
   printf 'Usage:\n  _api_tester.sh [--method METHOD --url URL] [--header K:V] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]\n  _api_tester.sh --save NAME --method METHOD --url URL [--header K:V] [--body TEXT|--body-file FILE]\n  _api_tester.sh --run NAME | --show NAME | --list\n\n'
   uk_help_section "$w" "Options" --name-w 28 \
     "--method METHOD" "HTTP method (GET, POST, PUT, PATCH, DELETE)" \
@@ -36,12 +41,18 @@ at_usage() {
     "-h, --help" "Show this help"
 }
 at_validate_profile_name() {
-  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || { uk_error "Invalid profile name: ${1:-}. Use letters, numbers, dot, underscore, dash."; return 1; }
+  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || {
+    uk_error "Invalid profile name: ${1:-}. Use letters, numbers, dot, underscore, dash."
+    return 1
+  }
 }
 at_profile_file() { printf '%s/%s.json\n' "$(at_profiles_dir)" "$AT_NAME"; }
 at_save_profile() {
   at_validate_profile_name "$AT_NAME" || return 1
-  uk_has_cmd python3 || { uk_error 'python3 is required for safe JSON profile storage.'; return 1; }
+  uk_has_cmd python3 || {
+    uk_error 'python3 is required for safe JSON profile storage.'
+    return 1
+  }
   local file="$(at_profile_file)"
   python3 - "$file" "$AT_METHOD" "$AT_URL" "$AT_BODY" "$AT_BODY_FILE" "$AT_EXPECT" "${AT_HEADERS[@]}" <<'PYAPI_SAVE'
 import json, sys, os
@@ -57,14 +68,18 @@ PYAPI_SAVE
 }
 at_load_profile() {
   at_validate_profile_name "$AT_NAME" || return 1
-  uk_has_cmd python3 || { uk_error 'python3 is required to load JSON profiles.'; return 1; }
+  uk_has_cmd python3 || {
+    uk_error 'python3 is required to load JSON profiles.'
+    return 1
+  }
   local file="$(at_profile_file)"
   [[ -f "$file" ]] || {
     uk_error "Profile not found: $AT_NAME"
     return 1
   }
   local -a loaded=()
-  mapfile -t loaded < <(python3 - "$file" <<'PYAPI_LOAD'
+  mapfile -t loaded < <(
+    python3 - "$file" <<'PYAPI_LOAD'
 import json, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     d=json.load(f)
@@ -75,7 +90,7 @@ print(d.get('body_file',''))
 print(d.get('expect','2xx,3xx'))
 for h in d.get('headers',[]): print(h)
 PYAPI_LOAD
-)
+  )
   AT_METHOD="${loaded[0]:-GET}"
   AT_URL="${loaded[1]:-}"
   AT_BODY="${loaded[2]:-}"
@@ -98,8 +113,8 @@ at_show_profile() {
 at_redact_header() {
   local hdr="${1:-}"
   case "${hdr%%:*}" in
-    [Aa]uthorization|[Cc]ookie|[Xx]-[Aa]pi-[Kk]ey|[Ss]et-[Cc]ookie) printf '%s: <redacted>\n' "${hdr%%:*}" ;;
-    *) printf '%s\n' "$hdr" ;;
+  [Aa]uthorization | [Cc]ookie | [Xx]-[Aa]pi-[Kk]ey | [Ss]et-[Cc]ookie) printf '%s: <redacted>\n' "${hdr%%:*}" ;;
+  *) printf '%s\n' "$hdr" ;;
   esac
 }
 at_status_expected() {
@@ -110,12 +125,13 @@ at_status_expected() {
   for spec in "${specs[@]}"; do
     spec="${spec//[[:space:]]/}"
     case "$spec" in
-      [1-5]xx) [[ "${code:0:1}" == "${spec:0:1}" ]] && return 0 ;;
-      [0-9][0-9][0-9]) [[ "$code" == "$spec" ]] && return 0 ;;
-      [0-9][0-9][0-9]-[0-9][0-9][0-9])
-        start="${spec%-*}"; end="${spec#*-}"
-        (( code >= start && code <= end )) && return 0
-        ;;
+    [1-5]xx) [[ "${code:0:1}" == "${spec:0:1}" ]] && return 0 ;;
+    [0-9][0-9][0-9]) [[ "$code" == "$spec" ]] && return 0 ;;
+    [0-9][0-9][0-9]-[0-9][0-9][0-9])
+      start="${spec%-*}"
+      end="${spec#*-}"
+      ((code >= start && code <= end)) && return 0
+      ;;
     esac
   done
   return 1
@@ -130,13 +146,33 @@ at_run_request() {
     return 1
   }
   AT_METHOD="${AT_METHOD^^}"
-  [[ "$AT_METHOD" =~ ^[A-Z]+$ ]] || { uk_error "Invalid HTTP method: $AT_METHOD"; return 1; }
-  [[ "$AT_URL" =~ ^https?:// ]] || { uk_error "URL must begin with http:// or https://: $AT_URL"; return 1; }
-  [[ -z "$AT_BODY_FILE" || -r "$AT_BODY_FILE" ]] || { uk_error "Body file is not readable: $AT_BODY_FILE"; return 1; }
+  [[ "$AT_METHOD" =~ ^[A-Z]+$ ]] || {
+    uk_error "Invalid HTTP method: $AT_METHOD"
+    return 1
+  }
+  [[ "$AT_URL" =~ ^https?:// ]] || {
+    uk_error "URL must begin with http:// or https://: $AT_URL"
+    return 1
+  }
+  [[ -z "$AT_BODY_FILE" || -r "$AT_BODY_FILE" ]] || {
+    uk_error "Body file is not readable: $AT_BODY_FILE"
+    return 1
+  }
   local tmp_body tmp_meta tmp_timing curl_args=() hdr
-  tmp_body=$(mktemp) || { uk_error 'Unable to create response-body temporary file.'; return 1; }
-  tmp_meta=$(mktemp) || { rm -f "$tmp_body"; uk_error 'Unable to create curl-stderr temporary file.'; return 1; }
-  tmp_timing=$(mktemp) || { rm -f "$tmp_body" "$tmp_meta"; uk_error 'Unable to create timing temporary file.'; return 1; }
+  tmp_body=$(mktemp) || {
+    uk_error 'Unable to create response-body temporary file.'
+    return 1
+  }
+  tmp_meta=$(mktemp) || {
+    rm -f "$tmp_body"
+    uk_error 'Unable to create curl-stderr temporary file.'
+    return 1
+  }
+  tmp_timing=$(mktemp) || {
+    rm -f "$tmp_body" "$tmp_meta"
+    uk_error 'Unable to create timing temporary file.'
+    return 1
+  }
   trap 'at_cleanup_request' RETURN
 
   curl_args=(-sS -X "$AT_METHOD" --url "$AT_URL"
@@ -212,7 +248,10 @@ at_run_request() {
     fi
   fi
   if ((rendered == 0)); then
-    sed 's/^/  /' "$tmp_body" || { uk_error "Unable to render response body."; return 1; }
+    sed 's/^/  /' "$tmp_body" || {
+      uk_error "Unable to render response body."
+      return 1
+    }
   fi
 
   if [[ -s "$tmp_meta" ]]; then
@@ -221,7 +260,7 @@ at_run_request() {
     cat "$tmp_meta" | sed 's/^/  /'
   fi
 
-  if (( curl_rc != 0 )); then
+  if ((curl_rc != 0)); then
     uk_error "curl failed with exit code $curl_rc"
     return "$curl_rc"
   fi

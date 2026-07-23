@@ -32,13 +32,19 @@ pg_entropy_string() {
 pg_random_index() {
   local count="${1:-}" value limit
   [[ "$count" =~ ^[1-9][0-9]*$ && "$count" -le 256 ]] || return 1
-  [[ -r /dev/urandom ]] || { uk_error '/dev/urandom is required for secure generation.'; return 1; }
+  [[ -r /dev/urandom ]] || {
+    uk_error '/dev/urandom is required for secure generation.'
+    return 1
+  }
   limit=$((256 - (256 % count)))
   while :; do
     value="$(od -An -N1 -tu1 /dev/urandom)" || return 1
     value="${value//[[:space:]]/}"
     [[ "$value" =~ ^[0-9]+$ ]] || return 1
-    ((value < limit)) && { printf '%s\n' "$((value % count))"; return 0; }
+    ((value < limit)) && {
+      printf '%s\n' "$((value % count))"
+      return 0
+    }
   done
 }
 pg_passphrase() {
@@ -131,18 +137,36 @@ pg_main() {
       PG_COPY=1
     fi
   fi
-  uk_has_cmd od || { uk_error 'od is required for secure random generation.'; return 1; }
-  [[ "$PG_WORDS" =~ ^[1-9][0-9]*$ ]] && ((PG_WORDS <= 64)) || { uk_error '--words must be an integer from 1 to 64.'; return 1; }
-  [[ "$PG_LENGTH" =~ ^[1-9][0-9]*$ ]] && ((PG_LENGTH <= 4096)) || { uk_error '--length must be an integer from 1 to 4096.'; return 1; }
-  [[ "$PG_SEPARATOR" != *$'\n'* && "$PG_SEPARATOR" != *$'\r'* && ${#PG_SEPARATOR} -le 8 ]] || { uk_error '--separator must be at most 8 characters with no line breaks.'; return 1; }
+  uk_has_cmd od || {
+    uk_error 'od is required for secure random generation.'
+    return 1
+  }
+  [[ "$PG_WORDS" =~ ^[1-9][0-9]*$ ]] && ((PG_WORDS <= 64)) || {
+    uk_error '--words must be an integer from 1 to 64.'
+    return 1
+  }
+  [[ "$PG_LENGTH" =~ ^[1-9][0-9]*$ ]] && ((PG_LENGTH <= 4096)) || {
+    uk_error '--length must be an integer from 1 to 4096.'
+    return 1
+  }
+  [[ "$PG_SEPARATOR" != *$'\n'* && "$PG_SEPARATOR" != *$'\r'* && ${#PG_SEPARATOR} -le 8 ]] || {
+    uk_error '--separator must be at most 8 characters with no line breaks.'
+    return 1
+  }
   local generated entropy
   case "$PG_MODE" in
   passphrase)
-    generated=$(pg_passphrase) || { uk_error 'Passphrase generation failed.'; return 1; }
+    generated=$(pg_passphrase) || {
+      uk_error 'Passphrase generation failed.'
+      return 1
+    }
     entropy=$(pg_entropy_words "$PG_WORDS" "${#PG_WORDLIST[@]}") || return 1
     ;;
   string)
-    generated=$(pg_string) || { uk_error 'Random-string generation failed.'; return 1; }
+    generated=$(pg_string) || {
+      uk_error 'Random-string generation failed.'
+      return 1
+    }
     entropy=$(pg_entropy_string "$PG_LENGTH") || return 1
     ;;
   *)
@@ -152,30 +176,18 @@ pg_main() {
   esac
 
   # ── Output box ───
-  local div
-  div="$(printf '%*s' 52 '' | tr ' ' '-')"
-
-  printf '\n  %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
-  printf '  %s✦ Generated%s\n' "$UK_C_BOLD$UK_C_BRIGHT_CYAN" "$UK_C_RESET"
-  printf '  %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
-  printf '\n'
-  printf '  %s%s%s\n' "$UK_C_GREEN$UK_C_BOLD" "$generated" "$UK_C_RESET"
-  printf '\n'
-  printf ' + %s%s%s\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
-  printf ' | %s◆ Entropy :%s  %s~%s bits%s\n' \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_YELLOW" "$entropy" "$UK_C_RESET"
-  printf ' | %s◆ Mode    :%s  %s%s%s\n' \
-    "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_CYAN" "$PG_MODE" "$UK_C_RESET"
+  local body_lines=(
+    "${UK_C_GREEN}${UK_C_BOLD}${generated}${UK_C_RESET}"
+    ""
+    "◆ Entropy :  ${UK_C_YELLOW}~${entropy} bits${UK_C_RESET}"
+    "◆ Mode    :  ${UK_C_CYAN}${PG_MODE}${UK_C_RESET}"
+  )
   if [[ "$PG_MODE" == 'passphrase' ]]; then
-    printf ' | %s◆ Words   :%s  %s%s%s  %s(separator: %s)%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" \
-      "$UK_C_WHITE" "$PG_WORDS" "$UK_C_RESET" \
-      "$UK_C_DIM" "$PG_SEPARATOR" "$UK_C_RESET"
+    body_lines+=("◆ Words   :  ${UK_C_WHITE}${PG_WORDS}${UK_C_RESET}  ${UK_C_DIM}(separator: ${PG_SEPARATOR})${UK_C_RESET}")
   else
-    printf '  %s◆ Length  :%s  %s%s characters%s\n' \
-      "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_WHITE" "$PG_LENGTH" "$UK_C_RESET"
+    body_lines+=("◆ Length  :  ${UK_C_WHITE}${PG_LENGTH} characters${UK_C_RESET}")
   fi
-  printf ' + %s%s%s\n\n' "$UK_C_DIM" "$div" "$UK_C_RESET"
+  uk_gradient_box "✦ Generated" "${body_lines[@]}"
 
   # ── Clipboard ────
   if ((PG_COPY == 1)); then
@@ -194,13 +206,33 @@ pg_main() {
     printf ' ◆ %sSave to file?%s %s[Y/n]%s %s>%s ' \
       "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_GREEN" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
     local save_reply
-    read -r save_reply </dev/tty || { uk_error 'Unable to read save confirmation.'; return 1; }
+    read -r save_reply </dev/tty || {
+      uk_error 'Unable to read save confirmation.'
+      return 1
+    }
     if [[ ! "$save_reply" =~ ^[Nn]$ ]]; then
-      mkdir -p -m 700 "$save_dir" || { uk_error "Unable to create password directory: $save_dir"; return 1; }
-      chmod 700 "$save_dir" || { uk_error "Unable to secure password directory: $save_dir"; return 1; }
-      save_path="$(mktemp "$save_dir/$(date '+%Y%m%d_%H%M%S')_${PG_MODE}.XXXXXX")" || { uk_error 'Unable to create password file.'; return 1; }
-      chmod 600 "$save_path" || { rm -f "$save_path"; uk_error 'Unable to secure password file.'; return 1; }
-      printf '%s\n' "$generated" >"$save_path" || { rm -f "$save_path"; uk_error 'Unable to write password file.'; return 1; }
+      mkdir -p -m 700 "$save_dir" || {
+        uk_error "Unable to create password directory: $save_dir"
+        return 1
+      }
+      chmod 700 "$save_dir" || {
+        uk_error "Unable to secure password directory: $save_dir"
+        return 1
+      }
+      save_path="$(mktemp "$save_dir/$(date '+%Y%m%d_%H%M%S')_${PG_MODE}.XXXXXX")" || {
+        uk_error 'Unable to create password file.'
+        return 1
+      }
+      chmod 600 "$save_path" || {
+        rm -f "$save_path"
+        uk_error 'Unable to secure password file.'
+        return 1
+      }
+      printf '%s\n' "$generated" >"$save_path" || {
+        rm -f "$save_path"
+        uk_error 'Unable to write password file.'
+        return 1
+      }
       uk_success "Saved to $save_path"
     fi
   fi

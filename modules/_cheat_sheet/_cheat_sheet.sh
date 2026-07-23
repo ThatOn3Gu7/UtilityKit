@@ -22,7 +22,9 @@ cs_dir() {
 # Usage
 cs_usage() {
   local w
-  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
   printf 'Usage:\n  _cheat_sheet.sh --add NAME [--text TEXT|--file FILE] [--tags a,b]\n  _cheat_sheet.sh --list | --show NAME | --search TERM\n\n'
   uk_help_section "$w" "Options" --name-w 22 \
     "--add NAME" "Create a new snippet with the given name" \
@@ -40,7 +42,10 @@ cs_path() {
   local dir slug
   dir="$(cs_dir)" || return 1
   slug="$(uk_slugify "${1:-}")" || return 1
-  [[ -n "$slug" && "$slug" != "." && "$slug" != ".." ]] || { uk_error "Snippet name has no safe slug: ${1:-}"; return 1; }
+  [[ -n "$slug" && "$slug" != "." && "$slug" != ".." ]] || {
+    uk_error "Snippet name has no safe slug: ${1:-}"
+    return 1
+  }
   printf '%s/%s.md\n' "$dir" "$slug"
 }
 cs_confirm_overwrite() {
@@ -90,7 +95,10 @@ cs_add() {
     else
       printf '%s\n' "$CS_TEXT"
     fi
-  } >"$path" || { uk_error "Unable to save cheat sheet: $path"; return 1; }
+  } >"$path" || {
+    uk_error "Unable to save cheat sheet: $path"
+    return 1
+  }
   uk_success "Saved cheat sheet: $path"
 }
 cs_list() {
@@ -150,7 +158,6 @@ cs_delete() {
 cs_interactive() {
   local choice done_loop=0
   while ((done_loop == 0)); do
-    clear
     printf '  %s1)%s List saved snippets     %s(show all snippet names you have stored)%s\n' \
       "$UK_C_BOLD" "$UK_C_RESET" "$UK_C_DIM" "$UK_C_RESET"
     printf '  %s2)%s Add a new snippet       %s(save a one-liner or short block with tags)%s\n' \
@@ -333,4 +340,3 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -euo pipefail
   cs_main "$@"
 fi
-

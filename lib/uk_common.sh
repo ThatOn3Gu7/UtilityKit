@@ -869,8 +869,11 @@ uk_json_escape() {
   if uk_has_cmd python3; then
     python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1], ensure_ascii=False))' "$s"
   else
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
     printf '"%s"' "$s"
   fi
 }
@@ -890,7 +893,7 @@ uk_json_arr() {
   local first=1
   printf '['
   for item in "$@"; do
-    (( first )) || printf ','
+    ((first)) || printf ','
     printf '%s' "$item"
     first=0
   done
@@ -905,7 +908,7 @@ uk_json_obj() {
   local first=1
   printf '{'
   for frag in "$@"; do
-    (( first )) || printf ','
+    ((first)) || printf ','
     printf '%s' "$frag"
     first=0
   done
@@ -959,8 +962,11 @@ uk_table_render() {
   local fmt=''
   while [[ "${1:-}" == --* ]]; do
     case "${1:-}" in
-      --format) shift; fmt="${1:-}" ;;
-      *) break ;;
+    --format)
+      shift
+      fmt="${1:-}"
+      ;;
+    *) break ;;
     esac
     shift || true
   done
@@ -972,7 +978,7 @@ uk_table_render() {
   if [[ "$fmt" == "csv" ]]; then
     local cell
     for ((i = 0; i < ncol; i++)); do
-      (( i )) && printf ','
+      ((i)) && printf ','
       cell="${H[i]}"
       if [[ "$cell" == *[,\"$'\n']* ]]; then
         cell="\"${cell//\"/\"\"}\""
@@ -983,7 +989,7 @@ uk_table_render() {
     for row in "${UK_T_ROWS[@]}"; do
       _uk_table_split "$row"
       for ((i = 0; i < ncol; i++)); do
-        (( i )) && printf ','
+        ((i)) && printf ','
         cell="${UK_T_PARSED[i]:-}"
         if [[ "$cell" == *[,\"$'\n']* ]]; then
           cell="\"${cell//\"/\"\"}\""
@@ -1005,7 +1011,7 @@ uk_table_render() {
         [[ -n "$obj" ]] && obj+=' '
         obj+="$(uk_json_str "${H[i]}" "${UK_T_PARSED[i]:-}")"
       done
-      (( first )) || printf ','
+      ((first)) || printf ','
       # shellcheck disable=SC2086
       uk_json_obj $obj
       first=0
@@ -1020,8 +1026,9 @@ uk_table_render() {
   for row in "${UK_T_ROWS[@]}"; do
     _uk_table_split "$row"
     for ((i = 0; i < ncol; i++)); do
-      local len; len=$(uk_visible_len "${UK_T_PARSED[i]:-}")
-      (( len > widths[i] )) && widths[i]=$len
+      local len
+      len=$(uk_visible_len "${UK_T_PARSED[i]:-}")
+      ((len > widths[i])) && widths[i]=$len
     done
   done
 
@@ -1060,12 +1067,18 @@ uk_table_render() {
 uk_out_format_from_args() {
   local a="${1:-}"
   case "$a" in
-    --json) UK_FMT=json; return 1 ;;
-    --csv)  UK_FMT=csv;   return 1 ;;
-    --format)
-      UK_FMT="${2:-table}"
-      return 2
-      ;;
+  --json)
+    UK_FMT=json
+    return 1
+    ;;
+  --csv)
+    UK_FMT=csv
+    return 1
+    ;;
+  --format)
+    UK_FMT="${2:-table}"
+    return 2
+    ;;
   esac
   return 0
 }
@@ -1128,10 +1141,21 @@ uk_menu() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --prompt) shift; prompt="${1:-}"; shift ;;
-      --default) shift; default="${1:-0}"; shift ;;
-      --) shift; break ;;
-      *) break ;;
+    --prompt)
+      shift
+      prompt="${1:-}"
+      shift
+      ;;
+    --default)
+      shift
+      default="${1:-0}"
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *) break ;;
     esac
   done
   items=("$@")
@@ -1146,7 +1170,8 @@ uk_menu() {
     rest="${item#*|}"
     labels+=("$label")
     if [[ "$rest" == "$item" ]]; then
-      descs+=(""); icons+=("")
+      descs+=("")
+      icons+=("")
     else
       desc="${rest%%|*}"
       rest="${rest#*|}"
@@ -1163,7 +1188,7 @@ uk_menu() {
   if ! uk_is_interactive; then
     local i
     for ((i = 0; i < n; i++)); do
-      printf '  %d) %s' "$((i+1))" "${labels[i]}"
+      printf '  %d) %s' "$((i + 1))" "${labels[i]}"
       [[ -n "${descs[i]:-}" ]] && printf '  (%s)' "${descs[i]}"
       printf '\n'
     done
@@ -1266,19 +1291,19 @@ uk_menu() {
     local key
     key=$(uk_read_key)
     case "$key" in
-      UP|k|K) ((selected_index--)) ;;
-      DOWN|j|J) ((selected_index++)) ;;
-      ENTER)
-        tput cnorm 2>/dev/null || printf '\033[?25h'
-        trap - EXIT INT TERM HUP
-        UK_MENU_SELECTED="$selected_index"
-        return 0
-        ;;
-      q|Q)
-        tput cnorm 2>/dev/null || printf '\033[?25h'
-        trap - EXIT INT TERM HUP
-        return 1
-        ;;
+    UP | k | K) ((selected_index--)) ;;
+    DOWN | j | J) ((selected_index++)) ;;
+    ENTER)
+      tput cnorm 2>/dev/null || printf '\033[?25h'
+      trap - EXIT INT TERM HUP
+      UK_MENU_SELECTED="$selected_index"
+      return 0
+      ;;
+    q | Q)
+      tput cnorm 2>/dev/null || printf '\033[?25h'
+      trap - EXIT INT TERM HUP
+      return 1
+      ;;
     esac
   done
 }
@@ -1320,7 +1345,7 @@ uk_fh_box_top() {
   if [[ -n "$label" ]]; then
     local llen left_pad=2 right_fill
     llen=$(uk_fh_len "$label")
-    right_fill=$(( width - llen - left_pad - 4 ))
+    right_fill=$((width - llen - left_pad - 4))
     ((right_fill < 0)) && right_fill=0
     printf '%s%s%s%s %s %s%s%s%s\n' \
       "$dim" "$tl" "$(uk_fh_repeat "$h" "$left_pad")" "$reset" \
@@ -1342,7 +1367,10 @@ uk_fh_ellide() {
   ((maxlen < 3)) && maxlen=3
   local vislen
   vislen=$(uk_fh_len "$text")
-  ((vislen <= maxlen)) && { printf '%s' "$text"; return; }
+  ((vislen <= maxlen)) && {
+    printf '%s' "$text"
+    return
+  }
   local out='' char visible=0 in_esc=0 i
   for ((i = 0; i < ${#text}; i++)); do
     char="${text:$i:1}"
@@ -1406,4 +1434,100 @@ uk_help_section() {
     uk_fh_cmd_row "$width" "$cmd" "$desc" "$name_w"
   done
   uk_fh_box_bot "$width"
+}
+# uk_gradient_box [--align left|center|right] "Title" "line1" "line2" ...
+# Renders a box with a horizontal color gradient border. Falls back to a
+# plain single-color box when NO_COLOR/NO_UNICODE is set.
+uk_gradient_box() {
+  local box_align='center'
+  while [[ "${1:-}" == --* ]]; do
+    case "$1" in
+    --align)
+      shift
+      box_align="${1:-center}"
+      ;;
+    --align=*) box_align="${1#--align=}" ;;
+    *) break ;;
+    esac
+    shift
+  done
+  case "$box_align" in left | center | right) ;; *) box_align='center' ;; esac
+
+  local title="${1:-}"; shift || true
+  local -a lines=("$@")
+
+  local tl tr bl br h v
+  if [[ -z "${NO_UNICODE:-}" ]]; then
+    tl='╭' tr='╮' bl='╰' br='╯' h='─' v='│'
+  else
+    tl='+' tr='+' bl='+' br='+' h='-' v='|'
+  fi
+
+  local max=$(uk_visible_len "$title")
+  local l
+  for l in "${lines[@]}"; do
+    local n; n=$(uk_visible_len "$l")
+    ((n > max)) && max=$n
+  done
+  local inner=$((max + 4))
+  local box_width=$((inner + 2))
+
+  # Left offset for the whole box, based on terminal width.
+  local term_width
+  term_width="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+  [[ "$term_width" =~ ^[0-9]+$ ]] || term_width=80
+  local offset=0
+  case "$box_align" in
+  center)
+    offset=$(( (term_width - box_width) / 2 ))
+    ;;
+  right)
+    offset=$((term_width - box_width))
+    ;;
+  left) offset=0 ;;
+  esac
+  ((offset < 0)) && offset=0
+  local pad
+  pad="$(printf '%*s' "$offset" '')"
+
+  local -a ramp=(51 45 39 33 69 63 99 135 165)
+  local ramp_len=${#ramp[@]}
+
+  _uk_grad_hbar() {
+    local width="$1" out='' i color
+    if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+      for ((i = 0; i < width; i++)); do
+        color="${ramp[$((i * ramp_len / width))]}"
+        out+=$'\033[38;5;'"${color}m${h}"
+      done
+      out+=$'\033[0m'
+    else
+      for ((i = 0; i < width; i++)); do out+="$h"; done
+    fi
+    printf '%s' "$out"
+  }
+
+  printf '\n%s%s%s%s\n' "$pad" "${UK_C_BRIGHT_CYAN:-}" "$tl$(_uk_grad_hbar "$inner")$tr" "${UK_C_RESET:-}"
+
+  if [[ -n "$title" ]]; then
+    local n=$(uk_visible_len "$title")
+    local pad_l=$(( (inner - n) / 2 ))
+    local pad_r=$((inner - n - pad_l))
+    printf '%s%s%s%s%*s%s%s%s%*s%s%s%s\n' \
+      "$pad" "${UK_C_BRIGHT_CYAN:-}" "$v" "${UK_C_RESET:-}" \
+      "$pad_l" '' \
+      "${UK_C_BOLD:-}${UK_C_BRIGHT_CYAN:-}" "$title" "${UK_C_RESET:-}" \
+      "$pad_r" '' \
+      "${UK_C_BRIGHT_CYAN:-}" "$v" "${UK_C_RESET:-}"
+  fi
+
+  for l in "${lines[@]}"; do
+    local n=$(uk_visible_len "$l")
+    printf '%s%s%s%s %s%*s%s%s%s\n' \
+      "$pad" "${UK_C_BRIGHT_CYAN:-}" "$v" "${UK_C_RESET:-}" \
+      "$l" "$((inner - n - 1))" '' \
+      "${UK_C_BRIGHT_CYAN:-}" "$v" "${UK_C_RESET:-}"
+  done
+
+  printf '%s%s%s%s\n\n' "$pad" "${UK_C_BRIGHT_CYAN:-}" "$bl$(_uk_grad_hbar "$inner")$br" "${UK_C_RESET:-}"
 }

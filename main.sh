@@ -7,26 +7,26 @@ source "$UK_ROOT_DIR/lib/uk_common.sh"
 # ---- Main banner + help (uses box helpers from uk_common.sh) ----
 uk_fh_gradient_logo() {
   local -a palette=(
-    $'\033[38;5;27m'  $'\033[38;5;33m'  $'\033[38;5;39m'
-    $'\033[38;5;45m'  $'\033[38;5;51m'  $'\033[38;5;123m'
+    $'\033[38;5;27m' $'\033[38;5;33m' $'\033[38;5;39m'
+    $'\033[38;5;45m' $'\033[38;5;51m' $'\033[38;5;123m'
     $'\033[38;5;159m' $'\033[38;5;195m' $'\033[97m'
   )
   local use_color=1
   [[ -n "${NO_COLOR:-}" || ! -t 1 ]] && use_color=0
   local -a logo_lines=(
-'██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗'
-'██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝'
-'██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   '
-'██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   '
-'╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   '
-' ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝   '
+    '██╗   ██╗████████╗██╗██╗     ██╗████████╗██╗   ██╗██╗  ██╗██╗████████╗'
+    '██║   ██║╚══██╔══╝██║██║     ██║╚══██╔══╝╚██╗ ██╔╝██║ ██╔╝██║╚══██╔══╝'
+    '██║   ██║   ██║   ██║██║     ██║   ██║    ╚████╔╝ █████╔╝ ██║   ██║   '
+    '██║   ██║   ██║   ██║██║     ██║   ██║     ╚██╔╝  ██╔═██╗ ██║   ██║   '
+    '╚██████╔╝   ██║   ██║███████╗██║   ██║      ██║   ██║  ██╗██║   ██║   '
+    ' ╚═════╝    ╚═╝   ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝   ╚═╝   '
   )
   [[ -n "${NO_UNICODE:-}" ]] && logo_lines=('UTILITYKIT')
   local n=${#logo_lines[@]} i line idx
   for i in "${!logo_lines[@]}"; do
     line="${logo_lines[$i]}"
     if ((use_color)); then
-      idx=$(( i * (${#palette[@]} - 1) / (n > 1 ? n - 1 : 1) ))
+      idx=$((i * (${#palette[@]} - 1) / (n > 1 ? n - 1 : 1)))
       printf '%s%s%s\n' "${palette[$idx]}" "$line" "$UK_C_RESET"
     else
       printf '%s\n' "$line"
@@ -39,7 +39,7 @@ uk_main_banner() {
   cols=$(uk_fh_cols)
   local logo_native_width=71
   if ((cols >= logo_native_width + 4)) && [[ -z "${NO_UNICODE:-}" ]]; then
-    pad=$(( (cols - logo_native_width) / 2 ))
+    pad=$(((cols - logo_native_width) / 2))
     uk_fh_gradient_logo | while IFS= read -r l; do
       printf '%*s%s\n' "$pad" '' "$l"
     done
@@ -49,7 +49,7 @@ uk_main_banner() {
   local tagline="UtilityKit Central Hub  ·  v${UK_VERSION}"
   local tlen tpad
   tlen=$(uk_fh_len "$tagline")
-  tpad=$(( (cols - tlen) / 2 ))
+  tpad=$(((cols - tlen) / 2))
   ((tpad < 0)) && tpad=0
   printf '\n%*s%s%s%s\n\n' "$tpad" '' "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "$tagline" "${UK_C_RESET:-}"
 }
@@ -63,9 +63,9 @@ uk_main_show_help() {
   local bold="${UK_C_BOLD:-}" reset="${UK_C_RESET:-}" yellow="${UK_C_YELLOW:-}"
   printf '%sUsage:%s ./main.sh <command> [args]\n\n' "$bold$yellow" "$reset"
   uk_fh_box_top "$width" " Maintenance "
-  uk_fh_cmd_row "$width" "help, -h"  "Show this message and exit"
-  uk_fh_cmd_row "$width" "doctor"    "Run integrity checks on the tool registry"
-  uk_fh_cmd_row "$width" "tools"     "List all available tools"
+  uk_fh_cmd_row "$width" "help, -h" "Show this message and exit"
+  uk_fh_cmd_row "$width" "doctor" "Run integrity checks on the tool registry"
+  uk_fh_cmd_row "$width" "tools" "List all available tools"
   uk_fh_box_bot "$width"
   echo
   uk_fh_box_top "$width" " All Tools "
@@ -1516,11 +1516,12 @@ uk_doctor() {
   fi
 
   # --- summary ----------------------------------------------------------------
-  printf '\n%s────────────────────────────────────────────%s\n' "$UK_C_DIM" "$UK_C_RESET"
-  printf '  Checked %d tools — %s%d problem(s)%s, %s%d warning(s)%s\n' \
-    "$checked" \
-    "$([[ $problems -gt 0 ]] && printf '%s' "$UK_C_RED" || printf '%s' "$UK_C_GREEN")" "$problems" "$UK_C_RESET" \
-    "$([[ $warnings -gt 0 ]] && printf '%s' "$UK_C_YELLOW" || printf '%s' "$UK_C_GREEN")" "$warnings" "$UK_C_RESET"
+  local p_color w_color
+  p_color="$([[ $problems -gt 0 ]] && printf '%s' "$UK_C_RED" || printf '%s' "$UK_C_GREEN")"
+  w_color="$([[ $warnings -gt 0 ]] && printf '%s' "$UK_C_YELLOW" || printf '%s' "$UK_C_GREEN")"
+  uk_gradient_box " ✽ Doctor Summary" \
+    "Checked: ${checked} tools" \
+    "Problems: ${p_color}${problems}${UK_C_RESET}   Warnings: ${w_color}${warnings}${UK_C_RESET}"
   [[ "$fix" -eq 1 ]] && printf '  %sAuto-fixed %d issue(s)%s\n' "$UK_C_GREEN" "$fixed" "$UK_C_RESET"
   printf '\n'
 
