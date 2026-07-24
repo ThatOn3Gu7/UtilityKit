@@ -49,7 +49,7 @@ major for breaking changes.
 ### 3. Verify
 
 ```sh
-bash tests/smoke_test.sh          # must end PASS=N FAIL=0
+bash tests/smoke.sh          # must end PASS=N FAIL=0
 ```
 
 ### 4. Commit and get it onto master

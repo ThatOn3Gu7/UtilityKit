@@ -88,7 +88,7 @@ UtilityKit/
 │   ├── package.json
 │   └── README.md            ← build, dev, and deploy instructions
 └── tests/
-    └── smoke_test.sh        ← syntax + behavioral smoke suite
+    └── smoke.sh        ← omnipotent static + behavioral smoke suite
 ```
 
 Every script wraps its logic in a namespaced `*_main()` function and guards execution with:
@@ -361,12 +361,9 @@ notes.
 
 ---
 
-## Testing
-
-```bash
-bash tests/smoke_test.sh
+## 2. Omnipotent behavioral & static check
+bash tests/smoke.sh
 # PASS=7 FAIL=0
-```
 
 The suite covers:
 
@@ -390,9 +387,8 @@ independent jobs before merge:
 
 | Job | What it checks |
 |---|---|
-| `lint` | `shellcheck -S error` across every `*.sh` |
-| `syntax` | `bash -n` matrix on Ubuntu and macOS |
-| `smoke` | `tests/smoke_test.sh` matrix on Ubuntu and macOS |
+| `shellcheck` | `shellcheck -S error` across all `*.sh` |
+| `smoke` | `tests/smoke.sh` matrix on Ubuntu and macOS |
 | `deep-review` | `tests/deep_review_test.sh` behavioral audits |
 | `route-coverage` | `bash main.sh <cmd> --help` for every routed command |
 | `standalone-tools` | `bash _<tool>/_<tool>.sh --help` for every tool |

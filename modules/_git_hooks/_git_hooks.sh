@@ -133,8 +133,8 @@ HOOK
 set -euo pipefail
 
 echo "→ pre-push: running tests..."
-if [[ -f "tests/smoke_test.sh" ]]; then
-  bash tests/smoke_test.sh || { echo "✗ Smoke tests failed"; exit 1; }
+if [[ -f "tests/smoke.sh" ]]; then
+  bash tests/smoke.sh || { echo "✗ Smoke tests failed"; exit 1; }
 elif [[ -f "Makefile" ]] && grep -q '^test' Makefile 2>/dev/null; then
   make test || { echo "✗ make test failed"; exit 1; }
 elif [[ -f "package.json" ]] && grep -q '"test"' package.json 2>/dev/null; then

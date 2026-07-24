@@ -7,7 +7,7 @@ A fan-out of independent Bash tools unified by one router (`main.sh`). **CLAUDE.
 ```sh
 bash main.sh                              # interactive dashboard
 bash main.sh <cmd> [args]                 # direct CLI (e.g. bash main.sh port 3000)
-bash tests/smoke_test.sh                  # must end PASS=N FAIL=0
+bash tests/smoke.sh                  # must end PASS=N FAIL=0
 bash tests/deep_review_test.sh            # deeper behavioral pass
 shellcheck -S error -e SC1091 modules/_<tool>/_<tool>.sh   # matches CI exactly
 bash -n modules/_<tool>/_<tool>.sh        # syntax (CI runs this on every *.sh)
@@ -25,7 +25,7 @@ CI runs: `shellcheck -S error` on **every** `*.sh`, `bash -n`, smoke + deep-revi
 
 1. `modules/_<tool>/_<tool>.sh` (namespaced `<prefix>_` functions + BASH_SOURCE guard) and `_<tool>_README.md`.
 2. `main.sh`: one `UK_REGISTRY` line; a `case` dispatch branch; `run_<tool>_wizard()`; entries in the `M_ICONS/M_COLORS/M_NAMES/M_DESCS/M_ACTIONS` arrays.
-3. `tests/smoke_test.sh`: add `<cmd> --help` to `cmds=(...)` and a behavioral case if it has side effects.
+3. `tests/smoke.sh`: add `<cmd> --help` to `cmds=(...)` and a behavioral case if it has side effects.
 4. `docs-site/src/data/tools.ts`: mirror the tool, then `cd docs-site && npm run deploy:docs`.
 5. `setup.sh` already globs `modules/_*/`, so no manual edit is usually needed — verify it picked up the new dir.
 

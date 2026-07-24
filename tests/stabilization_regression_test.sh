@@ -29,13 +29,13 @@ ssh_assistant_single_help() {
 http_bench_json() {
   local out
   out="$(NO_COLOR=1 bash "$ROOT/modules/_http_bench/_http_bench.sh" http://127.0.0.1:1 -n 1 -c 1 --json)"
-  python3 - <<PY <<<"$out"
+  python3 -c "
 import json,sys
 obj=json.load(sys.stdin)
 assert obj['backend'] == 'curl'
 assert obj['requests'] == 1
 assert obj['completed'] == 1
-PY
+" <<<"$out"
 }
 
 regex_lab_regressions() {

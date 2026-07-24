@@ -37,7 +37,7 @@ body:
     id: smoke
     attributes:
       label: Smoke suite output
-      description: Paste the final `PASS=N FAIL=M` line from `bash tests/smoke_test.sh`.
+      description: Paste the final `PASS=N FAIL=M` line from `bash tests/smoke.sh`.
       render: text
   - type: textarea
     id: env

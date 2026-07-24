@@ -210,8 +210,7 @@
 - New `doctor` command (`./main.sh doctor`, alias `diagnostics`) that validates
   the registry against the files on disk, the `run_tool` dispatch cases, menu
   array alignment, orphan directories, and each tool's `--help`. Exits nonzero on
-  any hard problem, so it is CI-friendly. Two new checks were added to
-  `tests/smoke_test.sh` (Update Managers smoke + doctor integrity).
+  any hard problem, so it is CI-friendly.- **Update Managers (Update All):** Standardized logging loop + integration in `tests/smoke.sh` (Update Managers smoke + doctor integrity).
 
 ### Removed (Cleanup)
 - Removed all references to the deleted tools `_log_rotator`, `_zen_mode`,
@@ -322,7 +321,7 @@ All notable changes to UtilityKit are documented here.
 - Added `lib/uk_common.sh` for shared terminal visuals, prompts, platform detection, and clipboard helpers.
 - Rebuilt `main.sh` into a unified 23-tool dashboard with direct command routing and menu execution wrappers.
 - Added `docs/ICON_STYLE_GUIDE.md` and `docs/ROADMAP_STATUS.md`.
-- Added `tests/smoke_test.sh` for automated syntax and behavioral smoke coverage.
+- Added `tests/smoke.sh` for automated syntax and behavioral smoke coverage.
 - Added lowercase `changes.md` with implementation-specific notes.
 
 ### Fixed

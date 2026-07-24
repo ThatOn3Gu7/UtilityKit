@@ -119,11 +119,10 @@ touch user-supplied paths unexpectedly.
    - Add an option to the interactive dashboard menu loop and direct CLI routing.
 5. **Update `setup.sh`** to ensure your new subdirectory is included in the installation loop.
 6. **Verify locally before pushing:**
-   ```bash
-   bash tests/smoke_test.sh        # PASS=N FAIL=0
+   # 2. Functional smoke test + static analysis
+   bash tests/smoke.sh        # PASS=N FAIL=0
    bash tests/deep_review_test.sh  # PASS=N FAIL=0
    shellcheck -S error modules/_<tool>/_<tool>.sh
-   ```
 7. **Commit beautifully** with semantic commit prefixes (`feat(tool):`, `fix(tool):`, `docs:`, `refactor:`).
 8. **Submit your Pull Request!** The `.github/workflows/ci.yml` pipeline
    runs ten jobs (shellcheck, syntax on Ubuntu + macOS, smoke on Ubuntu +

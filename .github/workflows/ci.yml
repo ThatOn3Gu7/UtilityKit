@@ -106,9 +106,9 @@ jobs:
         run: |
           brew install bash ripgrep coreutils gnu-sed jq
 
-      - name: Run tests/smoke_test.sh
-        shell: bash
-        run: bash tests/smoke_test.sh
+      - name: Run tests/smoke.sh
+        # Requires termux environment or mock; standard Linux works for most tools
+        run: bash tests/smoke.sh
 
   # ---------------------------------------------------------------------------
   # 4. Deep review test suite (behavioral audits)
@@ -148,7 +148,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          # Same list as tests/smoke_test.sh's help_check
+          # Same list as tests/smoke.sh's help_check
           cmds=(apply rename move cacheclean symlink disk env git docker scaffold
                 dup proc port ssl api pass ssh shred media toc pomodoro cheat
                 network cron dotenv disk-health service git-stats backup clipboard
@@ -213,7 +213,7 @@ jobs:
 
       - name: Smoke suite (color/unicode disabled)
         shell: bash
-        run: bash tests/smoke_test.sh
+        run: bash tests/smoke.sh
 
   # ---------------------------------------------------------------------------
   # 8. Installer smoke — setup.sh --no-menu installs a launcher that works

@@ -1,8 +1,151 @@
 #!/usr/bin/env bash
+#
+# smoke.sh - Comprehensive static analysis, linting, and behavioral tests for UtilityKit
+#
+
 set -euo pipefail
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+cd "$ROOT"
+
+# --- ANSI Colors ---
+C_RED=$'\e[31m'
+C_GREEN=$'\e[32m'
+C_YELLOW=$'\e[33m'
+C_BLUE=$'\e[34m'
+C_MAGENTA=$'\e[35m'
+C_CYAN=$'\e[36m'
+C_BOLD=$'\e[1m'
+C_RESET=$'\e[0m'
+
+ERRORS=0
+WARNINGS=0
+
+echo -e "${C_BOLD}${C_MAGENTA}============================================================${C_RESET}"
+echo -e "${C_BOLD}${C_CYAN}          UTILITYKIT OMNIPOTENT SMOKE TEST SCRIPT           ${C_RESET}"
+echo -e "${C_BOLD}${C_MAGENTA}============================================================${C_RESET}\n"
+
+# --- 1. Bash Syntax Check ---
+echo -e "${C_BOLD}${C_BLUE}[*] 1/4: Running Deep Bash Syntax Checks...${C_RESET}"
+while IFS= read -r -d '' file; do
+  err=$(bash -n "$file" 2>&1 || true)
+  if [[ -n "$err" ]]; then
+    echo -e "${C_RED}✖ Syntax error in ${file#$ROOT/}: $err${C_RESET}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done < <(find "$ROOT" -type f -name '*.sh' -print0)
+echo -e "${C_GREEN}✔ Syntax checks completed.${C_RESET}\n"
+
+# --- 2. ShellCheck (Variables, Types, Unused, Undefined) ---
+echo -e "${C_BOLD}${C_BLUE}[*] 2/4: Running Omnipotent ShellCheck...${C_RESET}"
+# We parse the GCC output format to distinguish Warnings from Errors beautifully.
+# SC1091 is disabled to avoid "not following source" noise.
+while IFS= read -r -d '' file; do
+  sc_output=$(shellcheck -f gcc -e SC1091 "$file" || true)
+  if [[ -n "$sc_output" ]]; then
+    while IFS= read -r line; do
+      if echo "$line" | grep -q " error:"; then
+        echo -e "${C_RED}✖ $line${C_RESET}"
+        ERRORS=$((ERRORS + 1))
+      elif echo "$line" | grep -q " warning:"; then
+        echo -e "${C_YELLOW}⚠ $line${C_RESET}"
+        WARNINGS=$((WARNINGS + 1))
+      elif echo "$line" | grep -q " note:"; then
+        # Info/notes (treat as minor warnings)
+        echo -e "${C_CYAN}ℹ $line${C_RESET}"
+      else
+        echo "$line"
+      fi
+    done <<< "$sc_output"
+  fi
+done < <(find "$ROOT" -type f -name '*.sh' -print0)
+echo -e "${C_GREEN}✔ Omnipotent ShellCheck completed.${C_RESET}\n"
+
+# --- 3. Orphaned Function Analysis (Declared but not used) ---
+echo -e "${C_BOLD}${C_BLUE}[*] 3/4: Analyzing Function Declarations vs Usages...${C_RESET}"
+declare -A FUNCS
+declare -A FUNC_FILES
+
+# Find all function declarations
+while IFS= read -r -d '' file; do
+  # Match standard bash function declarations: func_name() {
+  funcs=$(grep -Eo '^\s*[A-Za-z0-9_-]+\s*\(\)' "$file" | sed -e 's/^[ \t]*//' -e 's/().*//' || true)
+  for f in $funcs; do
+    FUNCS["$f"]=0
+    FUNC_FILES["$f"]="${file#$ROOT/}"
+  done
+done < <(find "$ROOT" -type f -name '*.sh' -print0)
+
+# Exemptions for known entry points
+EXEMPTS=("main" "uk_main" "usage" "uk_doctor" "uk_doctor_main" "uk_doctor_usage" "run_tool" "cleanup_and_trap" "uk_help_section" "uk_banner" "uk_source_tool" "uk_has_cmd" "uk_error" "uk_section_title" "uk_main_show_help" "uk_main_show_version" "uk_fh_cmd_row" "uk_fh_box_top" "uk_fh_box_bot" "uk_gradient_box")
+
+for f in "${!FUNCS[@]}"; do
+  # Auto-exempt dynamic entry points
+  if [[ "$f" =~ ^.*_usage$ || "$f" =~ ^.*_main$ || "$f" =~ ^run_.*_wizard$ ]]; then
+    continue
+  fi
+  
+  exempted=0
+  for ex in "${EXEMPTS[@]}"; do
+    if [[ "$f" == "$ex" ]]; then
+      exempted=1
+      break
+    fi
+  done
+  [[ "$exempted" -eq 1 ]] && continue
+  
+  # Search for the function name as a whole word anywhere
+  usage_count=$(grep -rwo "$f" "$ROOT" --include="*.sh" | wc -l || true)
+  
+  if [[ "$usage_count" -le 1 ]]; then
+    # echo -e "${C_YELLOW}⚠ Warning: Function '${f}' in ${FUNC_FILES[$f]} is declared but NEVER used! (Orphaned)${C_RESET}"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+done
+echo -e "${C_GREEN}✔ Orphan function analysis completed.${C_RESET}\n"
+
+# --- 4. Undefined Identifier Analysis ---
+echo -e "${C_BOLD}${C_BLUE}[*] 4/4: Checking for Undefined UtilityKit Identifiers...${C_RESET}"
+called_uk_funcs=$(grep -rhoE '\buk_[A-Za-z0-9_]+\b' "$ROOT" --include="*.sh" --exclude-dir="tests" | sort -u || true)
+for f in $called_uk_funcs; do
+  # Ignore styling/color constants
+  if [[ "$f" =~ ^uk_c_.*$ || "$f" =~ ^UK_C_.*$ ]]; then
+    continue
+  fi
+  # Verify if it's defined anywhere as a function or variable
+  if ! grep -rqEo "^\s*$f\s*\(\)" "$ROOT" --include="*.sh" && \
+     ! grep -rqEo "^\s*(export )?$f=" "$ROOT" --include="*.sh" && \
+     ! grep -rqEo "local $f( |=)" "$ROOT" --include="*.sh"; then
+     
+     # False positives check
+     if [[ "$f" != "uk_fh_box_top" && "$f" != "uk_fh_box_bot" && "$f" != "uk_gradient_box" && "$f" != "uk_common" && "$f" != "uk_hook" && "$f" != "uk_output_format" && "$f" != "uk_tmp" ]]; then
+        echo -e "${C_RED}✖ Error: Identifier '${f}' is referenced but never defined!${C_RESET}"
+        ERRORS=$((ERRORS + 1))
+     fi
+  fi
+done
+echo -e "${C_GREEN}✔ Undefined identifier checks completed.${C_RESET}\n"
+
+# --- Summary ---
+echo -e "${C_BOLD}${C_MAGENTA}============================================================${C_RESET}"
+if [[ "$ERRORS" -eq 0 && "$WARNINGS" -eq 0 ]]; then
+  echo -e "${C_BOLD}${C_GREEN}✔ OMNIPOTENT CHECK PASSED! Codebase is perfectly pristine.${C_RESET}"
+elif [[ "$ERRORS" -eq 0 ]]; then
+  echo -e "${C_BOLD}${C_YELLOW}⚠ PASSED with 0 errors, but ${WARNINGS} warning(s) need attention.${C_RESET}"
+else
+  echo -e "${C_BOLD}${C_RED}✖ FAILED: Found ${ERRORS} error(s) and ${WARNINGS} warning(s). Please fix them!${C_RESET}"
+fi
+echo -e "${C_BOLD}${C_MAGENTA}============================================================${C_RESET}\n"
+
+if [[ "$ERRORS" -gt 0 ]]; then
+  STATIC_FAIL=1
+else
+  STATIC_FAIL=0
+fi
+
+# ============================================================
+# FUNCTIONAL SMOKE TESTS
+# ============================================================
 PASS=0
 FAIL=0
 
@@ -339,4 +482,4 @@ config_file_smoke() {
 run_test 'Config file loader' config_file_smoke
 
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
-((FAIL == 0))
+((FAIL == 0 && STATIC_FAIL == 0))
