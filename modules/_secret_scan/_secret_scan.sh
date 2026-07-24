@@ -54,15 +54,15 @@ sec_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _secret_scan.sh [PATH]... [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s _secret_scan.sh %s[PATH]... [OPTIONS]%s\n\n' "${UK_C_BOLD:-}" "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--path PATH" "Add a scan path (repeatable). Defaults to current dir." \
     "--json" "Emit findings as one JSON object per line (jsonl)." \
-    "--no-entropy" "Skip generic high-entropy detection (regex rules only)." \
+    "--no-entropy" "Skip high-entropy detection (regex rules only)." \
     "--entropy-min N" "Minimum Shannon entropy to flag a blob (default 4.5)." \
     "--entropy-len N" "Minimum blob length to consider (default 20)." \
     "--max-bytes N" "Skip files larger than N bytes (default 1048576 = 1 MB)." \
-    "--no-gitignore" "Do not filter by \`git ls-files\` even inside a repo." \
+    "--no-gitignore" "Do not filter by git ls-files even inside a repo." \
     "--include GLOB" "Only scan paths matching GLOB (repeatable)." \
     "--exclude GLOB" "Skip paths matching GLOB (repeatable)." \
     "--context N" "Show N chars of surrounding context (default 40)." \
@@ -70,15 +70,22 @@ sec_usage() {
     "--reveal" "Do not redact matches in JSON/terminal output." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nExit status:\n'
-  printf '  0   clean\n'
-  printf '  1   findings present\n'
-  printf '  2   argument/dependency error\n'
-  printf '\nDetected patterns:\n'
-  printf '  aws-access-key, aws-secret-key, github-token, github-pat, github-oauth,\n'
-  printf '  slack-token, slack-webhook, discord-webhook, google-api-key, stripe-key,\n'
-  printf '  jwt, private-key-block, generic-hex-secret, generic-b64-secret,\n'
-  printf '  dotenv-live-value, high-entropy-blob.\n'
+  printf '\n'
+  uk_help_section "$w" "Exit status" \
+    "${UK_C_GREEN:-}0${UK_C_RESET:-}" "clean" \
+    "${UK_C_RED:-}1${UK_C_RESET:-}" "findings present" \
+    "${UK_C_YELLOW:-}2${UK_C_RESET:-}" "argument/dependency error"
+  printf '\n'
+  uk_help_section "$w" "Detected patterns" --name-w 26 \
+    "aws-access-key" "AWS access key" \
+    "aws-secret-key" "AWS secret key" \
+    "github-token" "GitHub token" \
+    "slack-token" "Slack token" \
+    "jwt" "JWT token" \
+    "private-key" "Private key PEM block" \
+    "stripe-key" "Stripe key pair" \
+    "high-entropy" "High entropy blob"
+  printf '\n'
 }
 
 # ---- Detector definitions --------------------------------------------------

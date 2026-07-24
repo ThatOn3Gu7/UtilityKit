@@ -47,7 +47,8 @@ fw_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _file_watcher.sh [OPTIONS] [-- CMD]\n\n'
+  printf '%sUsage:\n %sbash%s %s_file_watcher.sh [OPTIONS] [-- CMD]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "-p, --pattern GLOB" "Watch files matching GLOB (repeatable, default **/*)." \
     "-d, --dir DIR" "Watch directory (default .)." \
@@ -59,12 +60,14 @@ fw_usage() {
     "--json" "Machine-readable JSON output." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nBackends: inotifywait (Linux), fswatch (macOS/Termux), fallback: polling.\n'
-  printf 'Install: apt install inotify-tools  |  brew install fswatch\n\n'
-  printf 'Examples:\n'
-  printf "  _file_watcher.sh -p '*.sh' -c 'make test'\n"
-  printf "  _file_watcher.sh -p '*.py' -p '*.js' -c 'npm test' --debounce 2\n"
-  printf "  _file_watcher.sh -p '*' --polling 5 -c 'rsync ...'\n"
+  uk_help_section "$w" "Backends" \
+    "inotifywait" "Linux native file monitoring (apt install inotify-tools)" \
+    "fswatch" "macOS / Termux (brew install fswatch)" \
+    "poll" "Fallback polling backend (--polling INTERVAL)"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_file_watcher.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p '*.sh' -c 'make test'${UK_C_RESET:-}" "Watch shell scripts, run tests" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_file_watcher.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p '*.py' -p '*.js' -c 'npm test' --debounce 2${UK_C_RESET:-}" "Watch multiple patterns with debounce" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_file_watcher.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p '*' --polling 5 -c 'rsync ...'${UK_C_RESET:-}" "Poll every 5s, run rsync"
 }
 
 # ---- Backend detection ----------------------------------------------------

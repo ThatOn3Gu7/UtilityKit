@@ -6,12 +6,16 @@ rel_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _release_helper.sh [--repo DIR] [--tag vX.Y.Z] [--apply]\n\n'
+  printf '%sUsage: %sbash%s %s_release_helper.sh [--repo DIR] [--tag vX.Y.Z] [--apply]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--repo DIR" "Git repository directory (default: .)" \
     "--tag vX.Y.Z" "Tag name to create" \
     "--apply" "Actually create the tag (dry-run without this)" \
     "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_release_helper.sh${UK_C_RESET:-} ${UK_C_DIM:-}--tag v1.0.0${UK_C_RESET:-}" "Dry-run tag creation" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_release_helper.sh${UK_C_RESET:-} ${UK_C_DIM:-}--apply --tag v1.0.0${UK_C_RESET:-}" "Create the tag"
 }
 rel_main() {
   uk_banner "release-helper" "Git status, recent log, optional tag creation" "" "$@"

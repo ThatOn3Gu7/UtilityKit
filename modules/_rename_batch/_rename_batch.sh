@@ -1058,20 +1058,10 @@ show_help() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "USAGE")"
-  printf "\n"
-  printf "    %s %s %s %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_GREEN" "<source_dir>")" "$(colorize "$RB_C_YELLOW" "<new_extension>")" "$(colorize "$RB_C_GRAY" "[output_dir]")" "$(colorize "$RB_C_CYAN" "[flags]")"
-  printf "    %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_DIM" "(runs Interactive Wizard if executed without arguments)")"
-  printf "    %s %s\n" "$(colorize "$RB_C_CYAN" "  $0")" "$(colorize "$RB_C_DIM" "-i  (launch interactive picker even with args)")"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "DESCRIPTION")"
-  printf "\n"
-  printf "    Recursively rename all non-hidden files in <source_dir> (and all\n"
-  printf "    subdirectories) to a new file extension.\n"
-  printf "\n"
-  printf "    In-place mode (2 args):  Files are renamed where they sit.\n"
-  printf "    Copy mode    (3 args):  Files are COPIED to output_dir with new names.\n"
-  printf "\n"
+  uk_help_section "$w" "Usage" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}bash ${UK_C_RESET:-}$0 ${UK_C_GREEN:-}<source_dir>${UK_C_RESET:-} ${UK_C_YELLOW:-}<new_extension>${UK_C_RESET:-} ${UK_C_DIM:-}[output_dir] [flags]${UK_C_RESET:-}" "" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}bash ${UK_C_RESET:-}$0 ${UK_C_DIM:-}(runs Interactive Wizard if executed without arguments)${UK_C_RESET:-}" "" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}bash ${UK_C_RESET:-}$0 ${UK_C_DIM:-}-i  (launch interactive picker even with args)${UK_C_RESET:-}" ""
   uk_help_section "$w" "Arguments" \
     "source_dir" "Directory to scan" \
     "new_extension" "Target extension (e.g. txt, md, py)" \
@@ -1082,30 +1072,16 @@ show_help() {
     "-h, --help" "Show this message" \
     "-v, --version" "Show version info"
   printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "EXAMPLES")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$RB_C_DIM" "# Rename everything in ./ProjectR to .txt")"
-  printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 ./ProjectR txt")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$RB_C_DIM" "# Copy+rename to ./renamed-files")"
-  printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 ./ProjectR md ./renamed-files")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$RB_C_DIM" "# Force change extensions on every file, including Markdown files")"
-  printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 . bak --force")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$RB_C_DIM" "# Launch interactive directory picker")"
-  printf "    %s\n" "$(colorize "$RB_C_GREEN" "  $0 -i")"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "EXIT CODES")"
-  printf "\n"
-  printf "    %s   %s\n" "$(colorize "$RB_C_GREEN" "0")" "All good (or all skipped)"
-  printf "    %s   %s\n" "$(colorize "$RB_C_RED" "1")" "Fatal error (bad args, missing dir, ...)"
-  printf "    %s   %s\n" "$(colorize "$RB_C_YELLOW" "2")" "Partial failure (some files failed)"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${RB_C_BOLD}${RB_C_WHITE}" "ENVIRONMENT")"
-  printf "\n"
-  printf "    %s   %s\n" "$(colorize "$RB_C_CYAN" "NO_COLOR")" "Set to any value to disable ANSI"
-  printf "\n"
+  uk_help_section "$w" "Examples" \
+    "$(colorize "$RB_C_GREEN" "$0") $(colorize "$RB_C_DIM" "./ProjectR txt")" "Rename everything in ./ProjectR to .txt" \
+    "$(colorize "$RB_C_GREEN" "$0") $(colorize "$RB_C_DIM" "./ProjectR md ./renamed-files")" "Copy+rename to ./renamed-files" \
+    "$(colorize "$RB_C_GREEN" "$0") $(colorize "$RB_C_DIM" ". bak --force")" "Force change extensions on every file" \
+    "$(colorize "$RB_C_GREEN" "$0") $(colorize "$RB_C_DIM" "-i")" "Launch interactive directory picker"
+  uk_help_section "$w" "EXIT CODES" \
+    "${RB_C_GREEN:-}0${UK_C_RESET:-}" "All good (or all skipped)" \
+    "${RB_C_RED:-}1${UK_C_RESET:-}" "Fatal error (bad args, missing dir, ...)" \
+    "${RB_C_YELLOW:-}2${UK_C_RESET:-}" "Partial failure (some files failed)"
+
 }
 
 show_version() {

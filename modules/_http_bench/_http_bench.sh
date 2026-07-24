@@ -50,7 +50,8 @@ hb_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _http_bench.sh URL [OPTIONS]\n\n'
+  printf '%sUsage:\n %sbash %s_http_bench.sh URL [OPTIONS]%s\n\n' \
+         "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_GREEN:-}" "${UK_C_WHITE:-}${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "-n, --requests N" "Total number of requests (default 50)." \
     "-c, --concurrency N" "Concurrent workers (default 5)." \
@@ -62,14 +63,15 @@ hb_usage() {
     "--json" "Machine-readable JSON output." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nExternal backends: hey, wrk (used automatically if installed).\n'
-  printf '  Install hey:  https://github.com/rakyll/hey\n'
-  printf '  Install wrk:  https://github.com/wg/wrk\n\n'
-  printf 'Examples:\n'
-  printf '  _http_bench.sh https://example.com\n'
-  printf '  _http_bench.sh https://api.example.com -n 200 -c 10\n'
-  printf "  _http_bench.sh https://httpbin.org/post -m POST -d '{\"key\":\"value\"}' -H 'Content-Type: application/json'\n"
-  printf '  _http_bench.sh https://example.com -n 1000 -c 50 --json\n'
+  uk_help_section "$w" "External backends" \
+    "hey" "Install: https://github.com/rakyll/hey" \
+    "wrk" "Install: https://github.com/wg/wrk"
+
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _http_bench.sh ${UK_C_DIM:-}https://example.com${UK_C_RESET:-}" "Default benchmark" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _http_bench.sh ${UK_C_DIM:-}https://api.example.com -n 200 -c 10${UK_C_RESET:-}" "Set requests & concurrency" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _http_bench.sh ${UK_C_DIM:-}https://httpbin.org/post -m POST -d '{\"key\":\"value\"}' -H 'Content-Type: application/json'${UK_C_RESET:-}" "POST with JSON body" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _http_bench.sh ${UK_C_DIM:-}https://example.com -n 1000 -c 50 --json${UK_C_RESET:-}" "High load, JSON output"
 }
 
 # ---- Helpers ---------------------------------------------------------------

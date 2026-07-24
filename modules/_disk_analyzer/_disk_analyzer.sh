@@ -54,8 +54,11 @@ da_scan() {
 }
 da_usage() {
   local w
-  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _disk_analyzer.sh [OPTIONS] [DIRECTORY]\n\n'
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%sUsage: %sbash%s %s_disk_analyzer.sh [OPTIONS] [DIRECTORY]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "-n, --count <num>" "Number of top items to display (default: 10)" \
     "-h, --help" "Show this help message and exit"
@@ -179,7 +182,7 @@ da_main() {
 
   for line in "${items[@]}"; do
     local size path
-    read -r size path <<< "$line"
+    read -r size path <<<"$line"
 
     if [[ "$path" == "$target_dir" || "$path" == "." ]]; then
       printf "  %s %-12s %s (Total)%s\n" "${C_GREEN}${I_BULLET}" "${size}" "${path}" "${C_RESET}"

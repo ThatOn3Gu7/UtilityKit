@@ -10,7 +10,8 @@ pk_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _process_killer.sh [--pid PID] [--signal TERM|KILL]\n\n'
+  printf '%sUsage: %sbash%s %s_process_killer.sh [--pid PID] [--signal TERM|KILL]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--pid PID" "Process ID to terminate" \
     "--signal" "Signal to send: TERM or KILL (default: TERM)" \

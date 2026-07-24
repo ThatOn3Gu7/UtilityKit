@@ -6,7 +6,8 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 csvt_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _csv_toolkit.sh FILE [--columns] [--head N]\n\n'
+  printf '%sUsage: %sbash%s _csv_toolkit.sh %sFILE [--columns] [--head N]%s\n\n' \
+         "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "--columns" "Print only the header row (column names)" \
     "--head N" "Show the first N data rows (default: 10)" \

@@ -11,14 +11,16 @@ sd_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _shredder.sh [--passes N] [--apply] FILE...\n\n'
+  printf '%sUsage: %sbash%s _shredder.sh %s[--passes N] [--apply] FILE...%s\n\n' \
+    "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
-    "--passes N" "Number of overwrite passes (default: 3, max: 35)." \
-    "--apply" "Actually perform the secure deletion (default: dry-run)." \
-    "-h, --help" "Show this help."
-  printf '\nWarning:\n'
-  printf '  Secure deletion is best-effort only. SSDs, journaling filesystems, snapshots,\n'
-  printf '  cloud sync, and backups may retain previous copies outside this tool'\''s reach.\n'
+    "--passes N" "Number of overwrite passes (default: 3, max: 35)" \
+    "--apply" "Actually perform the secure deletion (default: dry-run)" \
+    "-h, --help" "Show this help"
+  uk_gradient_box --align center "${UK_C_YELLOW:-}Warning${UK_C_RESET:-}" \
+  "Secure deletion is best-effort only. SSDs, journaling filesystems," \
+  "snapshots, cloud sync, and backups may retain previous copies" \
+  "outside this tool reach."
 }
 sd_secure_delete() {
   local file="${1:-}" size pass

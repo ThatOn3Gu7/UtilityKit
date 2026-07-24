@@ -940,17 +940,9 @@ show_help() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "USAGE")"
-  printf "\n"
-  printf "    %s %s %s %s\n" \
-    "$(colorize "$MIB_C_CYAN" "  bash _move_in_batch.sh")" \
-    "$(colorize "$MIB_C_GREEN" "-t <target>")" \
-    "$(colorize "$MIB_C_YELLOW" "-o <output>")" \
-    "$(colorize "$MIB_C_GRAY" "[flags]")"
-  printf "    %s %s\n" \
-    "$(colorize "$MIB_C_CYAN" "  bash _move_in_batch.sh")" \
-    "$(colorize "$MIB_C_DIM" "-i  (launch interactive picker)")"
-  printf "\n"
+  uk_help_section "$w" "USAGE" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _move_in_batch.sh ${UK_C_YELLOW:-}-t <target>${UK_C_RESET:-} ${UK_C_GREEN:-}-o <output>${UK_C_RESET:-} ${UK_C_DIM:-}[flags]${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _move_in_batch.sh ${UK_C_DIM:-}-i  (launch interactive picker)${UK_C_RESET:-}" ""
   uk_help_section "$w" "Flags" \
     "-t, --target DIR" "Source directory (required)" \
     "-o, --output DIR" "Destination directory (required)" \
@@ -959,26 +951,16 @@ show_help() {
     "-m, --method" "Transfer method: cp (default) or mv" \
     "-i, --interactive" "Launch interactive directory picker" \
     "-h, --help" "Show this help"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "EXAMPLES")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$MIB_C_DIM" "# Copy files, excluding .md & .git, preserve structure")"
-  printf "    %s\n" "$(colorize "$MIB_C_GREEN" "  bash _move_in_batch.sh -t ~/src -o ~/out -e .md .git")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$MIB_C_DIM" "# Move files, flatten subdirectories")"
-  printf "    %s\n" "$(colorize "$MIB_C_GREEN" "  bash _move_in_batch.sh -t ~/src -o ~/out -f -m=mv")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$MIB_C_DIM" "# Same but using long flags")"
-  printf "    %s\n" "$(colorize "$MIB_C_GREEN" "  bash _move_in_batch.sh --target ~/src --output ~/out --flatten --method=mv --exclude .git .md")"
-  printf "\n"
-  printf "    %s\n" "$(colorize "$MIB_C_DIM" "# Launch interactive directory picker")"
-  printf "    %s\n" "$(colorize "$MIB_C_GREEN" "  bash _move_in_batch.sh -i")"
-  printf "\n"
-  printf "  %s\n" "$(colorize "${MIB_C_BOLD}${MIB_C_WHITE}" "NOTES")"
-  printf "\n"
-  printf "    %s  %s\n" "$(colorize "$MIB_C_YELLOW" "$MIB_I_WARNING")" "$(colorize "$MIB_C_BOLD" "Default method is cp (copy) for safety.")"
-  printf "    %s  %s\n" "$(colorize "$MIB_C_YELLOW" "$MIB_I_WARNING")" "$(colorize "$MIB_C_DIM" "Use -m=mv only if you intend to move/delete originals.")"
-  printf "\n"
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash _move_in_batch.sh${UK_C_RESET:-} ${UK_C_YELLOW:-}-t ~/src -o ~/out${UK_C_RESET:-} ${UK_C_DIM:-}-e .md .git${UK_C_RESET:-}" "Copy files, excluding .md & .git, preserve structure" \
+    "${UK_C_GREEN:-}bash _move_in_batch.sh${UK_C_RESET:-} ${UK_C_YELLOW:-}-t ~/src -o ~/out${UK_C_RESET:-} ${UK_C_DIM:-}-f -m=mv${UK_C_RESET:-}" "Move files, flatten subdirectories" \
+    "${UK_C_GREEN:-}bash _move_in_batch.sh${UK_C_RESET:-} ${UK_C_DIM:-}--target ~/src --output ~/out --flatten --method=mv --exclude .git .md${UK_C_RESET:-}" "Same but using long flags" \
+    "${UK_C_GREEN:-}bash _move_in_batch.sh${UK_C_RESET:-} ${UK_C_DIM:-}-i${UK_C_RESET:-}" "Launch interactive directory picker"
+  printf '\n'
+  uk_help_section "$w" "Notes" \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}⚠${UK_C_RESET:-} ${UK_C_BOLD:-}Default method is cp (copy) for safety.${UK_C_RESET:-}" "" \
+    "${UK_C_YELLOW:-}⚠${UK_C_RESET:-} ${UK_C_DIM:-}Use -m=mv only if you intend to move/delete originals.${UK_C_RESET:-}" ""
 }
 show_version() {
   printf "%s %s\n" \

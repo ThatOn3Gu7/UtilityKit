@@ -4,7 +4,12 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 am_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage:\n  _archive_manager.sh --list ARCHIVE\n  _archive_manager.sh --extract ARCHIVE --dest DIR\n  _archive_manager.sh --create OUT.tar.gz PATH...\n  _archive_manager.sh --create OUT.zip PATH...\n\n'
+  uk_help_section "$w" "Usage" \
+  "${UK_C_GREEN:-}bash${UK_C_RESET:-}${UK_C_WHITE:-} _archive_manager.sh ${UK_C_DIM:-}--list ARCHIVE${UK_C_RESET:-}" "" \
+  "${UK_C_GREEN:-}bash${UK_C_RESET:-}${UK_C_WHITE:-} _archive_manager.sh ${UK_C_DIM:-}--extract ARCHIVE --dest DIR${UK_C_RESET:-}" "" \
+  "${UK_C_GREEN:-}bash${UK_C_RESET:-}${UK_C_WHITE:-} _archive_manager.sh ${UK_C_DIM:-}--create OUT.tar.gz PATH...${UK_C_RESET:-}" "" \
+  "${UK_C_GREEN:-}bash${UK_C_RESET:-}${UK_C_WHITE:-} _archive_manager.sh ${UK_C_DIM:-}--create OUT.zip PATH...${UK_C_RESET:-}" ""
+  printf '\n'
   uk_help_section "$w" "Options" --name-w 26 \
     "--list ARCHIVE" "List archive contents" \
     "--extract ARCHIVE" "Extract archive to --dest DIR" \

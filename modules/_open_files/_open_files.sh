@@ -6,7 +6,8 @@ of_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _open_files.sh --path PATH | --port PORT\n\n'
+  printf '%sUsage: %sbash%s %s_open_files.sh --path PATH | --port PORT%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--path PATH" "File path to find processes using" \
     "--port PORT" "TCP port to find processes listening on" \

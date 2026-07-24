@@ -12,12 +12,15 @@ sc_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _ssl_checker.sh HOST [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s _ssl_checker.sh %sHOST [OPTIONS]%s\n\n' \
+    "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
-    "--port PORT" "Port to connect on (default: 443)." \
-    "--no-dns" "Skip DNS record lookup." \
-    "--no-tls" "Skip legacy TLS protocol probe." \
-    "-h, --help" "Show this help."
+    "--port PORT" "Port to connect on (default: 443)" \
+    "--no-dns" "Skip DNS record lookup" \
+    "--no-tls" "Skip legacy TLS protocol probe" \
+    "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssl_checker.sh${UK_C_RESET:-} ${UK_C_DIM:-}example.com${UK_C_RESET:-}" "Check SSL cert"
 }
 sc_days_left() {
   python3 - "${1:-}" <<'PY2'

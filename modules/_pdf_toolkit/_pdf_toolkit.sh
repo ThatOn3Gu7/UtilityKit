@@ -51,7 +51,8 @@ pt_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _pdf_toolkit.sh <subcommand> FILE [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_pdf_toolkit.sh <subcommand> FILE [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" \
     "info FILE" "Show page count, PDF version, encryption, metadata" \
     "count FILE" "Print page count only" \
@@ -69,20 +70,23 @@ pt_usage() {
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)" \
     "-h, --help" "Show this help"
   printf '\n'
-  printf 'Safety:\n'
-  printf '  merge, split, compress, and rotate preview only by default and do not write\n'
-  printf '  any file. Re-run with --apply to create the output file(s).\n'
+  printf  '%s Safety:%s\n %s Merge, split, compress, and rotate preview only by default and do not write any file. Re-run with --apply to create the output file(s).%s\n' "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   printf '\n'
-  printf 'Dependencies: qpdf (recommended), pdftotext, gs, pdfimages.\n'
-  printf 'Install: apt install qpdf poppler-utils ghostscript\n'
+  uk_help_section "$w" "Dependencies" \
+    "qpdf" "Recommended – PDF manipulation" \
+    "pdftotext" "From poppler-utils – text extraction" \
+    "pdfimages" "From poppler-utils – image extraction" \
+    "gs" "Ghostscript – PostScript/PDF conversion" \
+    "${UK_C_DIM:-}---------------------------------------------------------------"${UK_C_RESET:-} "" \
+    "Install deps:" "apt install qpdf poppler-utils ghostscript"
   printf '\n'
-  printf 'Examples:\n'
-  printf '  _pdf_toolkit.sh info document.pdf\n'
-  printf '  _pdf_toolkit.sh count document.pdf\n'
-  printf '  _pdf_toolkit.sh merge a.pdf b.pdf --output merged.pdf\n'
-  printf '  _pdf_toolkit.sh split document.pdf --output ./pages/\n'
-  printf '  _pdf_toolkit.sh text document.pdf\n'
-  printf '  _pdf_toolkit.sh compress document.pdf --output compressed.pdf\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}info document.pdf${UK_C_RESET:-}" "Show document info" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}count document.pdf${UK_C_RESET:-}" "Print page count" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}merge a.pdf b.pdf --output merged.pdf${UK_C_RESET:-}" "Merge PDFs" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}split document.pdf --output ./pages/${UK_C_RESET:-}" "Split into pages" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}text document.pdf${UK_C_RESET:-}" "Extract text" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_pdf_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}compress document.pdf --output compressed.pdf${UK_C_RESET:-}" "Compress PDF"
 }
 
 pt_hr() {

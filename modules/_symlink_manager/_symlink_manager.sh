@@ -46,21 +46,18 @@ sm_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf '%sUsage:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
-  printf '  _symlink_manager.sh [OPTIONS] <source_file_or_dir> <target_link_path>\n\n'
-  printf '%sDescription:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
-  printf '  Safely creates a symbolic link at <target_link_path> pointing to\n'
-  printf '  <source_file_or_dir>.\n\n'
-  uk_help_section "$w" "Options" "--name-w" 26 \
-    "--apply" "Actually create symlinks and backups (default: dry-run)." \
-    "--backup-dir <dir>" "Specify a custom directory for storing backups." \
-    "-y, --yes" "Skip interactive confirmation." \
-    "-h, --help" "Show this help message and exit."
-  printf '\n%sExamples:%s\n' "${C_BOLD:-}" "${C_RESET:-}"
-  printf '  # Dry-run test linking dotfiles:\n'
-  printf '  bash _symlink_manager.sh ~/.dotfiles/.bashrc ~/.bashrc\n\n'
-  printf '  # Apply link with confirmation:\n'
-  printf '  bash _symlink_manager.sh --apply ~/.dotfiles/.nvim ~/.config/nvim\n'
+  printf '%sUsage: %sbash%s %s_symlink_manager.sh [OPTIONS] <source> <target>%s\n\n' \
+    "${C_BOLD:-}${C_YELLOW:-}" "${C_BOLD:-}${C_GREEN:-}" "${C_RESET:-}" "${C_DIM:-}" "${C_RESET:-}"
+  printf '%sDescription:%s\n' "${C_BOLD:-}${UK_C_YELLOW:-}" "${C_RESET:-}"
+  printf '  %sSafely creates a symbolic link at <target> pointing to <source>.%s\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  uk_help_section "$w" "Options" --name-w 26 \
+    "--apply" "Create symlinks and backups (default: dry-run)" \
+    "--backup-dir <dir>" "Custom directory for storing backups" \
+    "-y, --yes" "Skip interactive confirmation" \
+    "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${C_GREEN:-}bash${C_RESET:-} ${C_WHITE:-}_symlink_manager.sh${C_RESET:-} ${C_DIM:-}$HOME/.dotfiles/.bashrc $HOME/.bashrc${C_RESET:-}" "Dry-run test linking dotfiles" \
+    "${C_GREEN:-}bash${C_RESET:-} ${C_WHITE:-}_symlink_manager.sh${C_RESET:-} ${C_DIM:-}--apply $HOME/.dotfiles/.nvim $HOME/.config/nvim${C_RESET:-}" "Apply link with confirmation"
 }
 sm_main() {
   uk_banner "symlink-manager" "Transactional symlink creator with backup of existing targets" "" "$@"

@@ -17,7 +17,11 @@ lic_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _license_helper.sh --detect\n  _license_helper.sh --generate TYPE --name NAME\n\n'
+  #TODO: Use uk_help_section here
+  printf '%sUsage:\n %sbash%s %s_license_helper.sh --detect%s\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf ' %sbash%s %s_license_helper.sh --generate TYPE --name NAME%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--detect" "Detect existing license in current directory." \
     "--generate TYPE" "Generate license (mit, apache)." \

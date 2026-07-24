@@ -55,7 +55,8 @@ CH_MAX_PREVIEW=80
 ch_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _clipboard_history.sh <subcommand> [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s _clipboard_history.sh %s<subcommand> [OPTIONS]%s\n\n' \
+          "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" --name-w 28 \
     "add [TEXT]" "Add TEXT or clipboard to history" \
     "list" "List entries (newest first)" \
@@ -74,10 +75,13 @@ ch_usage() {
     "--json" "Machine-readable output (list, find, show)" \
     "--quiet" "Suppress info output" \
     "-h, --help" "Show this help"
-  printf '\nExamples:\n  echo "hello" | _clipboard_history.sh add\n'
-  printf '  _clipboard_history.sh add "quick note"\n'
-  printf '  _clipboard_history.sh add\n  _clipboard_history.sh list --json\n'
-  printf '  _clipboard_history.sh find TODO\n'
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_DIM:-}echo \"hello\" | ${UK_C_WHITE:-}_clipboard_history.sh${UK_C_RESET:-} ${UK_C_DIM:-}add${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_clipboard_history.sh${UK_C_RESET:-} ${UK_C_DIM:-}add \"quick note\"${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_clipboard_history.sh${UK_C_RESET:-} ${UK_C_DIM:-}add${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_clipboard_history.sh${UK_C_RESET:-} ${UK_C_DIM:-}list --json${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_clipboard_history.sh${UK_C_RESET:-} ${UK_C_DIM:-}find TODO${UK_C_RESET:-}" ""
 }
 
 # ---- Storage helpers -------------------------------------------------------

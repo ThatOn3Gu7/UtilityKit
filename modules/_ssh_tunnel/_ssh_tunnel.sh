@@ -38,22 +38,27 @@ st_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _ssh_tunnel.sh <create|list|kill|restart> [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_ssh_tunnel.sh %s<create|list|kill|restart> [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" \
-    "create HOST:PORT" "Create tunnel (local forward)." \
-    "list" "List saved tunnels with status." \
-    "kill ID|NAME" "Kill tunnel by index or name." \
-    "restart ID|NAME" "Restart tunnel."
+    "create HOST:PORT" "Create tunnel (local forward)" \
+    "list" "List saved tunnels with status" \
+    "kill ID|NAME" "Kill tunnel by index or name" \
+    "restart ID|NAME" "Restart tunnel"
   printf '\n'
   uk_help_section "$w" "Options" \
-    "--local LPORT" "Local port to forward from." \
-    "--user U" "SSH user for the remote host." \
-    "--key F" "Path to an SSH identity file." \
-    "--autossh" "Use autossh for persistent connection." \
-    "--name N" "Assign a name to the tunnel." \
-    "--json" "Machine-readable list output." \
-    "--no-color" "Disable ANSI." \
-    "-h, --help" "Show this help."
+    "--local LPORT" "Local port to forward from" \
+    "--user U" "SSH user for the remote host" \
+    "--key F" "Path to an SSH identity file" \
+    "--autossh" "Use autossh for persistent connection" \
+    "--name N" "Assign a name to the tunnel" \
+    "--json" "Machine-readable list output" \
+    "--no-color" "Disable ANSI" \
+    "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssh_tunnel.sh${UK_C_RESET:-} ${UK_C_DIM:-}create example.com:8080 --local 9090${UK_C_RESET:-}" "Create tunnel" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssh_tunnel.sh${UK_C_RESET:-} ${UK_C_DIM:-}list --json${UK_C_RESET:-}" "List tunnels as JSON" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssh_tunnel.sh${UK_C_RESET:-} ${UK_C_DIM:-}kill my-tunnel${UK_C_RESET:-}" "Kill by name"
 }
 
 st_cfg() {

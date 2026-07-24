@@ -57,17 +57,18 @@ YD_DEFAULT_DIR="${HOME}/Downloads/YouTube"
 
 # Help / Usage
 yd_usage() {
+  uk_banner "yt-dlp" "Downloads YouTube videos from a URL" "" "$@"
   local w
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n'
-  printf '  ytdl                              Interactive download wizard\n'
-  printf '  ytdl <URL>                        Wizard with a specific URL\n'
-  printf '  ytdl list <URL>                   List all available formats\n'
-  printf '  ytdl info <URL>                   Show video metadata\n'
-  printf '  ytdl audio <URL>                  Download best audio (default mp3)\n'
-  printf '  ytdl download <URL> [options]     Download with custom options\n\n'
+  uk_help_section "$w" "Usage" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl                          ${UK_C_DIM:-}Interactive download wizard${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}<URL>${UK_C_RESET:-}                        ${UK_C_DIM:-}Wizard with a specific URL${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}list${UK_C_RESET:-} <URL>                   ${UK_C_DIM:-}List all available formats${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}info${UK_C_RESET:-} <URL>                   ${UK_C_DIM:-}Show video metadata${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}audio${UK_C_RESET:-} <URL>                  ${UK_C_DIM:-}Download best audio (default mp3)${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}download${UK_C_RESET:-} <URL> [options]     ${UK_C_DIM:-}Download with custom options${UK_C_RESET:-}" ""
   uk_help_section "$w" "Subcommands" \
     "list" "Show all available formats for a video." \
     "info" "Display title, duration, channel, views." \
@@ -84,19 +85,21 @@ yd_usage() {
     "--playlist" "Download all playlist items." \
     "--output DIR" "Custom output directory." \
     "-h, --help" "Show this help."
-  printf '\nExamples:\n'
-  printf '  ytdl https://youtube.com/watch?v=dQw4w9WgXcQ\n'
-  printf '  ytdl list https://youtube.com/watch?v=dQw4w9WgXcQ\n'
-  printf '  ytdl download https://youtube.com/watch?v=dQw4w9WgXcQ --format 137+140 --subs\n'
-  printf '  ytdl audio https://youtube.com/watch?v=dQw4w9WgXcQ --audio-format opus\n'
-}
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}https://youtube.com/watch?v=dQw4w9WgXcQ${UK_C_RESET:-}" "Download video interactively." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}list https://youtube.com/watch?v=dQw4w9WgXcQ${UK_C_RESET:-}" "List available formats." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}download https://youtube.com/watch?v=dQw4w9WgXcQ --format 137+140 --subs${UK_C_RESET:-}" "Download with custom format and subs." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ytdl ${UK_C_DIM:-}audio https://youtube.com/watch?v=dQw4w9WgXcQ --audio-format opus${UK_C_RESET:-}" "Extract audio in opus format."
+    }
 
 yd_dl_usage() {
   local w
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: ytdl download <URL> [options]\n\n'
+  printf '%sUsage: %sytdl%s %sdownload <URL> [options]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" "--name-w" 22 \
     "--format CODE" "Format specifier (e.g. \"137+140\", \"best\", \"bv*+ba/b\")." \
     "--audio-only" "Extract audio stream only." \

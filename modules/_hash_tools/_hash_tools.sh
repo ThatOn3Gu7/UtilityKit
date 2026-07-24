@@ -34,7 +34,8 @@ ht_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _hash_tools.sh FILE|DIR...\n\n'
+  printf '%sUsage: %sbash%s %s_hash_tools.sh FILE|DIR...%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Arguments" \
     "FILE" "Compute sha256 of a single file." \
     "DIR" "Recursively sha256 every file in a directory." \

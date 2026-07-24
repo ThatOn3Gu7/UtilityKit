@@ -53,7 +53,8 @@ it_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _image_tool.sh <subcommand> FILE [OPTIONS]\n\n'
+  printf '%sUsage:%s bash _image_tool.sh <subcommand> FILE [OPTIONS]\n\n' "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_RESET:-}"
+  # printf 'Usage:\n  _image_tool.sh <subcommand> FILE [OPTIONS]\n\n'
   uk_help_section "$w" "Subcommands" \
     "info FILE" "Show image dimensions, format, size." \
     "resize FILE" "Resize image (--width, --height, --percent)." \
@@ -75,16 +76,21 @@ it_usage() {
     "--json" "Machine-readable output (info)." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nSafety:\n'
-  printf '  File-writing subcommands (resize, convert, strip, optimize, thumb) preview\n'
-  printf '  only by default. Re-run with --apply to write the output file(s).\n\n'
-  printf 'Backends: ImageMagick (convert/magick), exiftool, optipng, jpegoptim, cwebp.\n\n'
-  printf 'Examples:\n'
-  printf '  _image_tool.sh info photo.jpg\n'
-  printf '  _image_tool.sh resize photo.jpg --width 800 --out resized.jpg\n'
-  printf '  _image_tool.sh convert photo.png --format webp\n'
-  printf '  _image_tool.sh strip photo.jpg --out clean.jpg\n'
-  printf '  _image_tool.sh optimize photo.png\n'
+  uk_help_section "$w" "Backends" \
+     "ImageMagick (convert/magick)" "Convert, resize, edit, and format conversion" \
+     "exiftool" "Read/write metadata (EXIF, IPTC, XMP)" \
+     "optipng" "Lossless PNG optimization & metadata stripping" \
+     "jpegoptim" "Lossless/lossy JPEG compression" \
+     "cwebp" "Encode to WebP with quality/lossless options"
+  printf '\n%sSafety:%s\n' "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_RESET:-}"
+  printf '  %sFile-writing subcommands (resize, convert, strip, optimize, thumb) preview%s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf '  %sonly by default. Re-run with --apply to write the output file(s).%s\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  uk_help_section "$w" "Examples" \
+     "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_image_tool.sh ${UK_C_DIM:-}info photo.jpg${UK_C_RESET:-}" "Show metadata" \
+     "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_image_tool.sh ${UK_C_DIM:-}resize photo.jpg --width 800 --out resized.jpg${UK_C_RESET:-}" "Resize image" \
+     "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_image_tool.sh ${UK_C_DIM:-}convert photo.png --format webp${UK_C_RESET:-}" "Convert format" \
+     "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_image_tool.sh ${UK_C_DIM:-}strip photo.jpg --out clean.jpg${UK_C_RESET:-}" "Strip metadata" \
+     "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_image_tool.sh ${UK_C_DIM:-}optimize photo.png${UK_C_RESET:-}" "Optimize image"
 }
 
 it_hr() {

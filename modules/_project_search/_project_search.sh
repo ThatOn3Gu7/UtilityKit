@@ -6,7 +6,8 @@ psrch_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _project_search.sh --text PATTERN|--name GLOB [DIR]\n\n'
+  printf '%sUsage: %sbash%s %s_project_search.sh --text PATTERN|--name GLOB [DIR]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--text PATTERN" "Search file contents for pattern" \
     "--name GLOB" "Search for filenames matching glob" \

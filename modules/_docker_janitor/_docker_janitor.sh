@@ -27,7 +27,8 @@ fi
 dj_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _docker_janitor.sh [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_docker_janitor.sh [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "--containers" "Prune stopped containers" \
     "--images" "Prune dangling images" \
@@ -35,6 +36,10 @@ dj_usage() {
     "--all" "Select all prune categories" \
     "--apply" "Execute pruning operations" \
     "-h, --help" "Show help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_docker_janitor.sh${UK_C_RESET:-} ${UK_C_DIM:-}--containers --images${UK_C_RESET:-}" "Preview container and image cleanup" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_docker_janitor.sh${UK_C_RESET:-} ${UK_C_DIM:-}--all --apply${UK_C_RESET:-}" "Prune everything (apply)" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_docker_janitor.sh${UK_C_RESET:-} ${UK_C_DIM:-}--volumes${UK_C_RESET:-}" "Preview dangling volume cleanup"
 }
 dj_check() {
   uk_has_cmd docker || {

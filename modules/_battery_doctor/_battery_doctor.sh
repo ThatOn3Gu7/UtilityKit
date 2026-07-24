@@ -6,10 +6,14 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 bd_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _battery_doctor.sh [OPTIONS]\n\nDisplay battery status (if available) and top CPU/memory-consuming processes.\n\n'
+  printf '%sUsage: %sbash%s _battery_doctor.sh %s[OPTIONS]%s\n\n' "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf '%sDisplay battery status (if available) and top CPU/memory-consuming processes%s.\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "-h, --help" "Show this help message and exit"
-  printf '\nBackends tried (in order):\n  - termux-battery-status (Termux/Android)\n  - pmset -g batt (macOS)\n  - acpi -V (Linux with ACPI)\n'
+  uk_help_section "$w" "Backends tried (in order)" \
+     "termux-battery-status" "Termux/Android" \
+     "pmset -g batt" "macOS" \
+     "acpi -V" "Linux with ACPI"
 }
 # Show battery information using the first available backend
 bd_show_battery() {

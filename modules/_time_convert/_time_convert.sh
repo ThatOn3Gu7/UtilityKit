@@ -49,7 +49,8 @@ tc_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _time_convert.sh <subcommand> [VALUE] [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s _tool_name.sh %s<subcommand> [VALUE] [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" \
     "epoch [TS]" "Convert epoch (seconds) to ISO 8601 / RFC 3339 / human." \
     "parse TIMESTAMP" "Parse a timestamp string to all formats." \
@@ -65,13 +66,14 @@ tc_usage() {
     "--json" "Machine-readable JSON output." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nExamples:\n'
-  printf '  _time_convert.sh now\n'
-  printf '  _time_convert.sh epoch 1700000000\n'
-  printf '  _time_convert.sh parse '\''2024-01-15T10:30:00Z'\''\n'
-  printf '  _time_convert.sh cron '\''*/15 * * * *'\'' --count 3\n'
-  printf '  _time_convert.sh tz Asia/Tokyo\n'
-  printf '  _time_convert.sh diff '\''2024-01-01'\'' '\''2024-12-31'\''\n'
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}now${UK_C_RESET:-}" "Show current time in all formats." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}epoch 1700000000${UK_C_RESET:-}" "Convert epoch timestamp." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}parse '2024-01-15T10:30:00Z'${UK_C_RESET:-}" "Parse a timestamp string." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}cron '*/15 * * * *' --count 3${UK_C_RESET:-}" "Show next cron fire times." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}tz Asia/Tokyo${UK_C_RESET:-}" "Show timezone info." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_time_convert.sh${UK_C_RESET:-} ${UK_C_DIM:-}diff '2024-01-01' '2024-12-31'${UK_C_RESET:-}" "Show duration between two timestamps."
 }
 
 # ---- Helpers ---------------------------------------------------------------

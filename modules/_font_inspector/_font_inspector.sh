@@ -23,11 +23,16 @@ fi_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _font_inspector.sh [--list] [--filter NAME] [--glyphs]\n\n'
+  printf '%sUsage: %sbash%s %s_font_inspector.sh [--list] [--filter NAME] [--glyphs]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--list" "List available fonts on the system." \
     "--filter NAME" "Filter fonts by name pattern." \
     "--glyphs" "Display terminal glyph samples."
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_font_inspector.sh${UK_C_RESET:-}" "Show terminal glyph samples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_font_inspector.sh${UK_C_RESET:-} ${UK_C_DIM:-}--list${UK_C_RESET:-}" "List all available fonts" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_font_inspector.sh${UK_C_RESET:-} ${UK_C_DIM:-}--filter 'Mono' --glyphs${UK_C_RESET:-}" "Filter fonts and show glyphs"
 }
 fi_main() {
   uk_banner "font-inspector" "Terminal glyph samples and optional font enumeration" "" "$@"

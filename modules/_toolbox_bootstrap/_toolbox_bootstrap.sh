@@ -6,7 +6,8 @@ tb_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _toolbox_bootstrap.sh\n\n'
+  printf '%sUsage: %sbash%s %s_toolbox_bootstrap.sh%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "-h, --help" "Show this help."
 }

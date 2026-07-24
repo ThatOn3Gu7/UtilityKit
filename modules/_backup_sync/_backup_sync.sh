@@ -5,7 +5,9 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 bs_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage:\n  _backup_sync.sh --source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...\n\n'
+  printf '%sUsage:%s\n %sbash%s _backup_sync.sh %s--source DIR --dest DIR [--apply] [--delete] [--exclude PATTERN]...%s\n\n' \
+          "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_RESET:-}" "${UK_C_GREEN:-}${UK_C_BOLD:-}" "${UK_C_RESET:-}" \
+          "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 24 \
     "--source, -s DIR" "Source directory" \
     "--dest, -d DIR" "Destination directory" \

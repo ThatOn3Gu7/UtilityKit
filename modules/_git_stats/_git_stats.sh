@@ -28,13 +28,18 @@ gst_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]\n\n'
+  printf '%sUsage: %sbash%s %s_git_stats.sh [--repo DIR] [--since DATE] [--until DATE] [--author PATTERN]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--repo DIR" "Repository directory (default: .)" \
     "--since DATE" "Start date (git log --since format)." \
     "--until DATE" "End date (git log --until format)." \
     "--author PATTERN" "Filter by author (git log --author pattern)." \
     "-h, --help" "Show this help."
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_stats.sh${UK_C_RESET:-}" "Stats for current repo" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_stats.sh${UK_C_RESET:-} ${UK_C_DIM:-}--since '2024-01-01' --author 'Alice'${UK_C_RESET:-}" "Filter by date range and author" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_stats.sh${UK_C_RESET:-} ${UK_C_DIM:-}--repo /path/to/project${UK_C_RESET:-}" "Stats for a specific repo"
 }
 gst_main() {
   uk_banner "git-stats" "Commit counts, most-changed files, branch activity" "" "$@"

@@ -12,14 +12,16 @@ ps_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _project_scaffold.sh --type TYPE --name NAME [--dest DIR] [--force]\n\n'
+  printf '%sUsage: %sbash%s %s_project_scaffold.sh --type TYPE --name NAME [--dest DIR] [--force]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--type TYPE" "Scaffold type: bash, python-flask, node-cli, go-service" \
     "--name NAME" "Project name (becomes directory name)" \
     "--dest DIR" "Parent destination directory (default: .)" \
     "--force" "Overwrite existing target" \
     "-h, --help" "Show this help"
-  printf 'Types: bash, python-flask, node-cli, go-service\n'
+  uk_help_section "$w" "Available Types" \
+    "${UK_C_DIM:-}bash, python-flask, node-cli, go-service${UK_C_RESET:-}" ""
 }
 ps_write_common() {
   local dir="${1:-}" title="${2:-}"

@@ -248,7 +248,8 @@ tms_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: %s [OPTIONS]\n\n' "$(basename "$0")"
+  printf '%sUsage: %sbash%s %s_tmux_session.sh [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "-l, --list" "List all active tmux sessions." \
     "-n, --new NAME" "Create a new session." \

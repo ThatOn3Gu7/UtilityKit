@@ -51,8 +51,9 @@ rl_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _regex_lab.sh PATTERN [TEXT] [OPTIONS]\n'
-  printf '       _regex_lab.sh [-f FILE | -i] PATTERN\n\n'
+  uk_help_section "$w" "Usage" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}bash${UK_C_RESET:-} _regex_lab.sh ${UK_C_DIM:-}PATTERN [TEXT] [OPTIONS]${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} _regex_lab.sh ${UK_C_DIM:-}[-f FILE | -i] PATTERN${UK_C_RESET:-}" ""
   uk_help_section "$w" "Options" \
     "-p, --pattern PAT" "Regex pattern to test" \
     "-t, --text TEXT" "Sample text to match against" \
@@ -67,18 +68,21 @@ rl_usage() {
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)" \
     "-h, --help" "Show this help"
   printf '\n'
-  printf 'Backends tried: perl → grep -P → python3.\n'
+  uk_help_section "$w" "Backends" \
+    "perl"      "Primary engine – full PCRE support (most features)" \
+    "grep -P"   "Fallback – GNU grep with Perl‑compatible regex (fast for simple patterns)" \
+    "python3"   "Last resort – Python's re module (portable, but slower)"
   printf '\n'
-  printf 'Exit codes:\n'
-  printf '  0   matches found (or substitution applied)\n'
-  printf '  1   no matches\n'
-  printf '  2   argument / dependency error\n'
+  uk_help_section "$w" "Exit Codes" \
+    "0" "matches found (or substitution applied)" \
+    "1" "no matches" \
+    "2" "argument / dependency error"
   printf '\n'
-  printf 'Examples:\n'
-  printf "  _regex_lab.sh '\\\d+' 'hello 42 world 99'\n"
-  printf "  _regex_lab.sh -p '\\\w+' -f /var/log/syslog\n"
-  printf "  _regex_lab.sh -p 'foo(bar)' -s 's/foo(bar)/baz\$1/' -t 'foobar qux'\n"
-  printf "  echo 'abc123' | _regex_lab.sh -p '[a-z]+' -i\n"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_regex_lab.sh${UK_C_RESET:-} ${UK_C_DIM:-}'\\\d+' 'hello 42 world 99'${UK_C_RESET:-}" "Match digits" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_regex_lab.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p '\\w+' -f /var/log/syslog${UK_C_RESET:-}" "Read pattern from file" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_regex_lab.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p 'foo(bar)' -s 's/foo(bar)/baz\$1/' -t 'foobar qux'${UK_C_RESET:-}" "Substitution example" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_regex_lab.sh${UK_C_RESET:-} ${UK_C_DIM:-}-p '[a-z]+' -i${UK_C_RESET:-}" "Read from stdin (echo 'abc123' |)"
 }
 
 # ---- Helpers ---------------------------------------------------------------

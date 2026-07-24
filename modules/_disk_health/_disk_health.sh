@@ -5,14 +5,17 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
 dh_usage() {
   local w
-  w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _disk_health.sh [OPTIONS]\n\nSMART disk health utility (requires smartctl, usually needs sudo).\n\n'
+  w=$(uk_fh_cols)
+  ((w > 80)) && w=80
+  ((w < 40)) && w=40
+  printf '%sUsage: %sbash%s %s_disk_health.sh [OPTIONS]%s\n\n%sSMART disk health utility (requires smartctl, usually needs sudo).%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "--list" "List all available disks (smartctl --scan)" \
     "--device DEV" "Specify device to inspect" \
     "--test-short" "Start a short self-test on the device" \
     "-h, --help" "Show this help"
-  printf '\nWithout options, shows health and attributes for the first detected disk.\n'
+  printf '\n%sWithout options, shows health and attributes for the first detected disk.%s\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
 }
 dh_require_smartctl() {
   if ! uk_has_cmd smartctl; then
@@ -61,7 +64,10 @@ dh_main() {
   if [[ -z "$dev" && "$action" != 'list' ]]; then
     # Try to get first non‑removable disk
     local detected scan_output
-    scan_output="$(smartctl --scan 2>&1)" || { uk_error "SMART device scan failed: $scan_output"; return 1; }
+    scan_output="$(smartctl --scan 2>&1)" || {
+      uk_error "SMART device scan failed: $scan_output"
+      return 1
+    }
     detected=$(awk 'NR==1 {print $1; exit}' <<<"$scan_output") || return 1
     if [[ -n "$detected" ]]; then
       dev="$detected"
@@ -75,7 +81,10 @@ dh_main() {
   # Action: list
   if [[ "$action" == 'list' ]]; then
     uk_section_title 'Available devices'
-    smartctl --scan || { uk_error 'Unable to scan SMART devices.'; return 1; }
+    smartctl --scan || {
+      uk_error 'Unable to scan SMART devices.'
+      return 1
+    }
     return 0
   fi
 
@@ -106,14 +115,19 @@ dh_main() {
   # Show health and attributes
   local health_status=0
   uk_section_title "SMART health for $dev"
-  smartctl -H "$dev" || { uk_error "Could not get health status (permissions or unsupported device)."; health_status=1; }
+  smartctl -H "$dev" || {
+    uk_error "Could not get health status (permissions or unsupported device)."
+    health_status=1
+  }
   echo
   uk_section_title "SMART attributes"
-  smartctl -A "$dev" || { uk_error "Could not get attributes."; health_status=1; }
+  smartctl -A "$dev" || {
+    uk_error "Could not get attributes."
+    health_status=1
+  }
   return "$health_status"
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
   dh_main "$@"
 fi
-

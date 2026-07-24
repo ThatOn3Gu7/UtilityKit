@@ -18,7 +18,8 @@ jx_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _json_explorer.sh [FILE|-] [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_json_explorer.sh [FILE|-] [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--path a.b.0" "Traverse JSON path (e.g., users.0.name)" \
     "--keys" "List keys at the current path" \

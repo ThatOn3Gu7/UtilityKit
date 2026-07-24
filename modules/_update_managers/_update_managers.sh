@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
-SCRIPT_NAME="${0##*/}"
+SCRIPT_NAME="_update_managers.sh"
 
 # ----------------------------- Defaults & State -----------------------------
 INTERACTIVE="auto"
@@ -151,9 +151,9 @@ usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf '%s v%s\n\n' "${SCRIPT_NAME}" "${UK_VERSION}"
-  printf 'Detect and securely update all package managers found on this machine.\n\n'
-  printf 'Usage:\n  %s [options]\n\n' "${SCRIPT_NAME}"
+  uk_banner "update-managers" "Detect and securely update all package managers found on this machine" "" "$@"
+  printf '%sUsage: %sbash%s _update_managers.sh %s[options]%s\n\n' \
+    "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Modes" \
     "-i, --interactive" "Force interactive menu." \
     "-y, --yes, --all" "Non-interactive: auto-update all detected managers." \

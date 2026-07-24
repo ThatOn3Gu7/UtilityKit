@@ -139,24 +139,22 @@ cleanup_and_trap() {
 # (Traps are registered inside ac_main to prevent overriding parent shell traps when sourced)
 usage() {
   local script_name w
-  script_name="$(basename "$0")"
+  script_name="_apply_changes.sh"
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  cat <<EOF
-${AC_BOLD}Usage:${AC_R}
-  $script_name [options] <updated_source_dir> <local_target_dir>
 
-${AC_BOLD}Enterprise Robustness Behavior:${AC_R}
-  - Adaptive temp directory logic perfectly supports Termux, Android, and strict subshells.
-  - Non-fatal concurrency locking prevents conflicts but falls back gracefully if restricted.
-  - Permissive chmod handling guarantees smooth copying across Android /sdcard or SMB mounts.
-  - Pre-flight disk space check verifies sufficient storage for backup and synced files.
-  - Pre-flight permission check warns of read-only files or non-writable paths.
-  - Dynamic filesystem traversal pruning speeds up large directory scans up to 100x.
-  - Smart stat size comparison avoids opening large binary files for cmp.
-  - Automated emergency rollback restores backup instantly if copying fails mid-execution.
-  - Always preserves target ${AC_FG_CYAN}.git/${AC_R}.
+printf '%sUsage: %sbash%s %s%s [options] <updated_source_dir> <local_target_dir>%s\n' "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${script_name:-}" "${UK_C_RESET:-}"
 
-EOF
+ uk_gradient_box "Enterprise Robustness Behavior" \
+  "- Adaptive temp directory logic perfectly supports Termux, Android, and strict subshells." \
+  "- Non-fatal concurrency locking prevents conflicts but falls back gracefully if restricted." \
+  "- Permissive chmod handling guarantees smooth copying across Android /sdcard or SMB mounts." \
+  "- Pre-flight disk space check verifies sufficient storage for backup and synced files." \
+  "- Pre-flight permission check warns of read-only files or non-writable paths." \
+  "- Dynamic filesystem traversal pruning speeds up large directory scans up to 100x." \
+  "- Smart stat size comparison avoids opening large binary files for cmp." \
+  "- Automated emergency rollback restores backup instantly if copying fails mid-execution." \
+  "- Always preserves target ${AC_FG_CYAN}.git/${AC_R}." 
+
   uk_help_section "$w" "Options" --name-w 26 \
     "--apply" "Actually copy changes after showing the plan" \
     "--interactive" "Launch arrow-key directory browser to pick SOURCE and TARGET" \
@@ -171,18 +169,15 @@ EOF
     "--no-lock" "Disable concurrency locking" \
     "--max-preview <n>" "Max change lines to preview (default: 200)" \
     "-h, --help" "Show this help"
-  cat <<EOF
+  
 
-${AC_BOLD}Examples:${AC_R}
-  ${AC_DIM}# Preview changes from source into target:${AC_R}
-  bash $script_name /path/to/source /path/to/target
-
-  ${AC_DIM}# Apply changed/new files safely, with automatic Termux temp dir protection:${AC_R}
-  bash $script_name --apply /path/to/source /path/to/target
-
-  ${AC_DIM}# Full mirror mode with runtime audit log and custom exclusions:${AC_R}
-  bash $script_name --apply --mirror --log-file "sync.log" --exclude "node_modules" /src /dst
-EOF
+  uk_help_section "$w" "Examples" \
+    "${AC_DIM}# Preview changes from source into target:${AC_R}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} $script_name ${UK_C_DIM:-}${UK_C_WHITE:-}/path/to/source /path/to/target${UK_C_RESET:-}" "" \
+    "${AC_DIM}# Apply changed/new files safely, with automatic Termux temp dir protection:${AC_R}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} $script_name ${UK_C_DIM:-}${UK_C_WHITE:-}--apply /path/to/source /path/to/target${UK_C_RESET:-}" "" \
+    "${AC_DIM}# Full mirror mode with runtime audit log and custom exclusions:${AC_R}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} $script_name ${UK_C_DIM:-}${UK_C_WHITE:-}--apply --mirror --log-file "sync.log" --exclude "node_modules" /src /dst${UK_C_RESET:-}" "" 
 }
 # Colored + symbol-prefixed label for a change kind
 kind_label() {

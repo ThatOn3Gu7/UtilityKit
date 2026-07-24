@@ -47,7 +47,8 @@ ug_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _uuid_gen.sh [TYPE] [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_uuid_gen.sh [TYPE] [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Types" \
     "uuid4" "UUID v4 (random) -- default." \
     "uuid7" "UUID v7 (time-ordered, RFC 9562)." \
@@ -68,12 +69,13 @@ ug_usage() {
     "--quiet" "Suppress info output." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nExamples:\n'
-  printf '  _uuid_gen.sh\n'
-  printf '  _uuid_gen.sh uuid7 --count 5\n'
-  printf '  _uuid_gen.sh nanoid --len 16\n'
-  printf '  _uuid_gen.sh ulid --count 3 --json\n'
-  printf '  _uuid_gen.sh short --upper --count 10 --sep '\'',\n'
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_uuid_gen.sh${UK_C_RESET:-}" "Generate a UUID v4 (default)." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_uuid_gen.sh${UK_C_RESET:-} ${UK_C_DIM:-}uuid7 --count 5${UK_C_RESET:-}" "Generate 5 UUID v7 IDs." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_uuid_gen.sh${UK_C_RESET:-} ${UK_C_DIM:-}nanoid --len 16${UK_C_RESET:-}" "Generate a 16-char NanoID." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_uuid_gen.sh${UK_C_RESET:-} ${UK_C_DIM:-}ulid --count 3 --json${UK_C_RESET:-}" "Generate 3 ULIDs as JSON." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_uuid_gen.sh${UK_C_RESET:-} ${UK_C_DIM:-}short --upper --count 10 --sep ','${UK_C_RESET:-}" "Generate 10 uppercase short IDs."
 }
 
 # ---- Generators -----------------------------------------------------------

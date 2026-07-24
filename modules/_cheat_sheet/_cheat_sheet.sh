@@ -25,7 +25,11 @@ cs_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _cheat_sheet.sh --add NAME [--text TEXT|--file FILE] [--tags a,b]\n  _cheat_sheet.sh --list | --show NAME | --search TERM\n\n'
+  #TODO: Use uk_help_section here as well
+  printf '%sUsage:\n %sbash%s _cheat_sheet.sh %s--add NAME [--text TEXT|--file FILE] [--tags a,b]%s\n' \
+          "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf ' %sbash%s _cheat_sheet.sh %s--list | --show NAME | --search TERM\n\n%s' \
+          "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "--add NAME" "Create a new snippet with the given name" \
     "--text TEXT" "Provide snippet content as a string" \

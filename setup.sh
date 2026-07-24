@@ -12,10 +12,7 @@ ADD_TO_PATH=1
 REPO_URL='https://github.com/Thaton3gu7/UtilityKit.git'
 
 usage() {
-  cat <<'USAGE'
-Usage:
-  bash setup.sh [--no-menu] [--launcher-name NAME] [--install-dir DIR] [--bin-dir DIR] [--no-path]
-USAGE
+printf '\n%sUsage: %sbash%s setup.sh %s[--no-menu] [--launcher-name NAME] [--install-dir DIR] [--bin-dir DIR] [--no-path]%s\n' "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
 }
 setup_expand_path() {
   local input="${1:-}"

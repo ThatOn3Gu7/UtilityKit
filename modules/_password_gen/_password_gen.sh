@@ -14,7 +14,8 @@ pg_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _password_gen.sh [--mode passphrase|string] [--words N] [--length N] [--copy]\n\n'
+  printf '%sUsage: %sbash%s %s_password_gen.sh [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--mode" "Generator mode: passphrase or string" \
     "--words N" "Number of words for passphrase (default: 4)" \

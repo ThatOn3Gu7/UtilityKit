@@ -161,17 +161,18 @@ wt_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf '%s%sWeather Station CLI%s\n' "${C_BOLD:-}" "${C_CYAN:-}" "${C_RESET:-}"
-  printf 'Usage: %s [LOCATION] [OPTIONS]\n\n' "$(basename "$0")"
+  printf '%sUsage: %sbash%s %s_weather.sh [LOCATION] [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--units metric|imperial" "Set temperature format (default: metric)." \
     "--full" "Show full 3-day ASCII forecast." \
     "--concise" "Show compact 1-line weather (default)." \
     "-h, --help" "Show this help screen."
-  printf '\nExamples:\n'
-  printf '  %s                  # Launches the interactive wizard!\n' "$(basename "$0")"
-  printf '  %s London           # Quick concise check for London\n' "$(basename "$0")"
-  printf '  %s Tokyo --full     # Full 3-day forecast for Tokyo\n' "$(basename "$0")"
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_weather.sh${UK_C_RESET:-}" "Launches the interactive wizard!" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_weather.sh${UK_C_RESET:-} ${UK_C_DIM:-}London${UK_C_RESET:-}" "Quick concise check for London" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_weather.sh${UK_C_RESET:-} ${UK_C_DIM:-}Tokyo --full${UK_C_RESET:-}" "Full 3-day forecast for Tokyo"
 }
 wt_main() {
   uk_banner "weather" "Current weather from wttr.in with offline cache fallback" "" "$@"

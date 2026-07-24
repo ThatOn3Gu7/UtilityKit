@@ -64,6 +64,7 @@ uk_main_show_help() {
   printf '%sUsage:%s ./main.sh <command> [args]\n\n' "$bold$yellow" "$reset"
   uk_fh_box_top "$width" " Maintenance "
   uk_fh_cmd_row "$width" "help, -h" "Show this message and exit"
+  uk_fh_cmd_row "$width" "version, -v" "Show projects version and exit"
   uk_fh_cmd_row "$width" "doctor" "Run integrity checks on the tool registry"
   uk_fh_cmd_row "$width" "tools" "List all available tools"
   uk_fh_box_bot "$width"
@@ -93,7 +94,7 @@ uk_source_tool() {
     return 1
   fi
 }
-# =============================================================================
+# 
 # UNIFIED TOOL REGISTRY  (single source of truth)
 # -----------------------------------------------------------------------------
 # Every tool is described ONCE here. The lazy-loader map (UK_TOOL_PATHS) and the
@@ -110,7 +111,7 @@ uk_source_tool() {
 #     name   : dashboard display name
 #     desc   : one-line dashboard description
 #     menu   : 1 = show in the interactive dashboard, 0 = CLI-only / hidden
-# =============================================================================
+# 
 UK_REGISTRY=(
   "apply_changes|apply|↻|UK_C_GREEN|Apply Changes|Robust Directory Synchronization|1"
   "rename_batch|rename|✎|UK_C_BRIGHT_BLUE|Batch Rename|Recursive File Renaming & Copying|1"
@@ -1382,7 +1383,6 @@ run_tool() {
     ;;
   esac
 }
-# =============================================================================
 # uk_doctor — installation & registry integrity checks
 # -----------------------------------------------------------------------------
 # Validates that the single-source-of-truth UK_REGISTRY agrees with reality:
@@ -1395,7 +1395,6 @@ run_tool() {
 # Flags: --quick (skip the per-tool --help check), --no-color,
 #        --fix (create missing README stubs; print a suggested `git rm -r`
 #              for orphan directories — never deletes anything itself)
-# =============================================================================
 uk_doctor() {
   local quick=0 fix=0 arg
   for arg in "$@"; do

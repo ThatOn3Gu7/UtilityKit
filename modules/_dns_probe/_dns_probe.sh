@@ -57,7 +57,8 @@ DP_DEFAULT_RESOLVERS=(
 dp_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _dns_probe.sh DOMAIN [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_dns_probe.sh DOMAIN [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 24 \
     "--type T[,T,...]" "Record types (default: A,AAAA,MX,TXT,NS,CAA,SOA)" \
     "--resolver HOST" "Query only HOST (repeatable)" \
@@ -68,9 +69,15 @@ dp_usage() {
     "--json" "Emit results as JSON" \
     "--no-color" "Disable ANSI" \
     "-h, --help" "Show this help"
-  printf '\nBackends tried in order: dig > drill > host.\n'
-  printf 'Examples:\n  _dns_probe.sh example.com\n  _dns_probe.sh example.com --type A,AAAA,MX\n'
-  printf '  _dns_probe.sh example.com --propagation\n  _dns_probe.sh example.com --resolver 1.1.1.1 --resolver 8.8.4.4\n'
+  uk_help_section "$w" "Backends tried (in order)" \
+    "dig" "General DNS lookup utility" \
+    "drill" "DNS debugging tool (ldns)" \
+    "host" "Simple DNS lookup utility"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_dns_probe.sh${UK_C_RESET:-} ${UK_C_DIM:-}example.com${UK_C_RESET:-}" "Probe all default record types" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_dns_probe.sh${UK_C_RESET:-} ${UK_C_DIM:-}example.com --type A,AAAA,MX${UK_C_RESET:-}" "Query specific record types" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_dns_probe.sh${UK_C_RESET:-} ${UK_C_DIM:-}example.com --propagation${UK_C_RESET:-}" "Diff answers across all resolvers" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_dns_probe.sh${UK_C_RESET:-} ${UK_C_DIM:-}example.com --resolver 1.1.1.1 --resolver 8.8.4.4${UK_C_RESET:-}" "Query specific resolvers"
 }
 
 # ---- Backend selection ------------------------------------------------------

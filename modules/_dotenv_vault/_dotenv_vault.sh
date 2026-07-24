@@ -6,8 +6,12 @@ source "$SCRIPT_DIR/../../lib/uk_common.sh"
 dv_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage:\n  _dotenv_vault.sh --file .env --encrypt KEY [--apply]\n  _dotenv_vault.sh --file .env --decrypt [--output FILE]\n\n'
-  printf 'Encrypts a single KEY=value in a dotenv file using gpg symmetric encryption.\nDry-run by default for --encrypt; use --apply to write the changed file.\n\n'
+  #TODO: Use uk_help_section here as well
+  printf '%sUsage:\n %sbash%s %s_dotenv_vault.sh --file .env --encrypt KEY [--apply]%s\n %sbash%s %s_dotenv_vault.sh --file .env --decrypt [--output FILE]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}" \
+    "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf '%sEncrypts a single KEY=value in a dotenv file using gpg symmetric encryption.\nDry-run by default for --encrypt; use --apply to write the changed file%s.\n\n' "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 24 \
     "--file .env" "Dotenv file path" \
     "--encrypt KEY" "Encrypt the given key" \

@@ -26,7 +26,11 @@ at_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _api_tester.sh [--method METHOD --url URL] [--header K:V] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]\n  _api_tester.sh --save NAME --method METHOD --url URL [--header K:V] [--body TEXT|--body-file FILE]\n  _api_tester.sh --run NAME | --show NAME | --list\n\n'
+  uk_help_section "$w" "Usage" \
+  "${UK_C_GREEN:-}${UK_C_BOLD:-}bash${UK_C_RESET:-} _api_tester.sh ${UK_C_DIM:-}[--method METHOD --url URL] [--header K:V] [--body TEXT|--body-file FILE] [--expect 2xx,3xx]${UK_C_RESET:-}" "" \
+  "${UK_C_BOLD:-}${UK_C_GREEN:-}bash${UK_C_RESET:-} _api_tester.sh ${UK_C_DIM:-}--save NAME --method METHOD --url URL [--header K:V] [--body TEXT|--body-file FILE]${UK_C_RESET:-}" "" \
+  "${UK_C_BOLD:-}${UK_C_GREEN:-}bash${UK_C_RESET:-} _api_tester.sh ${UK_C_DIM:-}--run NAME | --show NAME | --list${UK_C_RESET:-}" ""
+  
   uk_help_section "$w" "Options" --name-w 28 \
     "--method METHOD" "HTTP method (GET, POST, PUT, PATCH, DELETE)" \
     "--url URL" "Request URL" \

@@ -6,14 +6,17 @@ sw_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _service_watcher.sh URL... [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_service_watcher.sh URL... [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
-    "--expect CODES" "Expected HTTP status codes (default: 2xx,3xx)." \
-    "--interval SECONDS" "Polling interval (default: 0 = one-shot)." \
-    "--profile NAME" "Load URLs from a saved profile." \
-    "--save NAME" "Save given URLs as a profile and exit." \
-    "--insecure" "Skip TLS certificate verification." \
-    "-h, --help" "Show this help."
+    "--expect CODES" "Expected HTTP status codes (default: 2xx,3xx)" \
+    "--interval SECONDS" "Polling interval (default: 0 = one-shot)" \
+    "--profile NAME" "Load URLs from a saved profile" \
+    "--save NAME" "Save URLs as a profile and exit" \
+    "--insecure" "Skip TLS certificate verification" \
+    "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_service_watcher.sh${UK_C_RESET:-} ${UK_C_DIM:-}https://example.com https://piwik.org${UK_C_RESET:-}" "Check services"
 }
 sw_dir() {
   local d

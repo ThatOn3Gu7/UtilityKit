@@ -50,7 +50,8 @@ yt_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _yaml_toolkit.sh <subcommand> FILE [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_yaml_toolkit.sh <subcommand> FILE [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" \
     "lint FILE" "Validate YAML syntax." \
     "tojson FILE" "Convert YAML to JSON." \
@@ -66,13 +67,17 @@ yt_usage() {
     "--json" "Machine-readable JSON output (for lint, keys)." \
     "--no-color" "Disable ANSI (also respects NO_COLOR=1)." \
     "-h, --help" "Show this help."
-  printf '\nBackends: yq (preferred, Go) -> python3 + PyYAML (fallback).\n'
-  printf '\nExamples:\n'
-  printf '  _yaml_toolkit.sh lint config.yaml\n'
-  printf '  _yaml_toolkit.sh tojson config.yaml\n'
-  printf '  _yaml_toolkit.sh get config.yaml database.host\n'
-  printf '  _yaml_toolkit.sh keys config.yaml\n'
-  printf '  _yaml_toolkit.sh merge base.yaml overlay.yaml\n'
+  printf '\n'
+  uk_help_section "$w" "Backends" \
+    "yq (preferred, Go)" "Feature-rich YAML processor." \
+    "python3 + PyYAML" "Fallback when yq is unavailable."
+  printf '\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_yaml_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}lint config.yaml${UK_C_RESET:-}" "Validate YAML syntax." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_yaml_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}tojson config.yaml${UK_C_RESET:-}" "Convert YAML to JSON." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_yaml_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}get config.yaml database.host${UK_C_RESET:-}" "Extract a value by dot-notation key." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_yaml_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}keys config.yaml${UK_C_RESET:-}" "List top-level keys." \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_yaml_toolkit.sh${UK_C_RESET:-} ${UK_C_DIM:-}merge base.yaml overlay.yaml${UK_C_RESET:-}" "Merge OVERLAY YAML into BASE YAML."
 }
 
 # ---- Helpers ---------------------------------------------------------------

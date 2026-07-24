@@ -29,7 +29,8 @@ CC_ERRORS=()
 cc_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: cacheclean [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s _cache_clean.sh %s[OPTIONS]\n\n%s' \
+         "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "-h, --help" "Show help" \
     "-y, --yes" "Auto-confirm deletion" \

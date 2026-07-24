@@ -43,7 +43,8 @@ em_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _env_manager.sh [OPTIONS]\n\n'
+  printf '%sUsage:\n %sbash%s %s_env_manager.sh [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--dir DIR" "Project directory containing .env profiles." \
     "--profile NAME" "Profile name to inspect/swap (e.g. local, staging, production)." \
@@ -55,6 +56,10 @@ em_usage() {
     "--active FILE" "Active env file name (default: .env)." \
     "--example FILE" "Example env file name (default: .env.example)." \
     "-h, --help" "Show this help."
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_env_manager.sh${UK_C_RESET:-} ${UK_C_DIM:-}--dir /path/to/project --profile staging${UK_C_RESET:-}" "Inspect staging env" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_env_manager.sh${UK_C_RESET:-} ${UK_C_DIM:-}--profile production --apply${UK_C_RESET:-}" "Swap to production env" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_env_manager.sh${UK_C_RESET:-} ${UK_C_DIM:-}--compare --validate${UK_C_RESET:-}" "Compare and validate env"
 }
 em_safe_project_file() {
   local name="${1:-}"

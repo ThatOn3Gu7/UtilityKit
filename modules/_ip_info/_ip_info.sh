@@ -51,9 +51,10 @@ ii_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _ip_info.sh [TARGET] [OPTIONS]\n\n'
-  printf "  TARGET may be an IPv4/IPv6 address or hostname. Without a TARGET, the tool\n"
-  printf "  reports on the local machine's public IP.\n\n"
+  printf '%sUsage: %sbash%s %s_ip_info.sh [TARGET] [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
+  printf '%sDescription:%s\n %sTARGET may be an IPv4/IPv6 address or hostname. Without a TARGET, the tool reports on the local machines public IP.\n\n%s' \
+         "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
     "--local" "Show local interfaces (IPv4/IPv6, MAC, gateway)." \
     "--public" "Look up public IPv4 (and IPv6 if available)." \
@@ -64,12 +65,12 @@ ii_usage() {
     "--json" "Emit results as a single JSON document." \
     "--no-color" "Disable ANSI." \
     "-h, --help" "Show this help."
-  printf '\nExamples:\n'
-  printf '  _ip_info.sh                    # local + public IP report\n'
-  printf '  _ip_info.sh 1.1.1.1            # inspect a remote IP\n'
-  printf '  _ip_info.sh github.com --whois\n'
-  printf '  _ip_info.sh --local --no-network\n'
-  printf '  _ip_info.sh --json\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ip_info.sh${UK_C_RESET:-}" "Local + public IP report" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ip_info.sh${UK_C_RESET:-} ${UK_C_DIM:-}1.1.1.1${UK_C_RESET:-}" "Inspect a remote IP" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ip_info.sh${UK_C_RESET:-} ${UK_C_DIM:-}github.com --whois${UK_C_RESET:-}" "With WHOIS lookup" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ip_info.sh${UK_C_RESET:-} ${UK_C_DIM:-}--local --no-network${UK_C_RESET:-}" "Local-only report" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ip_info.sh${UK_C_RESET:-} ${UK_C_DIM:-}--json${UK_C_RESET:-}" "JSON output"
 }
 
 # ---- Helpers ---------------------------------------------------------------

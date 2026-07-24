@@ -17,7 +17,8 @@ ghh_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _github_helper.sh [ACTION]\n\n'
+  printf '%sUsage:\n %sbash%s %s_github_helper.sh [ACTION]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Actions" \
     "--status" "Check GitHub auth status." \
     "--prs" "List pull requests." \

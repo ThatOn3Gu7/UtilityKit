@@ -55,7 +55,8 @@ qr_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage: _qr_tool.sh <subcommand> [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_qr_tool.sh <subcommand> [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Subcommands" \
     "encode --text TXT" "Encode arbitrary text/URL" \
     "encode --wifi SSID" "Encode Wi-Fi config (WPA/WPA2)" \
@@ -71,15 +72,16 @@ qr_usage() {
     "--json" "Machine-readable output (decode subcommand)" \
     "-h, --help" "Show this help"
   printf '\n'
-  printf 'Encoders tried in order: qrencode → python3 qrcode.\n'
-  printf 'Decoders tried in order: zbarimg → python3 pyzbar.\n'
+  uk_help_section "$w" "Backends" \
+    "qrencode" "Primary encoder, falls back to python3-qrcode" \
+    "zbarimg" "Primary decoder, falls back to python3-pyzbar"
   printf '\n'
-  printf 'Examples:\n'
-  printf '  _qr_tool.sh encode --text "https://example.com"\n'
-  printf '  _qr_tool.sh encode --text "hello" --out qr.png\n'
-  printf '  _qr_tool.sh encode --wifi HomeNet --psk hunter2 --enc WPA\n'
-  printf '  _qr_tool.sh encode --vcard "Ada Lovelace" --email ada@ex.com --phone 555-0100\n'
-  printf '  _qr_tool.sh decode --image qr.png --json\n'
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_qr_tool.sh${UK_C_RESET:-} ${UK_C_DIM:-}encode --text \"https://example.com\"${UK_C_RESET:-}" "Encode URL to QR" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_qr_tool.sh${UK_C_RESET:-} ${UK_C_DIM:-}encode --text \"hello\" --out qr.png${UK_C_RESET:-}" "Encode to PNG file" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_qr_tool.sh${UK_C_RESET:-} ${UK_C_DIM:-}encode --wifi HomeNet --psk hunter2 --enc WPA${UK_C_RESET:-}" "Encode Wi-Fi config" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_qr_tool.sh${UK_C_RESET:-} ${UK_C_DIM:-}encode --vcard \"Ada\" --email ada@ex.com${UK_C_RESET:-}" "Encode vCard" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_qr_tool.sh${UK_C_RESET:-} ${UK_C_DIM:-}decode --image qr.png --json${UK_C_RESET:-}" "Decode QR image"
 }
 
 # ---- Helpers ----------------------------------------------------------------

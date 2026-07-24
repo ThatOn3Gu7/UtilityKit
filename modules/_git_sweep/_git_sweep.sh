@@ -105,7 +105,8 @@ gs_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _git_sweep.sh [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s %s_git_sweep.sh [OPTIONS]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 26 \
     "--repo DIR" "Repository directory (default: .)" \
     "--delete-merged-local" "Delete fully merged local branches." \
@@ -115,6 +116,10 @@ gs_usage() {
     "--gc" "Run git gc --prune=now." \
     "--apply" "Execute destructive actions." \
     "-h, --help" "Show this help."
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_sweep.sh${UK_C_RESET:-}" "Preview all sweepable items" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_sweep.sh${UK_C_RESET:-} ${UK_C_DIM:-}--delete-merged-local --apply${UK_C_RESET:-}" "Delete merged local branches" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_git_sweep.sh${UK_C_RESET:-} ${UK_C_DIM:-}--gc${UK_C_RESET:-}" "Preview git garbage collection"
 }
 gs_print_lines_or_none() {
   local heading="${1:-}"

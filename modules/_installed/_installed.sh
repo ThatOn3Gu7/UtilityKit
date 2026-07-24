@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../../lib/uk_common.sh"
 
-SCRIPT_NAME="${0##*/}"
+SCRIPT_NAME="_installed"
 
 # Modes & Flags
 IC_DO_PACKAGES=0
@@ -208,34 +208,30 @@ ic_register_managers() {
 ic_has_cmd() { command -v "${1:-}" >/dev/null 2>&1; }
 
 ic_usage() {
+  uk_banner "installed" " Lists imstalled commands and packages found on system" "" "$@"
   local w
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf '%s v%s\n\n' "${SCRIPT_NAME}" "${UK_VERSION:-Unknown}"
-  printf 'List installed packages (native + language package managers) and every\n'
-  printf "executable command discoverable on your \$PATH. Versions are shown per package\n"
-  printf 'when the manager reports them, as: [ - name \342\206\222 v1.2.3 ].\n\n'
-  printf 'Usage:\n  %s [options]\n\n' "${SCRIPT_NAME}"
+  printf '%sUsage:%s  %s%s%s %s[options]%s\n\n' \
+         "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_RESET:-}" "${UK_C_GREEN:-}${UK_C_BOLD:-}" "${SCRIPT_NAME}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Modes" \
     "--packages" "Only list packages per detected package manager" \
     "--commands" "Only list executable commands found in \$PATH" \
     "--all" "List both (default)"
-  printf '\n'
   uk_help_section "$w" "Filtering" \
     "--category c1,c2" "Limit to: system, apps, language, tools" \
     "--manager id1,id2" "Only these package-manager ids (e.g. apt,brew,npm)"
-  printf '\n'
   uk_help_section "$w" "Output" \
     "--count" "Show a per-manager / total count instead of names" \
     "--json" "Emit a machine-readable JSON summary" \
     "--export FILE" "Write a plain-text report to FILE" \
     "--no-color" "Disable ANSI colors" \
     "-h, --help" "Show this help"
-  printf '\nExamples:\n'
-  printf '  %s --packages --category language\n' "${SCRIPT_NAME}"
-  printf '  %s --commands --count\n' "${SCRIPT_NAME}"
-  printf '  %s --manager apt,brew --json\n' "${SCRIPT_NAME}"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}${SCRIPT_NAME}${UK_C_RESET:-} ${UK_C_DIM:-}--packages --category language${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}${SCRIPT_NAME}${UK_C_RESET:-} ${UK_C_DIM:-}--commands --count${UK_C_RESET:-}" "" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}${SCRIPT_NAME}${UK_C_RESET:-} ${UK_C_DIM:-}--manager apt,brew --json${UK_C_RESET:-}" ""
 }
 
 # Spinner
@@ -290,7 +286,7 @@ ic_spinner_stop() {
 # network-blocked package manager (e.g. `npm ls -g` probing the registry) can
 # never hang the whole inventory. Uses GNU/BSD `timeout` when available.
 ic_run_to_file() {
-  local cmd="${1:-}" file="${2:-}" rc=0 err="${file}.err"
+  local cmd="${1:-}" file="${2:-}" rc=0 err="${file:-}.err"
   if ic_has_cmd timeout; then
     timeout 25 sh -c "$cmd" >"$file" 2>/dev/null
     local rc=$?

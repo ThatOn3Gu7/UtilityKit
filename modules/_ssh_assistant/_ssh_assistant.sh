@@ -13,13 +13,17 @@ sa_usage() {
   w=$(uk_fh_cols)
   ((w > 80)) && w=80
   ((w < 40)) && w=40
-  printf 'Usage:\n  _ssh_assistant.sh [OPTIONS]\n\n'
+  printf '%sUsage: %sbash%s ssh_assistant.sh %s[OPTIONS]%s\n\n' \
+    "${UK_C_YELLOW:-}${UK_C_BOLD:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" \
-    "--connect HOST" "SSH to a named host from the config." \
-    "--copy-id HOST" "Copy SSH public key to a remote host." \
-    "--add [HOST]" "Add a new host entry interactively." \
-    "--config FILE" "Path to SSH config (default: ~/.ssh/config)." \
-    "-h, --help" "Show this help."
+    "--connect HOST" "SSH to a named host from the config" \
+    "--copy-id HOST" "Copy SSH public key to a remote host" \
+    "--add [HOST]" "Add a new host entry interactively" \
+    "--config FILE" "Path to SSH config (default: ~/.ssh/config)" \
+    "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssh_assistant.sh${UK_C_RESET:-} ${UK_C_DIM:-}--connect myserver${UK_C_RESET:-}" "SSH to a config host" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_ssh_assistant.sh${UK_C_RESET:-} ${UK_C_DIM:-}--copy-id myserver${UK_C_RESET:-}" "Copy SSH key to remote"
 }
 
 sa_valid_alias() { [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; }

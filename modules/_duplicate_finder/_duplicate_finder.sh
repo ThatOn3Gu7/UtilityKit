@@ -58,12 +58,17 @@ _df_hash() {
 df_usage() {
   local w
   w=$(uk_fh_cols); ((w > 80)) && w=80; ((w < 40)) && w=40
-  printf 'Usage: _duplicate_finder.sh [DIR] [--delete|--hardlink] [--apply]\n\n'
+  printf '%sUsage: %sbash%s %s_duplicate_finder.sh [DIR] [--delete|--hardlink] [--apply]%s\n\n' \
+    "${UK_C_BOLD:-}${UK_C_YELLOW:-}" "${UK_C_BOLD:-}${UK_C_GREEN:-}" "${UK_C_RESET:-}" "${UK_C_DIM:-}" "${UK_C_RESET:-}"
   uk_help_section "$w" "Options" --name-w 22 \
     "--delete" "Delete duplicate copies, keeping the first file per hash" \
     "--hardlink" "Replace duplicates with hardlinks to the first file" \
     "--apply" "Execute the chosen action" \
     "-h, --help" "Show this help"
+  uk_help_section "$w" "Examples" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_duplicate_finder.sh${UK_C_RESET:-} ${UK_C_DIM:-}~/Downloads${UK_C_RESET:-}" "Scan a directory for duplicates" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_duplicate_finder.sh${UK_C_RESET:-} ${UK_C_DIM:-}--delete --apply${UK_C_RESET:-}" "Delete duplicates in current dir" \
+    "${UK_C_GREEN:-}bash${UK_C_RESET:-} ${UK_C_WHITE:-}_duplicate_finder.sh${UK_C_RESET:-} ${UK_C_DIM:-}--hardlink /path/to/dir${UK_C_RESET:-}" "Replace duplicates with hardlinks"
 }
 df_scan() {
   command -v find >/dev/null || {
