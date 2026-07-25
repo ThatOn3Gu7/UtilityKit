@@ -12,6 +12,7 @@ import {
   BookOpen,
   Wrench,
   Sparkle,
+  Rocket,
 } from "@phosphor-icons/react";
 import { TOOLS } from "@/data/tools";
 import { ThemeToggle } from "./ThemeToggle";
@@ -229,6 +230,12 @@ const NAV_LINKS = [
     href: "/docs/architecture",
     icon: <BookOpen size={14} weight="duotone" />,
   },
+  {
+    label: "Playground",
+    href: "./playground/",
+    external: true,
+    icon: <Rocket size={14} weight="duotone" />,
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -342,18 +349,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
               {NAV_LINKS.map((link) => {
-                const active = location.pathname.startsWith(
+                const active = !link.external && location.pathname.startsWith(
                   link.href.split("?")[0]
                 );
-                return (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    className="relative px-3 py-1.5 text-sm rounded-lg flex items-center gap-1.5 transition-colors"
-                    style={{
-                      color: active ? "var(--text)" : "var(--text-muted)",
-                    }}
-                  >
+                const content = (
+                  <>
                     {active && (
                       <motion.span
                         layoutId="nav-pill"
@@ -373,6 +373,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {link.icon}
                       {link.label}
                     </span>
+                  </>
+                );
+                if (link.external) {
+                  return (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative px-3 py-1.5 text-sm rounded-lg flex items-center gap-1.5 transition-colors"
+                      style={{
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="relative px-3 py-1.5 text-sm rounded-lg flex items-center gap-1.5 transition-colors"
+                    style={{
+                      color: active ? "var(--text)" : "var(--text-muted)",
+                    }}
+                  >
+                    {content}
                   </Link>
                 );
               })}
@@ -420,6 +448,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <ThemeToggle />
 
               <a
+                href="./playground/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border hover:-translate-y-0.5"
+                style={{
+                  borderColor: "var(--border)",
+                  background: "var(--accent-subtle)",
+                  color: "var(--accent)",
+                }}
+              >
+                <Rocket size={13} weight="fill" />
+                Playground
+              </a>
+
+              <a
                 href="https://github.com/Thaton3gu7/UtilityKit"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -464,21 +507,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   style={{ borderColor: "var(--border)" }}
                 >
                   {NAV_LINKS.map((link) => {
-                    const active = location.pathname.startsWith(
+                    const active = !link.external && location.pathname.startsWith(
                       link.href.split("?")[0]
                     );
+                    const cls = "px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors";
+                    const style = {
+                      background: active ? "var(--bg-subtle)" : "transparent",
+                      color: active ? "var(--text)" : "var(--text-muted)",
+                    };
+                    if (link.external) {
+                      return (
+                        <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className={cls} style={style}>
+                          {link.icon}
+                          {link.label}
+                        </a>
+                      );
+                    }
                     return (
-                      <Link
-                        key={link.href}
-                        to={link.href}
-                        className="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
-                        style={{
-                          background: active
-                            ? "var(--bg-subtle)"
-                            : "transparent",
-                          color: active ? "var(--text)" : "var(--text-muted)",
-                        }}
-                      >
+                      <Link key={link.href} to={link.href} className={cls} style={style}>
                         {link.icon}
                         {link.label}
                       </Link>
@@ -563,6 +609,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 { label: "Getting Started", to: "/docs/getting-started" },
                 { label: "Architecture", to: "/docs/architecture" },
                 { label: "All Tools", to: "/tools" },
+                { label: "Playground", href: "./playground/", external: true },
               ]}
             />
             <FooterCol

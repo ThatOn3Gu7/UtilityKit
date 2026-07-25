@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Rocket,
   Cube,
+  GameController,
   ShieldCheck,
   Timer,
 } from "@phosphor-icons/react";
@@ -218,39 +219,6 @@ function TerminalMockup() {
   );
 }
 
-function PassWidget() {
-  const [mode, setMode] = useState<"passphrase" | "string">("passphrase");
-  const [out, setOut] = useState("");
-  const words = ["correct","horse","battery","staple","orange","dragon","river","mountain","coffee","guitar","planet","rocket","shadow","forest","thunder","crystal","phoenix","avalanche","nebula","cascade","eagle","falcon","storm","wolf","zenith","orbit","solar","lunar","comet","quasar","vortex","neutron","pixel","vector","matrix","cipher","quantum"];
-  const gen = () => {
-    if (mode === "passphrase") {
-      const picks = Array.from({length:4},()=>words[Math.floor(Math.random()*words.length)]);
-      setOut(picks.join("-"));
-    } else {
-      const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-      setOut(Array.from({length:24},()=>chars[Math.floor(Math.random()*chars.length)]).join(""));
-    }
-  };
-  useEffect(()=>gen(),[mode]);
-  return (
-    <div className="rounded-2xl p-6 sm:p-8" style={{background:"var(--bg-elevated)",border:"1px solid var(--border)"}}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:"var(--accent-subtle)",color:"var(--accent)"}}>⚿</div>
-        <h3 className="font-semibold" style={{color:"var(--text)"}}>Try it: password generator</h3>
-      </div>
-      <div className="flex gap-2 mb-4">
-        <button onClick={()=>setMode("passphrase")} className="px-3 py-1.5 rounded-lg text-xs font-medium border" style={{borderColor:mode==="passphrase"?"var(--accent)":"var(--border)",color:mode==="passphrase"?"var(--accent)":"var(--text-muted)",background:mode==="passphrase"?"var(--accent-subtle)":"transparent"}}>Passphrase</button>
-        <button onClick={()=>setMode("string")} className="px-3 py-1.5 rounded-lg text-xs font-medium border" style={{borderColor:mode==="string"?"var(--accent)":"var(--border)",color:mode==="string"?"var(--accent)":"var(--text-muted)",background:mode==="string"?"var(--accent-subtle)":"transparent"}}>Random string</button>
-      </div>
-      <div className="flex items-center gap-3 mb-4">
-        <code className="flex-1 font-mono text-sm px-3 py-2.5 rounded-lg truncate" style={{background:"var(--bg-inset)",color:"var(--accent)",border:"1px solid var(--border)"}}>{out}</code>
-        <button onClick={()=>navigator.clipboard.writeText(out)} className="px-3 py-2.5 rounded-lg text-xs font-medium border" style={{borderColor:"var(--border)",color:"var(--text-muted)"}}>Copy</button>
-      </div>
-      <button onClick={gen} className="w-full py-2.5 rounded-lg text-sm font-medium" style={{background:"var(--accent)",color:"var(--accent-fg)"}}>Generate another</button>
-    </div>
-  );
-}
-
 const STATS = [
   { value: "65", label: "tools", icon: <Package size={16} weight="duotone" /> },
   { value: "3", label: "platforms", icon: <Cpu size={16} weight="duotone" /> },
@@ -378,7 +346,7 @@ export function HomePage() {
                   />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                 </span>
-                <span className="font-mono">v5.10.6 · 65 tools · MIT · Bash 5+</span>
+                <span className="font-mono">v5.13.0 · 65 tools · MIT · Bash 5+</span>
               </motion.div>
 
              <motion.h1
@@ -454,6 +422,20 @@ export function HomePage() {
                   <Wrench size={15} weight="duotone" />
                   Browse tools
                 </Link>
+                <a
+                  href="./playground/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-medium text-sm transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: "var(--bg-elevated)",
+                    color: "var(--text)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <GameController size={15} weight="duotone" />
+                  Playground
+                </a>
                 <a
                   href="https://github.com/Thaton3gu7/UtilityKit"
                   target="_blank"
@@ -730,9 +712,6 @@ export function HomePage() {
             }}
           />
           <div className="relative">
-            <div className="max-w-md mx-auto mb-8">
-              <PassWidget />
-            </div>
             <div
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5"
               style={{

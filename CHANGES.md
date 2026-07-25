@@ -1,5 +1,21 @@
 # Changelog
 
+## [5.13.0] - 2026-07-25
+
+### Added
+- **Interactive browser playground.** 23 of 63 tools now run for real in your browser at `/playground/` — generate passwords, hash files, test regexes, build QR codes, check weather, probe DNS, benchmark HTTP endpoints, and more. The remaining 40 tools play back a scripted terminal preview so you can see every tool before installing.
+- **Playground link in docs site header, footer, and hero.** A "Playground" button with a Rocket icon appears in the site header next to the GitHub star, a footer link under Docs, and a hero CTA button alongside Get Started / Browse tools / Star on GitHub. The playground is served via a symlink from `docs-site/public/playground` → `docs/playground`, so `npm run dev` serves it correctly.
+- **Playground page header with theme toggle and nav links.** The standalone playground SPA now includes a sticky header bar with the UtilityKit logo (linking back to docs), nav links (Tools, Getting Started, Architecture), a Docs button, and a theme toggle that syncs with the main docs site via `localStorage("uk-theme")`. A collapsible mobile menu is available on small screens — users can now navigate back to the docs site or switch themes without leaving the playground.
+
+### Fixed
+- **Playground routing on GitHub Pages.** The nav link was `href="/playground/"` (absolute from domain root), which broke on GitHub Pages subpath deployments. Changed to `href="./playground/"` (relative) so it resolves correctly regardless of hosting path.
+- **Modulo bias in PasswordGen and UuidGen playground tools.** The browser implementations used `% max` for random index selection, which introduces statistical bias. Replaced with rejection sampling matching the CLI's `pg_random_index()` approach.
+- **Stale closure in PomodoroTimer.** Timer callbacks captured stale `phase`/`cycle` values from the render closure. Switched to refs so transitions between work/break phases are reliable.
+- **Missing error boundary.** Lazy-loaded tool components could crash silently. Added a React error boundary with retry button wrapping all real tool components.
+
+### Removed
+- **Password generator widget from docs homepage.** The interactive `PassWidget` at the bottom of the homepage (under "Trust, but verify") was removed since the playground now provides a richer version of the same tool.
+
 ## [5.12.0] - 2026-07-23
 
 ### Added

@@ -470,6 +470,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
+**v5.13.0** — Interactive browser playground with 23 live tools (password gen, weather, DNS probe, HTTP bench, cron parser, and more), Playground button in docs site header, modulo bias fix in browser tools, stale-closure fix in Pomodoro timer, error boundary for lazy-loaded components. Password gen widget removed from homepage (superseded by playground).
+
 **v5.11.0** — All 63 tools now render their `--help` inside boxed tables with ANSI-safe truncation (`...` for long descriptions). `fancy_help.sh` merged into main.sh; border alignment fixed; box helpers moved to `uk_common.sh` so every tool shares the same `uk_help_section()` system. `fancy_help.sh` removed.
 
 **v5.10.0** — Package-manager install paths, removing the `git clone` step entirely: `Formula/utilitykit.rb` turns the repo into a Homebrew tap (`brew tap thaton3gu7/utilitykit <repo-url> && brew install utilitykit`, with `--HEAD` support and bash ≥ 4 guaranteed via the `bash` dependency), and `packaging/build-termux-deb.sh` builds a Termux `.deb` (`pkg install ./utilitykit_all.deb`) with launcher, completions, and `Depends: bash` wired in. A new `Release` workflow publishes the `.deb` (plus a stable-named `utilitykit_all.deb` alias) on every `vX.Y.Z` tag and verifies the tag matches `UK_VERSION`; `packaging/update-formula.sh` pins the formula's `url`/`sha256` to a released tag.
