@@ -214,7 +214,14 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-const NAV_LINKS = [
+interface NavLink {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  external?: boolean;
+}
+
+const NAV_LINKS: NavLink[] = [
   {
     label: "Tools",
     href: "/tools",
@@ -232,8 +239,7 @@ const NAV_LINKS = [
   },
   {
     label: "Playground",
-    href: "./playground/",
-    external: true,
+    href: "/playground",
     icon: <Rocket size={14} weight="duotone" />,
   },
 ];
@@ -447,10 +453,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <ThemeToggle />
 
-              <a
-                href="./playground/"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/playground"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border hover:-translate-y-0.5"
                 style={{
                   borderColor: "var(--border)",
@@ -460,7 +464,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <Rocket size={13} weight="fill" />
                 Playground
-              </a>
+              </Link>
 
               <a
                 href="https://github.com/Thaton3gu7/UtilityKit"
@@ -609,7 +613,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 { label: "Getting Started", to: "/docs/getting-started" },
                 { label: "Architecture", to: "/docs/architecture" },
                 { label: "All Tools", to: "/tools" },
-                { label: "Playground", href: "./playground/", external: true },
+                { label: "Playground", to: "/playground" },
               ]}
             />
             <FooterCol

@@ -9,6 +9,7 @@ import { ToolsPage } from "@/pages/ToolsPage";
 import { ToolDetailPage } from "@/pages/ToolDetailPage";
 import { GettingStartedPage } from "@/pages/GettingStartedPage";
 import { ArchitecturePage } from "@/pages/ArchitecturePage";
+import PlaygroundPage from "@/pages/PlaygroundPage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/tools/:command" element={<ToolDetailPage />} />
             <Route path="/docs/getting-started" element={<GettingStartedPage />} />
             <Route path="/docs/architecture" element={<ArchitecturePage />} />
+            <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/docs" element={<Navigate to="/docs/getting-started" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

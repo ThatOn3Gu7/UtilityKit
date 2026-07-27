@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.14.0] - 2026-07-27
+
+### Refactored
+- **Playground merged into main docs-site.** The standalone playground SPA (`docs-site/playground/`) was integrated directly into the main docs-site React app. The playground is now served at `/#/playground` as an internal route, eliminating the separate build step — one `npm run build` builds everything. The playground uses the main app's theme and CSS variables so theming is always consistent.
+
+### Added
+- **`installed` tool simulation in the playground.** A scripted terminal playback was added for `bash main.sh installed --packages`, showing package manager detection (apt, pip, npm, gem, cargo, go, uv, gh), per-package version listing, and PATH executable count. The simulation was modeled after the actual tool output.
+
+### Fixed
+- **Home page "Playground" button routing.** The hero CTA button on the docs home page was still an `<a href="./playground/">` pointing at the old standalone app, which no longer existed after the merge. Changed to a React Router `<Link to="/playground">`.
+
 ## [5.13.0] - 2026-07-25
 
 ### Added

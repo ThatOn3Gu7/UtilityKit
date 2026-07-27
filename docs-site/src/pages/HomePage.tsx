@@ -206,7 +206,7 @@ function TerminalMockup() {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span style={{ color: C.accent }}>↵</span>
-              <span>run</span>
+              <span>: run</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span style={{ color: C.accent }}>q</span>
@@ -422,10 +422,8 @@ export function HomePage() {
                   <Wrench size={15} weight="duotone" />
                   Browse tools
                 </Link>
-                <a
-                  href="./playground/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/playground"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-medium text-sm transition-all hover:-translate-y-0.5"
                   style={{
                     background: "var(--bg-elevated)",
@@ -435,7 +433,7 @@ export function HomePage() {
                 >
                   <GameController size={15} weight="duotone" />
                   Playground
-                </a>
+                </Link>
                 <a
                   href="https://github.com/Thaton3gu7/UtilityKit"
                   target="_blank"
@@ -511,8 +509,25 @@ export function HomePage() {
                 INSTALL
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: "var(--text)" }}>
-                Up and running{" "}
-                <span className="font-serif italic text-gradient-accent">in seconds</span>
+                Up and running{" "} <span className="relative inline-block">
+                  <span className="font-serif italic text-gradient-accent">in seconds.</span>
+                  <motion.svg
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 1, delay: 0.8, ease: "easeInOut" }}
+                    viewBox="0 0 300 12"
+                    className="absolute left-0 -bottom-2 w-full h-3 pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <motion.path
+                      d="M2 8 Q 80 2, 150 6 T 298 5"
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </motion.svg>
+                </span>
               </h2>
               <p className="text-base" style={{ color: "var(--text-muted)" }}>
                 brew install, pkg install, or clone and go — no build step, no dependencies beyond Bash 5+.
@@ -566,7 +581,7 @@ export function HomePage() {
           </AnimatedIn>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {FEATURES.map((f, i) => (
+              {FEATURES.map((f) => (
                 <motion.div
                   key={f.title}
                   whileHover={{ y: -4 }}

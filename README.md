@@ -17,7 +17,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-blueviolet?style=flat-square)](https://github.com/Thaton3gu7/UtilityKit)
 [![CI](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Thaton3gu7/UtilityKit/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-PASS%207%2F7-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-5.11.0-orange?style=flat-square)](CHANGES.md)
+[![Version](https://img.shields.io/badge/Version-5.14.0-orange?style=flat-square)](CHANGES.md)
 
 </div>
 
@@ -469,6 +469,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide. Key rules:
 ## Changelog
 
 See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
+
+**v5.14.0** — Playground merged into main docs-site as an internal route (`/#/playground`), eliminating the separate build step. `installed` tool simulation added to the playground. Home page Playground button routing fixed.
 
 **v5.13.0** — Interactive browser playground with 23 live tools (password gen, weather, DNS probe, HTTP bench, cron parser, and more), Playground button in docs site header, modulo bias fix in browser tools, stale-closure fix in Pomodoro timer, error boundary for lazy-loaded components. Password gen widget removed from homepage (superseded by playground).
 
