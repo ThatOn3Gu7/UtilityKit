@@ -61,8 +61,8 @@ export default function ToolPlayer({ tool }) {
     );
   }
 
-  const script = SIM_SCRIPTS[tool.id];
-  if (!script) return <div style={{ color: '#f85149' }}>Missing simulation script: {tool.id}</div>;
+  const scenarios = SIM_SCRIPTS[tool.id];
+  if (!scenarios) return <div style={{ color: '#f85149' }}>Missing simulation script: {tool.id}</div>;
 
-  return <SimPlayer key={tool.id} title={`${tool.cmd} — ${tool.name}`} subtitle={`_${tool.id}.sh`} script={script} />;
+  return <SimPlayer key={tool.id} title={`${tool.cmd} — ${tool.name}`} subtitle={`_${tool.id}.sh`} scenarios={scenarios} />;
 }
