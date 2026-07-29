@@ -237,11 +237,6 @@ const NAV_LINKS: NavLink[] = [
     href: "/docs/architecture",
     icon: <BookOpen size={14} weight="duotone" />,
   },
-  {
-    label: "Playground",
-    href: "/playground",
-    icon: <Rocket size={14} weight="duotone" />,
-  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -375,7 +370,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         }}
                       />
                     )}
-                    <span className="relative flex items-center gap-1.5">
+                    <span className="relative flex items-center gap-1.5 whitespace-nowrap">
                       {link.icon}
                       {link.label}
                     </span>
@@ -534,6 +529,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </Link>
                     );
                   })}
+                  <Link to="/playground" className="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors" style={{ color: "var(--accent)" }}>
+                    <Rocket size={14} weight="duotone" />
+                    Playground
+                  </Link>
                   <a
                     href="https://github.com/Thaton3gu7/UtilityKit"
                     target="_blank"

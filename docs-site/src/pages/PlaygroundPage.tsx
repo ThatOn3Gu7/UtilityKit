@@ -30,6 +30,14 @@ export default function PlaygroundPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (active) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [active]);
+
   return (
     <div className="pg-shell" data-theme={resolved}>
       <div className="pg-hero">
