@@ -476,6 +476,9 @@ See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 
 **v5.11.0** — All 63 tools now render their `--help` inside boxed tables with ANSI-safe truncation (`...` for long descriptions). `fancy_help.sh` merged into main.sh; border alignment fixed; box helpers moved to `uk_common.sh` so every tool shares the same `uk_help_section()` system. `fancy_help.sh` removed.
 
+<details>
+ <summary><b>Click to expand full version catalog & upgrade reasons</b></summary>
+  
 **v5.10.0** — Package-manager install paths, removing the `git clone` step entirely: `Formula/utilitykit.rb` turns the repo into a Homebrew tap (`brew tap thaton3gu7/utilitykit <repo-url> && brew install utilitykit`, with `--HEAD` support and bash ≥ 4 guaranteed via the `bash` dependency), and `packaging/build-termux-deb.sh` builds a Termux `.deb` (`pkg install ./utilitykit_all.deb`) with launcher, completions, and `Depends: bash` wired in. A new `Release` workflow publishes the `.deb` (plus a stable-named `utilitykit_all.deb` alias) on every `vX.Y.Z` tag and verifies the tag matches `UK_VERSION`; `packaging/update-formula.sh` pins the formula's `url`/`sha256` to a released tag.
 
 **v5.9.0** — Shell tab-completions generated from `UK_REGISTRY`: new `scripts/gen_completions.sh` emits `completions/utility.bash` and `completions/utility.zsh` from the registry plus each tool's flag-parsing `case` labels, so `utility <TAB>` completes all commands and `utility <cmd> <TAB>` offers that tool's flags (zsh also shows per-command descriptions and files alongside). `setup.sh` gained step 7: copies `scripts/` + `completions/` into the install dir and idempotently wires a `UK_COMPLETE_CMD='<launcher>' source ...` line into `~/.bashrc` / `~/.zshrc` / `$ZDOTDIR/.zshrc`, so custom launcher names complete too.
@@ -499,10 +502,16 @@ See [`CHANGES.md`](CHANGES.md) for the full versioned changelog.
 **v5.1.1** — Added interactive directory picker menu to `_apply_changes` and resolved unbound variable bugs (array iteration fixes and global color initialization)
 
 **v5.0.0** — Unified single project version (`UK_VERSION` in `lib/uk_common.sh`); all per-tool versioning removed. Repository reorganized: every `_<tool>/` now lives under `modules/`.  
+
 **v4.2.0** — unified arrow-key scroll menu (8-row viewport), hidden cursor with restore trap, `set -euo pipefail` re-enabled  
+
 **v4.1.1** — cache cleaner runtime fixes under `set -e`, terminal-width hardening  
+
 **v4.1.0** — dashboard restyle, paged more-tools navigation, expanded interactive prompts  
+
 **v4.0.0** — initial unified suite: 18 roadmap tools + shared library + smoke suite  
+
+</details>
 
 ---
 
