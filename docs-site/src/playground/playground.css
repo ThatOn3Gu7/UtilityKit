@@ -130,6 +130,12 @@
   position: relative;
   overflow: hidden;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 .pg-card::before {
   content: '';
@@ -137,15 +143,19 @@
   inset: 0 0 auto 0;
   height: 2px;
   background: var(--cc, var(--accent));
-  opacity: 0;
+  opacity: 0.15;
   transition: opacity 0.15s;
 }
-.pg-card:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
-  background: var(--bg-subtle);
+@media (hover: hover) {
+  .pg-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    background: var(--bg-subtle);
+  }
+  .pg-card:hover::before { opacity: 1; }
+  .pg-card:hover .pg-card-arrow { transform: translateX(3px); color: var(--accent); }
 }
-.pg-card:hover::before { opacity: 1; }
+.pg-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .pg-card-top {
   display: flex;

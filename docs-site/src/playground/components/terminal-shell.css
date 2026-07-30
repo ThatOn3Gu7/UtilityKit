@@ -225,3 +225,30 @@
   background: linear-gradient(90deg, var(--uk-cyan), var(--uk-accent));
   transition: width 0.2s linear;
 }
+
+.uk-scenario-btn {
+  background: transparent;
+  border: 1px solid var(--uk-border);
+  border-radius: 100px;
+  color: var(--uk-dim);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.uk-scenario-btn:hover {
+  border-color: var(--uk-cyan);
+  color: var(--uk-cyan);
+}
+.uk-scenario-btn.active {
+  border-color: var(--uk-accent);
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--uk-accent);
+}
+.uk-scenario-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
