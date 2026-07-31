@@ -152,6 +152,14 @@ code, pre, .font-mono {
   border-radius: 4px;
 }
 button, a { outline: none; }
+
+/* Search modal input — soft focus glow, kept subtle for OLED screens */
+.search-input {
+  transition: box-shadow 0.2s ease;
+}
+.search-input:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent);
+}
 ::selection {
   background: var(--accent-glow);
   color: var(--text);

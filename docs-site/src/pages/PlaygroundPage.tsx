@@ -82,6 +82,11 @@ export default function PlaygroundPage() {
         {filtered.length === TOOLS.length ? `Showing all ${TOOLS.length} tools` : `Showing ${filtered.length} of ${TOOLS.length} tools`}
       </div>
 
+      <div className="pg-legend">
+        <span className="pg-legend-item">🟢 Try It Live = runs in your browser.</span>
+        <span className="pg-legend-item">🟡 Preview = recorded terminal walkthrough.</span>
+      </div>
+
       {filtered.length === 0 ? (
         <div className="pg-empty">No tools match your search.</div>
       ) : (
@@ -89,7 +94,7 @@ export default function PlaygroundPage() {
           {filtered.map((tool) => {
             const catMeta = CATEGORIES[tool.cat as keyof typeof CATEGORIES];
             return (
-              <button key={tool.id} className="pg-card" style={{ '--cc': catMeta.color } as React.CSSProperties} onClick={() => setActive(tool)}>
+              <button key={tool.id} className={`pg-card ${tool.kind === 'real' ? 'pg-card-live' : 'pg-card-sim'}`} style={{ '--cc': catMeta.color } as React.CSSProperties} onClick={() => setActive(tool)}>
                 <div className="pg-card-top">
                   <span className="pg-card-name">{tool.name}</span>
                   <span className="pg-card-cmd">{tool.cmd}</span>

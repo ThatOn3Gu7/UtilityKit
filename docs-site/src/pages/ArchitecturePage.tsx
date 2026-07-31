@@ -322,7 +322,7 @@ fi`}
             </p>
 
             <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--text-muted)" }}>
-              The router holds a registry — a mapping of command names to module paths and entry functions. This registry is what <Kbd>bash main.sh doctor</Kbd> validates.
+              The router holds a registry — a mapping of command names to module paths and entry functions. This registry is what <Kbd>utility doctor</Kbd> validates.
             </p>
 
             <CodeBlock
@@ -430,7 +430,7 @@ uk_icon() {
             </ul>
             <CodeBlock
               label="run integrity check"
-              code={`bash main.sh doctor
+              code={`utility doctor
 # Expected output:
 # [PASS] apply     → modules/_apply/_apply.sh
 # [PASS] rename    → modules/_rename/_rename.sh
@@ -470,7 +470,7 @@ uk_icon() {
               ))}
             </ol>
             <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
-              Run <Kbd>bash main.sh doctor</Kbd> after adding a tool to confirm the entry passes all integrity checks.
+              Run <Kbd>utility doctor</Kbd> after adding a tool to confirm the entry passes all integrity checks.
             </p>
           </section>
 

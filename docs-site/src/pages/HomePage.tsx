@@ -4,7 +4,6 @@ import { motion, useReducedMotion, useInView } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
-  GithubLogo,
   Terminal,
   Package,
   Cpu,
@@ -22,7 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { TabbedCodeBlock } from "@/components/CodeBlock";
 import { TOOLS as PLAYGROUND_TOOLS } from "@/playground/data/registry";
-import { TOOLS_BY_COMMAND } from "@/data/tools";
+import { TOOLS, TOOLS_BY_COMMAND } from "@/data/tools";
 import ToolPlayer from "@/playground/tools/ToolPlayer";
 import "@/playground/playground.css";
 import "@/playground/components/terminal-shell.css";
@@ -182,6 +181,8 @@ function TerminalMockup() {
         animate={{ opacity: 1, y: 0, rotateX: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         className="relative rounded-2xl overflow-hidden font-mono cursor-pointer"
+        role="img"
+        aria-label="UtilityKit interactive dashboard running in a terminal"
         style={{
           background: C.bg,
           border: `1px solid ${C.border}`,
@@ -228,7 +229,7 @@ function TerminalMockup() {
           <div className="flex items-center gap-1.5 mb-4">
             <span style={{ color: C.accent }}>~</span>
             <span style={{ color: C.textMuted }}>$</span>
-            <span style={{ color: C.text }}>bash main.sh</span>
+            <span style={{ color: C.text }}>utility</span>
             <span
               className="inline-block w-2 h-4 ml-0.5"
               style={{
@@ -250,7 +251,7 @@ function TerminalMockup() {
               UtilityKit Dashboard
             </div>
             <div className="text-sm" style={{ color: C.accent }}>
-              {count} tool{count === 1 ? "" : "s"} · bash main.sh
+              {count} tool{count === 1 ? "" : "s"} · utility
             </div>
           </div>
 
@@ -371,8 +372,52 @@ const STATS = [
   { value: "65", label: "tools", icon: <Package size={16} weight="duotone" /> },
   { value: "3", label: "platforms", icon: <Cpu size={16} weight="duotone" /> },
   { value: "MIT", label: "license", icon: <Shield size={16} weight="duotone" /> },
-  { value: "7/7", label: "tests passing", icon: <SealCheck size={16} weight="duotone" /> },
+  { value: "7/7", label: "integrity checks", icon: <SealCheck size={16} weight="duotone" /> },
 ];
+
+function StarButton() {
+  const [stars, setStars] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://api.github.com/repos/Thaton3gu7/UtilityKit")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data.stargazers_count === "number") {
+          setStars(data.stargazers_count);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const label =
+    stars === null
+      ? "Star"
+      : `${stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10000 ? 0 : 1)}k` : stars} Star${
+          stars === 1 ? "" : "s"
+        }`;
+
+  return (
+    <a
+      href="https://github.com/Thaton3gu7/UtilityKit"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-medium text-sm transition-all hover:-translate-y-0.5"
+      style={{
+        background: "transparent",
+        color: "var(--text-muted)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <span aria-hidden="true">⭐</span>
+      <span>{label}</span>
+      <ArrowUpRight size={12} className="opacity-60" />
+    </a>
+  );
+}
 
 const FEATURES = [
   {
@@ -446,13 +491,18 @@ utility pass --mode passphrase --words 6`,
   },
 ];
 
-const CATEGORIES = [
-  { name: "Core Suite", count: 6, slug: "core-suite", icon: <Package size={20} weight="duotone" />, color: "#10b981" },
-  { name: "Developer", count: 19, slug: "developer-tools", icon: <Terminal size={20} weight="duotone" />, color: "#3b82f6" },
-  { name: "System & Network", count: 14, slug: "system-network", icon: <Cpu size={20} weight="duotone" />, color: "#a855f7" },
-  { name: "Files & Security", count: 11, slug: "files-security", icon: <ShieldCheck size={20} weight="duotone" />, color: "#f43f5e" },
-  { name: "Productivity", count: 13, slug: "productivity", icon: <Timer size={20} weight="duotone" />, color: "#f59e0b" },
+const CATEGORY_DEFS = [
+  { name: "Core Suite", slug: "core-suite", icon: <Package size={20} weight="duotone" />, color: "#10b981" },
+  { name: "Developer Tools", slug: "developer-tools", icon: <Terminal size={20} weight="duotone" />, color: "#3b82f6" },
+  { name: "System & Network", slug: "system-network", icon: <Cpu size={20} weight="duotone" />, color: "#a855f7" },
+  { name: "Files & Security", slug: "files-security", icon: <ShieldCheck size={20} weight="duotone" />, color: "#f43f5e" },
+  { name: "Productivity", slug: "productivity", icon: <Timer size={20} weight="duotone" />, color: "#f59e0b" },
 ];
+
+const CATEGORIES = CATEGORY_DEFS.map((cat) => ({
+  ...cat,
+  count: TOOLS.filter((t) => t.category === cat.name).length,
+}));
 
 function AnimatedIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -535,7 +585,7 @@ export function HomePage() {
               >
                 A modular Bash toolkit for Linux, macOS, and Termux. Every tool runs standalone or navigates from a single arrow-key menu.{" "}
                 <span className="font-medium italic" style={{ color: "var(--text)" }}>
-                  No build step. No root. No dependencies.
+                  No build step. No root. Zero required dependencies.
                 </span>
               </motion.p>
 
@@ -582,21 +632,7 @@ export function HomePage() {
                   <GameController size={15} weight="duotone" />
                   Playground
                 </Link>
-                <a
-                  href="https://github.com/Thaton3gu7/UtilityKit"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-medium text-sm transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: "transparent",
-                    color: "var(--text-muted)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <GithubLogo size={15} weight="duotone" />
-                  Star
-                  <ArrowUpRight size={12} className="opacity-60" />
-                </a>
+                <StarButton />
               </motion.div>
             </div>
 
@@ -700,10 +736,10 @@ export function HomePage() {
                 PRINCIPLES
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: "var(--text)" }}>
-                Built for the terminal,{" "}
+                Built for the terminal ~{" "}
                 {/* <span className="font-serif italic">not around it</span> */}
                 <span className="relative inline-block">
-                  <span className="text-gradient-accent italic">not around it</span>
+                  <span className="text-gradient-accent italic">not around it.</span>
                   <motion.svg
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
@@ -801,7 +837,7 @@ export function HomePage() {
                   border: "1px solid var(--border)",
                 }}
               >
-                View all 65 tools
+                Browse all 65 tools
                 <ArrowRight size={13} />
               </Link>
             </div>
@@ -875,8 +911,21 @@ export function HomePage() {
             }}
           />
           <div className="relative">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: "var(--text)" }}>
+              Trust, but verify.
+            </h2>
+            <p className="text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: "var(--text-muted)" }}>
+              Audits every tool's registry entry, dispatch route, and{" "}
+              <code
+                className="font-mono text-sm px-2 py-0.5 rounded"
+                style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
+              >
+                --help
+              </code>{" "}
+              output in one pass. If it fails, we ship no release.
+            </p>
             <div
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-5"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs mb-3"
               style={{
                 background: "var(--accent-subtle)",
                 color: "var(--accent)",
@@ -886,25 +935,18 @@ export function HomePage() {
               <CheckCircle size={13} weight="fill" />
               <span className="font-mono">PASS 7/7 · integrity checker</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: "var(--text)" }}>
-              Trust, but verify.
-            </h2>
-            <p className="text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: "var(--text-muted)" }}>
+            <div className="mb-6">
               <code
-                className="font-mono text-sm px-2 py-0.5 rounded"
-                style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
+                className="inline-block font-mono text-sm px-3 py-1.5 rounded-lg"
+                style={{
+                  background: "var(--bg-inset)",
+                  color: "var(--accent)",
+                  border: "1px solid var(--border)",
+                }}
               >
-                bash main.sh doctor
-              </code>{" "}
-              audits every tool's registry entry, dispatch route, and{" "}
-              <code
-                className="font-mono text-sm px-2 py-0.5 rounded"
-                style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
-              >
-                --help
-              </code>{" "}
-              output in one pass. If it fails, we ship no release.
-            </p>
+                utility doctor
+              </code>
+            </div>
             <Link
               to="/docs/architecture"
               className="inline-flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4"

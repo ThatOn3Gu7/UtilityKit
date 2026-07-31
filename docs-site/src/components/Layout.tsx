@@ -93,7 +93,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search 65 tools…"
-            className="flex-1 bg-transparent outline-none text-sm"
+            className="search-input flex-1 bg-transparent outline-none text-sm"
             style={{ color: "var(--text)" }}
           />
           <kbd
@@ -165,8 +165,8 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                           </code>
                         </div>
                         <p
-                          className="text-xs truncate mt-0.5"
-                          style={{ color: "var(--text-muted)" }}
+                          className="text-xs line-clamp-2 mt-0.5"
+                          style={{ color: "var(--text-muted)", wordBreak: "keep-all", overflowWrap: "anywhere" }}
                         >
                           {tool.description}
                         </p>
@@ -619,9 +619,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               title="Categories"
               links={[
                 { label: "Core Suite", to: "/tools?category=core-suite" },
-                { label: "Developer", to: "/tools?category=developer-tools" },
-                { label: "System", to: "/tools?category=system-network" },
-                { label: "Security", to: "/tools?category=files-security" },
+                { label: "Developer Tools", to: "/tools?category=developer-tools" },
+                { label: "System & Network", to: "/tools?category=system-network" },
+                { label: "Files & Security", to: "/tools?category=files-security" },
+                { label: "Productivity", to: "/tools?category=productivity" },
               ]}
             />
             <FooterCol
@@ -651,7 +652,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             style={{ borderColor: "var(--border)" }}
           >
             <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-              © 2025 UtilityKit Contributors · MIT
+              © 2026 UtilityKit Contributors · MIT
             </p>
             <div
               className="flex items-center gap-1.5 text-xs font-mono"
@@ -664,7 +665,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   boxShadow: "0 0 8px var(--accent)",
                 }}
               />
-              PASS 7/7 · 65 tools · 3 platforms
+              PASS 7/7 integrity checks · 65 tools · 3 platforms
             </div>
           </div>
         </div>

@@ -96,9 +96,9 @@ const ENV_VARS = [
 const REQUIREMENTS = [
   { req: "Bash 5+", note: "Check with bash --version. macOS ships Bash 3 — the Homebrew formula pulls in Bash 5 automatically." },
   { req: "Git", note: "Only needed for the from-checkout install. The Homebrew tap and Termux .deb don't require it." },
-  { req: "No root", note: "All tools and every install method run entirely in user space." },
-  { req: "Python 3 (opt.)", note: "Powers json, csv, yaml, toc, and links tools for their Python-backed features." },
-  { req: "jq (opt.)", note: "Used by api, github, and other tools for JSON formatting. Falls back gracefully." },
+  { req: "No root", note: "Tested on Linux, macOS, and Termux on Android. No root required anywhere." },
+  { req: "Python 3 (opt.)", note: <>Powers <ToolMono>json</ToolMono>, <ToolMono>csv</ToolMono>, <ToolMono>yaml</ToolMono>, <ToolMono>toc</ToolMono>, and <ToolMono>links</ToolMono> tools for their Python-backed features.</> },
+  { req: "jq (opt.)", note: <>Used by <ToolMono>api</ToolMono>, <ToolMono>github</ToolMono>, and other tools for JSON formatting. Falls back gracefully.</> },
 ];
 
 const TOC = [
@@ -121,7 +121,7 @@ export function GettingStartedPage() {
             className="flex items-center gap-1.5 text-xs mb-8"
             style={{ color: "var(--text-subtle)" }}
           >
-            <Link to="/" className="hover:text-[color:var(--text)] transition-colors">Docs</Link>
+            <Link to="/" className="hover:text-[color:var(--text)] transition-colors">UtilityKit</Link>
             <CaretRight size={11} />
             <span style={{ color: "var(--text)" }}>Getting Started</span>
           </motion.nav>
@@ -166,6 +166,28 @@ export function GettingStartedPage() {
               </span>
             </p>
           </motion.div>
+
+          {/* Playground callout */}
+          <div
+            className="flex items-start gap-3 px-4 py-3.5 rounded-xl mb-12"
+            style={{
+              background: "var(--accent-subtle)",
+              border: "1px solid color-mix(in oklab, var(--accent) 25%, transparent)",
+            }}
+          >
+            <Info size={16} weight="duotone" className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>
+              Not sure which tool you need?{" "}
+              <Link
+                to="/playground"
+                className="font-semibold hover:underline underline-offset-4"
+                style={{ color: "var(--accent)" }}
+              >
+                Try the Playground
+              </Link>{" "}
+              to test tools directly in your browser.
+            </p>
+          </div>
 
           {/* Requirements */}
           <section id="requirements" className="mb-14 scroll-mt-24">
@@ -370,6 +392,17 @@ export function GettingStartedPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function ToolMono({ children }: { children: React.ReactNode }) {
+  return (
+    <code
+      className="font-mono text-[11px] px-1 py-0.5 rounded"
+      style={{ background: "var(--bg-inset)", color: "var(--accent)" }}
+    >
+      {children}
+    </code>
   );
 }
 

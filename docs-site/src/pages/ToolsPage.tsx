@@ -72,9 +72,9 @@ function ToolCard({ tool, query, index }: { tool: Tool; query: string; index: nu
           <span
             className="text-[10px] px-2 py-0.5 rounded-full shrink-0 font-mono uppercase tracking-wider inline-flex items-center gap-1"
             style={{
-              background: `color-mix(in oklab, ${meta.color} 10%, transparent)`,
+              background: "transparent",
               color: meta.color,
-              border: `1px solid color-mix(in oklab, ${meta.color} 15%, transparent)`,
+              border: `1.5px solid color-mix(in oklab, ${meta.color} 40%, transparent)`,
             }}
           >
             {meta.icon}
