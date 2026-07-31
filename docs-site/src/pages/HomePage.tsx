@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
-import { useInView } from "framer-motion";
+import { motion, useReducedMotion, useInView } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -14,12 +13,6 @@ import {
   Lightning,
   Wrench,
   SealCheck,
-  ArrowsClockwise,
-  CursorText,
-  Key,
-  Pulse,
-  BracketsCurly,
-  MagnifyingGlass,
   CheckCircle,
   Rocket,
   Cube,
@@ -28,15 +21,57 @@ import {
   Timer,
 } from "@phosphor-icons/react";
 import { TabbedCodeBlock } from "@/components/CodeBlock";
+import { TOOLS as PLAYGROUND_TOOLS } from "@/playground/data/registry";
+import { TOOLS_BY_COMMAND } from "@/data/tools";
+import ToolPlayer from "@/playground/tools/ToolPlayer";
+import "@/playground/playground.css";
+import "@/playground/components/terminal-shell.css";
 
-const TERMINAL_TOOLS = [
-  { icon: <ArrowsClockwise size={14} weight="duotone" />, name: "Apply Changes", cmd: "apply", desc: "Directory sync with backup & verify" },
-  { icon: <CursorText size={14} weight="duotone" />, name: "Batch Rename", cmd: "rename", desc: "Recursive file rename with rollback" },
-  { icon: <Key size={14} weight="duotone" />, name: "Password Gen", cmd: "pass", desc: "Passphrases & random strings" },
-  { icon: <Pulse size={14} weight="duotone" />, name: "Port Inspector", cmd: "port", desc: "Who owns this TCP port?" },
-  { icon: <BracketsCurly size={14} weight="duotone" />, name: "JSON Explorer", cmd: "json", desc: "Pretty-print, extract, summarize" },
-  { icon: <MagnifyingGlass size={14} weight="duotone" />, name: "Project Search", cmd: "search", desc: "rg → grep → find fallback chain" },
-];
+type TermTool = {
+  cmd: string;
+  name: string;
+  desc: string;
+  icon: string;
+  tool: (typeof PLAYGROUND_TOOLS)[number];
+};
+
+const TERMINAL_TOOLS: TermTool[] = PLAYGROUND_TOOLS.map((tool) => ({
+  cmd: tool.cmd,
+  name: tool.name,
+  desc: tool.desc,
+  icon: TOOLS_BY_COMMAND[tool.cmd]?.icon ?? "▪",
+  tool,
+}));
+
+const TOOL_COUNT = TERMINAL_TOOLS.length;
+const WINDOW = 6;
+const LOOP_MS = 1800;
+
+type Pos = { index: number; windowStart: number };
+
+function relInWindow(n: number, ws: number) {
+  return ((n - ws) % TOOL_COUNT + TOOL_COUNT) % TOOL_COUNT;
+}
+
+function advancePos(p: Pos): Pos {
+  const n = (p.index + 1) % TOOL_COUNT;
+  if (n < p.index) return { index: n, windowStart: n };
+  if (relInWindow(n, p.windowStart) < WINDOW) return { index: n, windowStart: p.windowStart };
+  return { index: n, windowStart: (n - WINDOW + 1 + TOOL_COUNT) % TOOL_COUNT };
+}
+
+function moveToPos(p: Pos, next: number): Pos {
+  const n = ((next % TOOL_COUNT) + TOOL_COUNT) % TOOL_COUNT;
+  if (relInWindow(n, p.windowStart) < WINDOW) return { index: n, windowStart: p.windowStart };
+  const windowStart = n < p.index ? n : (n - WINDOW + 1 + TOOL_COUNT) % TOOL_COUNT;
+  return { index: n, windowStart };
+}
+
+function stepPos(p: Pos, dir: 1 | -1): Pos {
+  const n = Math.min(TOOL_COUNT - 1, Math.max(0, p.index + dir));
+  if (n === p.index) return p;
+  return moveToPos(p, n);
+}
 
 const C = {
   bg: "#0d1117",
@@ -55,12 +90,21 @@ const C = {
 };
 
 function TerminalMockup() {
-  const [activeLine, setActiveLine] = useState(0);
+  const [mode, setMode] = useState<"idle" | "active">("idle");
+  const [pos, setPos] = useState<Pos>({ index: 0, windowStart: 0 });
   const [cursor, setCursor] = useState(true);
+  const [simTool, setSimTool] = useState<TermTool["tool"] | null>(null);
   const reduce = useReducedMotion();
-  const rootRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const inView = useInView(rootRef, { margin: "-100px" });
-  
+
+  const { index, windowStart } = pos;
+  const count = TOOL_COUNT - index;
+  const rows = Array.from({ length: WINDOW }, (_, k) => {
+    const rowIndex = (windowStart + k) % TOOL_COUNT;
+    return { ...TERMINAL_TOOLS[rowIndex], rowIndex };
+  });
+
   useEffect(() => {
     if (reduce || !inView) return;
     const c = setInterval(() => setCursor((v) => !v), 530);
@@ -68,10 +112,61 @@ function TerminalMockup() {
   }, [reduce, inView]);
 
   useEffect(() => {
-    if (reduce || !inView) return;
-    const l = setInterval(() => setActiveLine((v) => (v + 1) % TERMINAL_TOOLS.length), 1800);
+    if (reduce || !inView || mode !== "idle") return;
+    const l = setInterval(() => setPos(advancePos), LOOP_MS);
     return () => clearInterval(l);
-  }, [reduce, inView]);
+  }, [reduce, inView, mode]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (simTool) {
+        if (e.key === "Escape") setSimTool(null);
+        return;
+      }
+      if (mode !== "active") return;
+      switch (e.key) {
+        case "ArrowDown":
+        case "j":
+          e.preventDefault();
+          setPos((p) => stepPos(p, 1));
+          break;
+        case "ArrowUp":
+        case "k":
+          e.preventDefault();
+          setPos((p) => stepPos(p, -1));
+          break;
+        case "Enter":
+          setSimTool(TERMINAL_TOOLS[index].tool);
+          break;
+        case "Escape":
+        case "q":
+          setMode("idle");
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mode, simTool, index]);
+
+  useEffect(() => {
+    if (mode !== "active" || simTool) return;
+    const onDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setMode("idle");
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [mode, simTool]);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || mode !== "active" || simTool) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setPos((p) => stepPos(p, e.deltaY > 0 ? 1 : -1));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [mode, simTool]);
 
   return (
     <div ref={rootRef} className="relative w-full max-w-xl mx-auto">
@@ -86,13 +181,14 @@ function TerminalMockup() {
         initial={{ opacity: 0, y: 20, rotateX: -8 }}
         animate={{ opacity: 1, y: 0, rotateX: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        className="relative rounded-2xl overflow-hidden font-mono"
+        className="relative rounded-2xl overflow-hidden font-mono cursor-pointer"
         style={{
           background: C.bg,
           border: `1px solid ${C.border}`,
           boxShadow: `0 25px 50px -12px rgba(0,0,0,0.5), 0 0 60px -20px ${C.accentGlow}`,
           transformPerspective: 1000,
         }}
+        onClick={() => mode === "idle" && setMode("active")}
       >
         {/* Titlebar */}
         <div
@@ -105,11 +201,24 @@ function TerminalMockup() {
           <span className="ml-3 text-xs" style={{ color: C.textMuted }}>
             bash — UtilityKit
           </span>
-          <span 
-            className="ml-auto text-[10px] px-1.5 py-0.5 rounded" 
-            style={{ color: C.accent, background: "rgba(126,231,135,0.08)" }}
+          <span
+            className="ml-auto text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1.5"
+            style={
+              mode === "active"
+                ? { color: C.accent, background: "rgba(126,231,135,0.12)" }
+                : { color: C.textFaint, background: "rgba(255,255,255,0.05)" }
+            }
           >
-            live
+            {mode === "active" && (
+              <span className="relative flex h-1.5 w-1.5">
+                <span
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
+                  style={{ background: C.accent }}
+                />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.accent }} />
+              </span>
+            )}
+            {mode}
           </span>
         </div>
 
@@ -141,53 +250,57 @@ function TerminalMockup() {
               UtilityKit Dashboard
             </div>
             <div className="text-sm" style={{ color: C.accent }}>
-              65 tools · bash main.sh
+              {count} tool{count === 1 ? "" : "s"} · bash main.sh
             </div>
           </div>
 
           {/* Tool List */}
           <div className="space-y-0.5 mb-4">
-            {TERMINAL_TOOLS.map((tool, i) => (
-              <motion.div
-                key={tool.cmd}
-                animate={{
-                  background: i === activeLine ? C.accentBg : "transparent",
-                }}
-                transition={{ duration: 0.25 }}
-                className="flex items-center gap-2 px-2 py-1 rounded"
-                style={{
-                  borderLeft: `2px solid ${i === activeLine ? C.accent : "transparent"}`,
-                }}
-              >
-                <span 
-                  className="text-xs text-center flex-shrink-0 font-mono"
-                  style={{ color: i === activeLine ? C.accent : C.textDim, width: 16 }}
+            {rows.map((tool) => {
+              const active = tool.rowIndex === index;
+              return (
+                <motion.div
+                  key={tool.cmd}
+                  animate={{
+                    background: active ? C.accentBg : "transparent",
+                  }}
+                  transition={{ duration: 0.25 }}
+                  onMouseEnter={mode === "active" ? () => setPos((p) => moveToPos(p, tool.rowIndex)) : undefined}
+                  className="flex items-center gap-2 px-2 py-1 rounded"
+                  style={{
+                    borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
+                  }}
                 >
-                  {i === activeLine ? ">" : " "}
-                </span>
-                <span 
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{ color: i === activeLine ? C.text : C.textMuted, width: 20 }}
-                >
-                  {tool.icon}
-                </span>
-                <span
-                  className="text-xs flex-shrink-0 whitespace-nowrap overflow-hidden text-ellipsis"
-                  style={{ color: i === activeLine ? C.text : C.textMuted, width: 120 }}
-                  title={tool.name}
-                >
-                  {tool.name}
-                </span>
-                <span className="text-xs truncate" style={{ color: C.textFaint }}>
-                  {tool.desc}
-                </span>
-              </motion.div>
-            ))}
+                  <span
+                    className="text-xs text-center flex-shrink-0 font-mono"
+                    style={{ color: active ? C.accent : C.textDim, width: 16 }}
+                  >
+                    {active ? ">" : " "}
+                  </span>
+                  <span
+                    className="flex items-center justify-center flex-shrink-0 text-[11px]"
+                    style={{ color: active ? C.text : C.textMuted, width: 20 }}
+                  >
+                    {tool.icon}
+                  </span>
+                  <span
+                    className="text-xs flex-shrink-0 whitespace-nowrap overflow-hidden text-ellipsis"
+                    style={{ color: active ? C.text : C.textMuted, width: 120 }}
+                    title={tool.name}
+                  >
+                    {tool.name}
+                  </span>
+                  <span className="text-xs truncate" style={{ color: C.textFaint }}>
+                    {tool.desc}
+                  </span>
+                </motion.div>
+              );
+            })}
             <div className="flex items-center gap-2 px-2 py-1">
               <span style={{ width: 16 }} />
               <span style={{ width: 20 }} />
               <span className="text-xs" style={{ color: C.textDim, width: 120 }}>
-                · · 59 more
+                · · {count} more
               </span>
               <span className="text-xs" style={{ color: C.textDim }}>
                 tools
@@ -200,21 +313,56 @@ function TerminalMockup() {
             className="text-xs px-3 py-2.5 rounded-md flex items-center gap-5 flex-wrap"
             style={{ background: "rgba(255,255,255,0.03)", color: C.textMuted }}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <span style={{ color: C.accent }}>Use ▲▼ or j/k</span>
-              <span>: scroll</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span style={{ color: C.accent }}>↵</span>
-              <span>: run</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span style={{ color: C.accent }}>q</span>
-              <span>: quit</span>
-            </span>
+            {mode === "idle" ? (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  <span style={{ color: C.accent }}>auto-loop</span>
+                  <span>: cycling {TOOL_COUNT} tools</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span style={{ color: C.accent }}>click</span>
+                  <span>: browse</span>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  <span style={{ color: C.accent }}>▲▼ j·k scroll</span>
+                  <span>: browse</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span style={{ color: C.accent }}>↵</span>
+                  <span>: run</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span style={{ color: C.accent }}>esc</span>
+                  <span>: idle</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
       </motion.div>
+
+      {/* Playground simulation modal */}
+      {simTool && (
+        <div className="pg-modal-overlay" onClick={() => setSimTool(null)}>
+          <div className="pg-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pg-modal-head">
+              <div>
+                <p className="pg-modal-desc" style={{ marginBottom: 2, color: "#f3f4f6", fontWeight: 600, fontSize: 16 }}>
+                  {simTool.name}
+                </p>
+                <p className="pg-modal-desc">{simTool.desc}</p>
+              </div>
+              <button className="pg-modal-close" onClick={() => setSimTool(null)} aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <ToolPlayer tool={simTool} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

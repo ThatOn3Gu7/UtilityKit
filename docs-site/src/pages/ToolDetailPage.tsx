@@ -14,9 +14,14 @@ import {
   ShieldCheck,
   Timer,
   MagnifyingGlass,
+  GameController,
 } from "@phosphor-icons/react";
 import { TOOLS_BY_COMMAND, TOOLS, type Category } from "@/data/tools";
 import { CodeBlock } from "@/components/CodeBlock";
+import { TOOLS as PLAYGROUND_TOOLS } from "@/playground/data/registry";
+import ToolPlayer from "@/playground/tools/ToolPlayer";
+import "@/playground/playground.css";
+import "@/playground/components/terminal-shell.css";
 
 const CATEGORY_COLOR: Record<Category, { color: string; icon: React.ReactNode }> = {
   "Core Suite": { color: "#10b981", icon: <Package size={12} weight="duotone" /> },
@@ -115,14 +120,28 @@ const TOC_SECTIONS = [
 export function ToolDetailPage() {
   const { command } = useParams<{ command: string }>();
   const [activeSection, setActiveSection] = useState("overview");
+  const [simOpen, setSimOpen] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const tool = command ? TOOLS_BY_COMMAND[command] : undefined;
+  const playgroundTool = tool ? PLAYGROUND_TOOLS.find((t) => t.cmd === tool.command) : undefined;
 
   useEffect(() => {
     if (!tool) return;
     window.scrollTo(0, 0);
   }, [tool?.command]);
+
+  useEffect(() => {
+    if (!simOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSimOpen(false);
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [simOpen]);
 
   useEffect(() => {
     if (!tool) return;
@@ -271,6 +290,20 @@ export function ToolDetailPage() {
                 <span style={{ color: "var(--text-subtle)" }}> [OPTIONS]</span>
               </code>
               <CopyButton text={`bash main.sh ${tool.command}`} />
+              {playgroundTool && (
+                <button
+                  onClick={() => setSimOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap hover:-translate-y-0.5"
+                  style={{
+                    color: "var(--accent-fg)",
+                    background: "var(--accent)",
+                    boxShadow: "var(--shadow-glow)",
+                  }}
+                >
+                  <GameController size={13} weight="fill" />
+                  Try in playground
+                </button>
+              )}
             </motion.div>
           </section>
 
@@ -494,6 +527,25 @@ bash main.sh ${tool.command} --help`}
           </div>
         </aside>
       </div>
+
+      {simOpen && playgroundTool && (
+        <div className="pg-modal-overlay" onClick={() => setSimOpen(false)}>
+          <div className="pg-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pg-modal-head">
+              <div>
+                <p className="pg-modal-desc" style={{ marginBottom: 2, color: "#f3f4f6", fontWeight: 600, fontSize: 16 }}>
+                  {playgroundTool.name}
+                </p>
+                <p className="pg-modal-desc">{playgroundTool.desc}</p>
+              </div>
+              <button className="pg-modal-close" onClick={() => setSimOpen(false)} aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <ToolPlayer tool={playgroundTool} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
