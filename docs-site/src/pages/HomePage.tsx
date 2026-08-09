@@ -93,6 +93,7 @@ function TerminalMockup() {
   const [pos, setPos] = useState<Pos>({ index: 0, windowStart: 0 });
   const [cursor, setCursor] = useState(true);
   const [simTool, setSimTool] = useState<TermTool["tool"] | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const reduce = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const inView = useInView(rootRef, { margin: "-100px" });
@@ -104,18 +105,30 @@ function TerminalMockup() {
     return { ...TERMINAL_TOOLS[rowIndex], rowIndex };
   });
 
+  // ── Mobile detection ──────────────────────────────────────────
+  useEffect(() => {
+    const checkMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || "ontouchstart" in window;
+    setIsMobile(checkMobile);
+  }, []);
+
+  // ── Cursor blink ──────────────────────────────────────────────
   useEffect(() => {
     if (reduce || !inView) return;
     const c = setInterval(() => setCursor((v) => !v), 530);
     return () => clearInterval(c);
   }, [reduce, inView]);
 
+  // ── Idle auto-loop ─────────────────────────────────────────────
   useEffect(() => {
     if (reduce || !inView || mode !== "idle") return;
     const l = setInterval(() => setPos(advancePos), LOOP_MS);
     return () => clearInterval(l);
   }, [reduce, inView, mode]);
 
+  // ── Desktop keyboard (single step — OS repeat handles hold) ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (simTool) {
@@ -147,15 +160,18 @@ function TerminalMockup() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mode, simTool, index]);
 
+  // ── Click outside to close ─────────────────────────────────────
   useEffect(() => {
     if (mode !== "active" || simTool) return;
     const onDown = (e: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setMode("idle");
+      if (rootRef.current && !rootRef.current.contains(e.target as Node))
+        setMode("idle");
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
   }, [mode, simTool]);
 
+  // ── Wheel scroll ───────────────────────────────────────────────
   useEffect(() => {
     const el = rootRef.current;
     if (!el || mode !== "active" || simTool) return;
@@ -166,7 +182,53 @@ function TerminalMockup() {
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [mode, simTool]);
+  // ── Mobile button repeat engine (pointer events only) ──────────
+  const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const repeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRepeatingRef = useRef(false);
 
+  const clearRepeat = () => {
+    if (repeatTimeoutRef.current) {
+      clearTimeout(repeatTimeoutRef.current);
+      repeatTimeoutRef.current = null;
+    }
+    if (repeatTimerRef.current) {
+      clearInterval(repeatTimerRef.current);
+      repeatTimerRef.current = null;
+    }
+    isRepeatingRef.current = false;
+  };
+
+  const makePointerHandlers = (dir: 1 | -1) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();  // stop mouse emulation / scrolling
+      e.currentTarget.setPointerCapture(e.pointerId);
+      clearRepeat();
+
+      // 1. Immediate single step (responsive tap)
+      setPos((p) => stepPos(p, dir));
+
+      // 2. If still held after 400 ms, start rapid fire
+      repeatTimeoutRef.current = setTimeout(() => {
+        isRepeatingRef.current = true;
+        repeatTimerRef.current = setInterval(() => {
+          setPos((p) => stepPos(p, dir));
+        }, 60); // ~16 steps/sec
+      }, 400);
+    },
+
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      clearRepeat(); // released before 400 ms = just a tap
+    },
+
+    onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      clearRepeat(); // finger slid off
+    },
+
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
   return (
     <div ref={rootRef} className="relative w-full max-w-xl mx-auto">
       <div
@@ -181,8 +243,6 @@ function TerminalMockup() {
         animate={{ opacity: 1, y: 0, rotateX: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         className="relative rounded-2xl overflow-hidden font-mono cursor-pointer"
-        role="img"
-        aria-label="UtilityKit interactive dashboard running in a terminal"
         style={{
           background: C.bg,
           border: `1px solid ${C.border}`,
@@ -194,7 +254,10 @@ function TerminalMockup() {
         {/* Titlebar */}
         <div
           className="flex items-center gap-2 px-4 py-3 border-b"
-          style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
+          style={{
+            borderColor: "rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.02)",
+          }}
         >
           <div className="w-3 h-3 rounded-full" style={{ background: C.dotRed }} />
           <div className="w-3 h-3 rounded-full" style={{ background: C.dotYellow }} />
@@ -216,7 +279,10 @@ function TerminalMockup() {
                   className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
                   style={{ background: C.accent }}
                 />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.accent }} />
+                <span
+                  className="relative inline-flex rounded-full h-1.5 w-1.5"
+                  style={{ background: C.accent }}
+                />
               </span>
             )}
             {mode}
@@ -229,7 +295,7 @@ function TerminalMockup() {
           <div className="flex items-center gap-1.5 mb-4">
             <span style={{ color: C.accent }}>~</span>
             <span style={{ color: C.textMuted }}>$</span>
-            <span style={{ color: C.text }}>utility</span>
+            <span style={{ color: C.text }}>bash main.sh</span>
             <span
               className="inline-block w-2 h-4 ml-0.5"
               style={{
@@ -251,25 +317,35 @@ function TerminalMockup() {
               UtilityKit Dashboard
             </div>
             <div className="text-sm" style={{ color: C.accent }}>
-              {count} tool{count === 1 ? "" : "s"} · utility
+              {count} tool{count === 1 ? "" : "s"} · bash main.sh
             </div>
           </div>
 
           {/* Tool List */}
-          <div className="space-y-0.5 mb-4">
+          <div className="mb-3">
             {rows.map((tool) => {
               const active = tool.rowIndex === index;
               return (
                 <motion.div
                   key={tool.cmd}
-                  animate={{
-                    background: active ? C.accentBg : "transparent",
-                  }}
+                  animate={{ background: active ? C.accentBg : "transparent" }}
                   transition={{ duration: 0.25 }}
-                  onMouseEnter={mode === "active" ? () => setPos((p) => moveToPos(p, tool.rowIndex)) : undefined}
-                  className="flex items-center gap-2 px-2 py-1 rounded"
+                  onMouseEnter={
+                    mode === "active" && !isMobile
+                      ? () => setPos((p) => moveToPos(p, tool.rowIndex))
+                      : undefined
+                  }
+                  onClick={
+                    mode === "active" && isMobile
+                      ? () => setPos((p) => moveToPos(p, tool.rowIndex))
+                      : undefined
+                  }
+                  className="flex items-center gap-2 px-2 rounded"
                   style={{
                     borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
+                    paddingTop: isMobile ? 6 : 2,
+                    paddingBottom: isMobile ? 6 : 2,
+                    minHeight: isMobile ? 36 : undefined,
                   }}
                 >
                   <span
@@ -297,7 +373,7 @@ function TerminalMockup() {
                 </motion.div>
               );
             })}
-            <div className="flex items-center gap-2 px-2 py-1">
+            <div className="flex items-center gap-2 px-2 py-0.5">
               <span style={{ width: 16 }} />
               <span style={{ width: 20 }} />
               <span className="text-xs" style={{ color: C.textDim, width: 120 }}>
@@ -309,39 +385,111 @@ function TerminalMockup() {
             </div>
           </div>
 
-          {/* Bottom hint bar */}
-          <div
-            className="text-xs px-3 py-2.5 rounded-md flex items-center gap-5 flex-wrap"
-            style={{ background: "rgba(255,255,255,0.03)", color: C.textMuted }}
-          >
-            {mode === "idle" ? (
-              <>
-                <span className="inline-flex items-center gap-1.5">
-                  <span style={{ color: C.accent }}>auto-loop</span>
-                  <span>: cycling {TOOL_COUNT} tools</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span style={{ color: C.accent }}>click</span>
-                  <span>: browse</span>
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="inline-flex items-center gap-1.5">
-                  <span style={{ color: C.accent }}>▲▼ j·k scroll</span>
-                  <span>: browse</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span style={{ color: C.accent }}>↵</span>
-                  <span>: run</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span style={{ color: C.accent }}>esc</span>
-                  <span>: idle</span>
-                </span>
-              </>
-            )}
-          </div>
+          {/* Bottom hint bar (desktop) or Mobile Action Bar */}
+          {mode === "active" && isMobile ? (
+            <div
+              className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg select-none"
+              style={{
+                background: C.bgElevated,
+                border: `1px solid ${C.border}`,
+                touchAction: "none",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                {/* ▲ PREV */}
+                <button
+                  {...makePointerHandlers(-1)}
+                  className="flex items-center justify-center w-9 h-9 rounded-lg active:scale-95 transition-transform"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: C.text,
+                    border: `1px solid ${C.border}`,
+                    touchAction: "none",
+                  }}
+                  aria-label="Previous"
+                >
+                  ▲
+                </button>
+
+                {/* ▼ NEXT */}
+                <button
+                  {...makePointerHandlers(1)}
+                  className="flex items-center justify-center w-9 h-9 rounded-lg active:scale-95 transition-transform"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: C.text,
+                    border: `1px solid ${C.border}`,
+                    touchAction: "none",
+                  }}
+                  aria-label="Next"
+                >
+                  ▼
+                </button>
+              </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSimTool(TERMINAL_TOOLS[index].tool);
+                }}
+                className="flex items-center gap-1.5 px-3 h-9 rounded-lg font-medium text-sm active:scale-95 transition-transform select-none"
+                style={{ background: C.accent, color: C.bg }}
+              >
+                <span>▶</span>
+                Run
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMode("idle");
+                }}
+                className="flex items-center justify-center w-9 h-9 rounded-lg active:scale-95 transition-transform select-none"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  color: C.textMuted,
+                  border: `1px solid ${C.border}`,
+                }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            /* ── DESKTOP HINT BAR ── */
+            <div
+              className="text-xs px-3 py-2 rounded-md flex items-center gap-5 flex-wrap"
+              style={{ background: "rgba(255,255,255,0.03)", color: C.textMuted }}
+            >
+              {mode === "idle" ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span style={{ color: C.accent }}>auto-loop</span>
+                    <span>: cycling {TOOL_COUNT} tools</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span style={{ color: C.accent }}>click</span>
+                    <span>: browse</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span style={{ color: C.accent }}>Ise ▲▼ or j/k scroll</span>
+                    <span>: browse</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span style={{ color: C.accent }}>↵</span>
+                    <span>: run</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span style={{ color: C.accent }}>esc</span>
+                    <span>: idle</span>
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -351,12 +499,24 @@ function TerminalMockup() {
           <div className="pg-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pg-modal-head">
               <div>
-                <p className="pg-modal-desc" style={{ marginBottom: 2, color: "#f3f4f6", fontWeight: 600, fontSize: 16 }}>
+                <p
+                  className="pg-modal-desc"
+                  style={{
+                    marginBottom: 2,
+                    color: "#f3f4f6",
+                    fontWeight: 600,
+                    fontSize: 16,
+                  }}
+                >
                   {simTool.name}
                 </p>
                 <p className="pg-modal-desc">{simTool.desc}</p>
               </div>
-              <button className="pg-modal-close" onClick={() => setSimTool(null)} aria-label="Close">
+              <button
+                className="pg-modal-close"
+                onClick={() => setSimTool(null)}
+                aria-label="Close"
+              >
                 ✕
               </button>
             </div>
